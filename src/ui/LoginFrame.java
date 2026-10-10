@@ -8,42 +8,61 @@ import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.net.URL;
 
 public class LoginFrame extends JFrame {
-
-
+    
     // COLORS
 
+    private static final Color NAVY =
+            new Color(15, 39, 68);
 
-    private static final Color NAVY = new Color(15, 39, 68);
-    private static final Color NAVY_LIGHT = new Color(24, 57, 94);
+    private static final Color NAVY_LIGHT =
+            new Color(24, 57, 91);
 
-    private static final Color BLUE = new Color(37, 99, 166);
-    private static final Color BLUE_HOVER = new Color(28, 78, 135);
+    private static final Color TEAL =
+            new Color(20, 151, 145);
 
-    private static final Color TEAL = new Color(20, 184, 166);
+    private static final Color TEAL_DARK =
+            new Color(15, 125, 121);
 
-    private static final Color LIGHT_BG = new Color(246, 248, 252);
+    private static final Color BACKGROUND =
+            new Color(245, 248, 252);
 
-    private static final Color TEXT_DARK = new Color(25, 35, 50);
-    private static final Color TEXT_GRAY = new Color(100, 116, 139);
+    private static final Color WHITE =
+            Color.WHITE;
 
-    private static final Color BORDER = new Color(214, 222, 232);
-    private static final Color FOCUS_BORDER = new Color(37, 99, 166);
+    private static final Color TEXT_DARK =
+            new Color(37, 50, 65);
 
+    private static final Color TEXT_MUTED =
+            new Color(130, 143, 158);
+
+    private static final Color BORDER =
+            new Color(220, 228, 236);
+
+    private static final Color FIELD_BACKGROUND =
+            new Color(249, 251, 254);
+
+    private static final Color SUCCESS =
+            new Color(30, 155, 100);
+
+    private static final Color ERROR =
+            new Color(210, 65, 65);
 
     // COMPONENTS
 
+    private RoundedTextField usernameField;
 
-    private JTextField usernameField;
-    private JPasswordField passwordField;
+    private RoundedPasswordField passwordField;
+
+    private JCheckBox rememberMeCheckBox;
 
     private RoundedButton loginButton;
-    private EyeButton showPasswordButton;
 
-    private JCheckBox rememberMe;
+    private JLabel statusLabel;
 
-    private JLabel messageLabel;
+    private EyeButton eyeButton;
 
 
     // CONSTRUCTOR
@@ -53,375 +72,347 @@ public class LoginFrame extends JFrame {
 
         setTitle("FAMS - Faculty Academic Management System");
 
-        setSize(1100, 680);
-        setMinimumSize(new Dimension(1000, 620));
-
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        setSize(1100, 680);
+
+        setMinimumSize(new Dimension(1000, 620));
 
         setLocationRelativeTo(null);
 
         setResizable(false);
 
+        setLayout(new BorderLayout());
+
+        getContentPane().setBackground(BACKGROUND);
+
+        // Left branding panel
+        JPanel brandingPanel = createBrandingPanel();
+
+        // Right login panel
+        JPanel loginPanel = createLoginPanel();
+
+        add(brandingPanel, BorderLayout.WEST);
+
+        add(loginPanel, BorderLayout.CENTER);
+    }
 
 
-        // MAIN PANEL
+    // BRANDING PANEL
+    private JPanel createBrandingPanel() {
 
+        RoundedPanel panel = new RoundedPanel(0);
 
-        JPanel mainPanel = new JPanel(new BorderLayout());
+        panel.setBackground(NAVY);
 
-        mainPanel.setBackground(LIGHT_BG);
+        panel.setPreferredSize(new Dimension(520, 680));
 
-        setContentPane(mainPanel);
+        panel.setLayout(new BorderLayout());
 
-
-
-        // LEFT PANEL
-
-
-        JPanel leftPanel = new JPanel() {
-
-            @Override
-            protected void paintComponent(Graphics g) {
-
-                super.paintComponent(g);
-
-                Graphics2D g2 = (Graphics2D) g.create();
-
-                g2.setRenderingHint(
-                        RenderingHints.KEY_ANTIALIASING,
-                        RenderingHints.VALUE_ANTIALIAS_ON
-                );
-
-                int width = getWidth();
-                int height = getHeight();
-
-
-                // Main gradient background
-                GradientPaint gradient = new GradientPaint(
-                        0,
-                        0,
-                        NAVY,
-                        width,
-                        height,
-                        NAVY_LIGHT
-                );
-
-                g2.setPaint(gradient);
-
-                g2.fillRect(
-                        0,
-                        0,
-                        width,
-                        height
-                );
-
-
-                // Decorative blue circle
-                g2.setColor(
-                        new Color(
-                                37,
-                                99,
-                                166,
-                                55
-                        )
-                );
-
-                g2.fillOval(
-                        -170,
-                        height - 250,
-                        400,
-                        400
-                );
-
-
-                // Decorative teal circle
-                g2.setColor(
-                        new Color(
-                                20,
-                                184,
-                                166,
-                                35
-                        )
-                );
-
-                g2.fillOval(
-                        width - 180,
-                        -120,
-                        300,
-                        300
-                );
-
-
-                // Decorative dots
-                g2.setColor(
-                        new Color(
-                                255,
-                                255,
-                                255,
-                                40
-                        )
-                );
-
-                g2.fillOval(55, 110, 8, 8);
-                g2.fillOval(width - 80, 270, 7, 7);
-                g2.fillOval(90, 480, 6, 6);
-
-                g2.dispose();
-            }
-        };
-
-
-        leftPanel.setPreferredSize(
-                new Dimension(570, 680)
-        );
-
-        leftPanel.setLayout(
-                new BorderLayout()
+        panel.setBorder(
+                new EmptyBorder(35, 45, 30, 45)
         );
 
 
-        // BRANDING PANEL
+        // BRANDING HEADER
 
+        JPanel brandingHeader = new JPanel();
 
-        JPanel brandingPanel = new JPanel();
+        brandingHeader.setOpaque(false);
 
-        brandingPanel.setOpaque(false);
-
-        brandingPanel.setLayout(
+        brandingHeader.setLayout(
                 new BoxLayout(
-                        brandingPanel,
+                        brandingHeader,
                         BoxLayout.Y_AXIS
                 )
         );
 
-        brandingPanel.setBorder(
-                new EmptyBorder(
-                        45,
-                        60,
-                        35,
-                        60
-                )
+
+        // FAMS logo
+        JLabel logoLabel = createLogoLabel();
+
+        logoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        brandingHeader.add(logoLabel);
+
+        brandingHeader.add(Box.createVerticalStrut(12));
+
+
+        // Main title
+        JLabel titleLabel = new JLabel(
+                "<html>"
+                        + "<span style='font-size:27px;"
+                        + "font-weight:bold;'>"
+                        + "Faculty Academic"
+                        + "</span><br>"
+                        + "<span style='font-size:27px;"
+                        + "font-weight:bold;'>"
+                        + "Management System"
+                        + "</span>"
+                        + "</html>"
         );
 
-
-
-        // FAMS BRAND
-
-        JLabel logoLabel = new JLabel("FAMS");
-
-        logoLabel.setFont(
-                new Font(
-                        "SansSerif",
-                        Font.BOLD,
-                        56
-                )
+        titleLabel.setFont(
+                new Font("SansSerif", Font.BOLD, 27)
         );
 
-        logoLabel.setForeground(Color.WHITE);
+        titleLabel.setForeground(WHITE);
 
-        logoLabel.setAlignmentX(
-                Component.LEFT_ALIGNMENT
-        );
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        brandingHeader.add(titleLabel);
+
+        brandingHeader.add(Box.createVerticalStrut(14));
 
 
+        // Subtitle
         JLabel subtitleLabel = new JLabel(
-                "FACULTY ACADEMIC MANAGEMENT SYSTEM"
+                "<html>"
+                        + "<div style='width:350px;"
+                        + "line-height:1.5;'>"
+                        + "A unified platform for managing "
+                        + "academic activities, resources, "
+                        + "and student information."
+                        + "</div>"
+                        + "</html>"
         );
 
         subtitleLabel.setFont(
-                new Font(
-                        "SansSerif",
-                        Font.BOLD,
-                        12
-                )
+                new Font("SansSerif", Font.PLAIN, 14)
         );
 
         subtitleLabel.setForeground(
-                new Color(
-                        190,
-                        211,
-                        232
-                )
+                new Color(197, 212, 228)
         );
 
-        subtitleLabel.setAlignmentX(
-                Component.LEFT_ALIGNMENT
-        );
+        subtitleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        brandingHeader.add(subtitleLabel);
 
 
-        brandingPanel.add(
-                logoLabel
-        );
-
-        brandingPanel.add(
-                Box.createVerticalStrut(1)
-        );
-
-        brandingPanel.add(
-                subtitleLabel
+        panel.add(
+                brandingHeader,
+                BorderLayout.NORTH
         );
 
 
+        // CENTER ILLUSTRATION
 
-        // DIVIDER
-
-
-        JPanel divider = new JPanel();
-
-        divider.setBackground(
-                new Color(
-                        255,
-                        255,
-                        255,
-                        60
-                )
+        JPanel illustrationContainer = new JPanel(
+                new GridBagLayout()
         );
 
-        divider.setMaximumSize(
-                new Dimension(
-                        110,
-                        1
-                )
-        );
-
-        divider.setAlignmentX(
-                Component.LEFT_ALIGNMENT
-        );
-
-
-        brandingPanel.add(
-                Box.createVerticalStrut(15)
-        );
-
-        brandingPanel.add(divider);
-
-
-
-        // ILLUSTRATION
-
+        illustrationContainer.setOpaque(false);
 
         UniversityIllustration illustration =
                 new UniversityIllustration();
 
-        illustration.setOpaque(false);
-
         illustration.setPreferredSize(
-                new Dimension(
-                        450,
-                        310
-                )
+                new Dimension(400, 270)
         );
 
-        illustration.setMaximumSize(
-                new Dimension(
-                        450,
-                        310
-                )
-        );
+        illustrationContainer.add(illustration);
 
-        illustration.setAlignmentX(
-                Component.CENTER_ALIGNMENT
-        );
-
-
-        brandingPanel.add(
-                Box.createVerticalStrut(15)
-        );
-
-        brandingPanel.add(
-                illustration
-        );
-
-
-        brandingPanel.add(
-                Box.createVerticalGlue()
-        );
-
-
-        // DESCRIPTION
-
-
-        JLabel descriptionLabel = new JLabel(
-                "<html>" +
-                        "<div style='text-align:center;'>" +
-                        "A smarter way to manage academic activities,<br>" +
-                        "faculty information and university resources." +
-                        "</div>" +
-                        "</html>"
-        );
-
-        descriptionLabel.setFont(
-                new Font(
-                        "SansSerif",
-                        Font.PLAIN,
-                        14
-                )
-        );
-
-        descriptionLabel.setForeground(
-                new Color(
-                        205,
-                        220,
-                        236
-                )
-        );
-
-        descriptionLabel.setHorizontalAlignment(
-                SwingConstants.CENTER
-        );
-
-        descriptionLabel.setAlignmentX(
-                Component.CENTER_ALIGNMENT
-        );
-
-
-        brandingPanel.add(
-                descriptionLabel
-        );
-
-        brandingPanel.add(
-                Box.createVerticalStrut(10)
-        );
-
-
-        leftPanel.add(
-                brandingPanel,
+        panel.add(
+                illustrationContainer,
                 BorderLayout.CENTER
         );
 
 
+        // FOOTER
 
-        // RIGHT PANEL
+        JPanel footerPanel = new JPanel();
 
+        footerPanel.setOpaque(false);
 
-        JPanel rightPanel =
-                new JPanel(
-                        new GridBagLayout()
-                );
-
-        rightPanel.setBackground(
-                LIGHT_BG
+        footerPanel.setLayout(
+                new BoxLayout(
+                        footerPanel,
+                        BoxLayout.Y_AXIS
+                )
         );
 
+
+        JLabel footerTitle = new JLabel(
+                "SMARTER ACADEMIC MANAGEMENT"
+        );
+
+        footerTitle.setFont(
+                new Font("SansSerif", Font.BOLD, 12)
+        );
+
+        footerTitle.setForeground(
+                new Color(125, 218, 210)
+        );
+
+        footerTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+
+        JLabel footerDescription = new JLabel(
+                "Simplifying the academic experience."
+        );
+
+        footerDescription.setFont(
+                new Font("SansSerif", Font.PLAIN, 12)
+        );
+
+        footerDescription.setForeground(
+                new Color(183, 200, 217)
+        );
+
+        footerDescription.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+
+        footerPanel.add(footerTitle);
+
+        footerPanel.add(
+                Box.createVerticalStrut(8)
+        );
+
+        footerPanel.add(footerDescription);
+
+
+        panel.add(
+                footerPanel,
+                BorderLayout.SOUTH
+        );
+
+
+        return panel;
+    }
+
+
+    // LOAD FAMS LOGO
+
+    private JLabel createLogoLabel() {
+
+        URL logoURL = LoginFrame.class.getResource(
+                "/images/fams-logo-transparent.png"
+        );
+
+
+        // Fallback if the image cannot be found
+        if (logoURL == null) {
+
+            System.err.println(
+                    "FAMS logo not found: "
+                            + "/images/fams-logo-transparent.png"
+            );
+
+            JLabel fallbackLabel = new JLabel("FAMS");
+
+            fallbackLabel.setFont(
+                    new Font(
+                            "SansSerif",
+                            Font.BOLD,
+                            42
+                    )
+            );
+
+            fallbackLabel.setForeground(WHITE);
+
+            return fallbackLabel;
+        }
+
+
+        // Load original image
+        ImageIcon originalIcon = new ImageIcon(logoURL);
+
+        int originalWidth = originalIcon.getIconWidth();
+
+        int originalHeight = originalIcon.getIconHeight();
+
+
+        if (originalWidth <= 0 || originalHeight <= 0) {
+
+            JLabel fallbackLabel = new JLabel("FAMS");
+
+            fallbackLabel.setFont(
+                    new Font(
+                            "SansSerif",
+                            Font.BOLD,
+                            42
+                    )
+            );
+
+            fallbackLabel.setForeground(WHITE);
+
+            return fallbackLabel;
+        }
+
+
+        // Maintain original image proportions
+        int targetWidth = 175;
+
+        int targetHeight = 110;
+
+        double scale = Math.min(
+                (double) targetWidth / originalWidth,
+                (double) targetHeight / originalHeight
+        );
+
+
+        int scaledWidth = Math.max(
+                1,
+                (int) (originalWidth * scale)
+        );
+
+        int scaledHeight = Math.max(
+                1,
+                (int) (originalHeight * scale)
+        );
+
+
+        Image scaledImage = originalIcon
+                .getImage()
+                .getScaledInstance(
+                        scaledWidth,
+                        scaledHeight,
+                        Image.SCALE_SMOOTH
+                );
+
+
+        JLabel logoLabel = new JLabel(
+                new ImageIcon(scaledImage)
+        );
+
+        logoLabel.setHorizontalAlignment(
+                SwingConstants.LEFT
+        );
+
+        logoLabel.setVerticalAlignment(
+                SwingConstants.CENTER
+        );
+
+        logoLabel.setToolTipText(
+                "Faculty Academic Management System"
+        );
+
+
+        return logoLabel;
+    }
+
+
+    // LOGIN PANEL
+
+    private JPanel createLoginPanel() {
+
+        JPanel mainPanel = new JPanel(
+                new GridBagLayout()
+        );
+
+        mainPanel.setBackground(BACKGROUND);
+
+        mainPanel.setBorder(
+                new EmptyBorder(25, 35, 25, 35)
+        );
 
 
         // LOGIN CARD
 
+        RoundedPanel loginCard = new RoundedPanel(28);
 
-        RoundedPanel loginCard =
-                new RoundedPanel(
-                        24,
-                        Color.WHITE
-                );
-
-
-        loginCard.setPreferredSize(
-                new Dimension(
-                        420,
-                        520
-                )
-        );
-
+        loginCard.setBackground(WHITE);
 
         loginCard.setLayout(
                 new BoxLayout(
@@ -430,242 +421,41 @@ public class LoginFrame extends JFrame {
                 )
         );
 
-
         loginCard.setBorder(
-                new EmptyBorder(
-                        42,
-                        45,
-                        35,
-                        45
-                )
+                new EmptyBorder(35, 38, 30, 38)
         );
 
+        loginCard.setPreferredSize(
+                new Dimension(425, 535)
+        );
 
+        // WELCOME TITLE
 
-        // WELCOME
-
-
-        JLabel welcomeLabel =
-                new JLabel(
-                        "Welcome Back"
-                );
+        JLabel welcomeLabel = new JLabel(
+                "Welcome Back!"
+        );
 
         welcomeLabel.setFont(
                 new Font(
                         "SansSerif",
                         Font.BOLD,
-                        30
+                        29
                 )
         );
 
-        welcomeLabel.setForeground(
-                TEXT_DARK
-        );
+        welcomeLabel.setForeground(NAVY);
 
         welcomeLabel.setAlignmentX(
                 Component.LEFT_ALIGNMENT
         );
 
+        // DESCRIPTION
 
-        JLabel signInLabel =
-                new JLabel(
-                        "Sign in to continue to FAMS"
-                );
-
-        signInLabel.setFont(
-                new Font(
-                        "SansSerif",
-                        Font.PLAIN,
-                        14
-                )
+        JLabel descriptionLabel = new JLabel(
+                "Sign in to access your academic dashboard."
         );
 
-        signInLabel.setForeground(
-                TEXT_GRAY
-        );
-
-        signInLabel.setAlignmentX(
-                Component.LEFT_ALIGNMENT
-        );
-
-
-        loginCard.add(
-                welcomeLabel
-        );
-
-        loginCard.add(
-                Box.createVerticalStrut(6)
-        );
-
-        loginCard.add(
-                signInLabel
-        );
-
-        loginCard.add(
-                Box.createVerticalStrut(32)
-        );
-
-
-
-        // USERNAME
-
-
-        JLabel usernameLabel =
-                createFieldLabel(
-                        "Username"
-                );
-
-        usernameLabel.setAlignmentX(
-                Component.LEFT_ALIGNMENT
-        );
-
-
-        usernameField =
-                new RoundedTextField(
-                        14
-                );
-
-        styleTextField(
-                usernameField
-        );
-
-        usernameField.setToolTipText(
-                "Enter your username"
-        );
-
-
-        loginCard.add(
-                usernameLabel
-        );
-
-        loginCard.add(
-                Box.createVerticalStrut(8)
-        );
-
-        loginCard.add(
-                usernameField
-        );
-
-
-        loginCard.add(
-                Box.createVerticalStrut(19)
-        );
-
-
-        // PASSWORD
-
-
-        JLabel passwordLabel =
-                createFieldLabel(
-                        "Password"
-                );
-
-        passwordLabel.setAlignmentX(
-                Component.LEFT_ALIGNMENT
-        );
-
-
-        JPanel passwordPanel =
-                new JPanel(
-                        new BorderLayout()
-                );
-
-        passwordPanel.setOpaque(false);
-
-        passwordPanel.setMaximumSize(
-                new Dimension(
-                        Integer.MAX_VALUE,
-                        50
-                )
-        );
-
-        passwordPanel.setPreferredSize(
-                new Dimension(
-                        330,
-                        50
-                )
-        );
-
-        passwordPanel.setAlignmentX(
-                Component.LEFT_ALIGNMENT
-        );
-
-
-        // IMPORTANT:
-        // Password must use RoundedPasswordField
-        passwordField =
-                new RoundedPasswordField(
-                        14
-                );
-
-        styleTextField(
-                passwordField
-        );
-
-        passwordField.setEchoChar('•');
-
-
-        // Remove normal Swing border
-        // because RoundedPasswordField
-        // draws its own border.
-        passwordField.setBorder(
-                BorderFactory.createEmptyBorder(
-                        0,
-                        14,
-                        0,
-                        45
-                )
-        );
-
-
-        showPasswordButton =
-                new EyeButton();
-
-
-        showPasswordButton.addActionListener(
-                e -> togglePassword()
-        );
-
-
-        passwordPanel.add(
-                passwordField,
-                BorderLayout.CENTER
-        );
-
-        passwordPanel.add(
-                showPasswordButton,
-                BorderLayout.EAST
-        );
-
-
-        loginCard.add(
-                passwordLabel
-        );
-
-        loginCard.add(
-                Box.createVerticalStrut(8)
-        );
-
-        loginCard.add(
-                passwordPanel
-        );
-
-
-        loginCard.add(
-                Box.createVerticalStrut(16)
-        );
-
-
-
-        // REMEMBER ME
-
-
-        rememberMe =
-                new JCheckBox(
-                        "Remember me"
-                );
-
-        rememberMe.setFont(
+        descriptionLabel.setFont(
                 new Font(
                         "SansSerif",
                         Font.PLAIN,
@@ -673,41 +463,92 @@ public class LoginFrame extends JFrame {
                 )
         );
 
-        rememberMe.setForeground(
-                TEXT_GRAY
-        );
+        descriptionLabel.setForeground(TEXT_MUTED);
 
-        rememberMe.setBackground(
-                Color.WHITE
-        );
-
-        rememberMe.setFocusPainted(false);
-
-        rememberMe.setAlignmentX(
+        descriptionLabel.setAlignmentX(
                 Component.LEFT_ALIGNMENT
         );
 
 
-        loginCard.add(
-                rememberMe
+        // USERNAME LABEL
+
+        JLabel usernameLabel = createFieldLabel(
+                "Username"
         );
 
 
-        loginCard.add(
-                Box.createVerticalStrut(16)
+        // USERNAME FIELD
+
+        usernameField = new RoundedTextField(
+                "Enter your username"
+        );
+
+        styleTextField(usernameField);
+
+        // PASSWORD LABEL
+
+        JLabel passwordLabel = createFieldLabel(
+                "Password"
+        );
+
+        // PASSWORD FIELD
+
+        passwordField = new RoundedPasswordField(
+                "Enter your password"
+        );
+
+        stylePasswordField(passwordField);
+
+        // PASSWORD FIELD WITH EYE BUTTON
+
+        JPanel passwordContainer = new JPanel(
+                new BorderLayout(5, 0)
+        );
+
+        passwordContainer.setOpaque(false);
+
+        passwordContainer.setAlignmentX(
+                Component.LEFT_ALIGNMENT
+        );
+
+        passwordContainer.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        48
+                )
+        );
+
+        passwordContainer.setPreferredSize(
+                new Dimension(340, 48)
         );
 
 
+        eyeButton = new EyeButton();
 
-        // MESSAGE
+        eyeButton.setToolTipText(
+                "Show or hide password"
+        );
+
+        eyeButton.addActionListener(e -> togglePasswordVisibility());
 
 
-        messageLabel =
-                new JLabel(
-                        " "
-                );
+        passwordContainer.add(
+                passwordField,
+                BorderLayout.CENTER
+        );
 
-        messageLabel.setFont(
+        passwordContainer.add(
+                eyeButton,
+                BorderLayout.EAST
+        );
+
+        // REMEMBER ME
+
+        rememberMeCheckBox = new JCheckBox(
+                "Remember me"
+        );
+
+        rememberMeCheckBox.setFont(
                 new Font(
                         "SansSerif",
                         Font.PLAIN,
@@ -715,309 +556,25 @@ public class LoginFrame extends JFrame {
                 )
         );
 
-        messageLabel.setForeground(
-                new Color(
-                        220,
-                        70,
-                        70
-                )
+        rememberMeCheckBox.setForeground(
+                TEXT_MUTED
         );
 
-        messageLabel.setAlignmentX(
+        rememberMeCheckBox.setOpaque(false);
+
+        rememberMeCheckBox.setFocusPainted(false);
+
+        rememberMeCheckBox.setCursor(
+                new Cursor(Cursor.HAND_CURSOR)
+        );
+
+        rememberMeCheckBox.setAlignmentX(
                 Component.LEFT_ALIGNMENT
         );
 
-
-        loginCard.add(
-                messageLabel
-        );
-
-
-        loginCard.add(
-                Box.createVerticalStrut(7)
-        );
-
-
-
-        // SIGN IN BUTTON
-
-
-        loginButton =
-                new RoundedButton(
-                        "SIGN IN",
-                        14
-                );
-
-        styleLoginButton();
-
-
-        loginCard.add(
-                loginButton
-        );
-
-
-        loginCard.add(
-                Box.createVerticalStrut(20)
-        );
-
-
-        // FOOTER
-
-
-        JLabel footerLabel =
-                new JLabel(
-                        "Faculty Academic Management System"
-                );
-
-        footerLabel.setFont(
-                new Font(
-                        "SansSerif",
-                        Font.PLAIN,
-                        11
-                )
-        );
-
-        footerLabel.setForeground(
-                new Color(
-                        150,
-                        160,
-                        175
-                )
-        );
-
-        footerLabel.setAlignmentX(
-                Component.CENTER_ALIGNMENT
-        );
-
-
-        loginCard.add(
-                footerLabel
-        );
-
-
-
-        // LOGIN ACTION
-
-
-        loginButton.addActionListener(
-                e -> handleLogin()
-        );
-
-
-        // Enter key
-        getRootPane().setDefaultButton(
-                loginButton
-        );
-
-
-        rightPanel.add(
-                loginCard
-        );
-
-
-
-        // ADD PANELS
-
-
-        mainPanel.add(
-                leftPanel,
-                BorderLayout.WEST
-        );
-
-        mainPanel.add(
-                rightPanel,
-                BorderLayout.CENTER
-        );
-
-
-
-        // INITIAL FOCUS
-
-
-        SwingUtilities.invokeLater(
-                () -> usernameField.requestFocusInWindow()
-        );
-    }
-
-
-
-    // FIELD LABEL
-
-
-    private JLabel createFieldLabel(
-            String text
-    ) {
-
-        JLabel label =
-                new JLabel(text);
-
-        label.setFont(
-                new Font(
-                        "SansSerif",
-                        Font.BOLD,
-                        13
-                )
-        );
-
-        label.setForeground(
-                TEXT_DARK
-        );
-
-        return label;
-    }
-
-
-    // TEXT FIELD STYLE
-
-
-    private void styleTextField(
-            JTextField field
-    ) {
-
-        field.setFont(
-                new Font(
-                        "SansSerif",
-                        Font.PLAIN,
-                        14
-                )
-        );
-
-        field.setForeground(
-                TEXT_DARK
-        );
-
-        field.setBackground(
-                Color.WHITE
-        );
-
-        field.setCaretColor(
-                BLUE
-        );
-
-
-        field.setMaximumSize(
-                new Dimension(
-                        Integer.MAX_VALUE,
-                        50
-                )
-        );
-
-        field.setPreferredSize(
-                new Dimension(
-                        330,
-                        50
-                )
-        );
-
-
-
-        // FOCUS EFFECT
-
-
-        field.addFocusListener(
-                new FocusAdapter() {
-
-                    @Override
-                    public void focusGained(
-                            FocusEvent e
-                    ) {
-
-                        if (
-                                field
-                                        instanceof
-                                        RoundedTextField
-                        ) {
-
-                            RoundedTextField roundedField =
-                                    (RoundedTextField) field;
-
-                            roundedField.setFocusState(
-                                    true
-                            );
-
-                        } else if (
-                                field
-                                        instanceof
-                                        RoundedPasswordField
-                        ) {
-
-                            RoundedPasswordField roundedField =
-                                    (RoundedPasswordField) field;
-
-                            roundedField.setFocusState(
-                                    true
-                            );
-                        }
-                    }
-
-
-                    @Override
-                    public void focusLost(
-                            FocusEvent e
-                    ) {
-
-                        if (
-                                field
-                                        instanceof
-                                        RoundedTextField
-                        ) {
-
-                            RoundedTextField roundedField =
-                                    (RoundedTextField) field;
-
-                            roundedField.setFocusState(
-                                    false
-                            );
-
-                        } else if (
-                                field
-                                        instanceof
-                                        RoundedPasswordField
-                        ) {
-
-                            RoundedPasswordField roundedField =
-                                    (RoundedPasswordField) field;
-
-                            roundedField.setFocusState(
-                                    false
-                            );
-                        }
-                    }
-                }
-        );
-    }
-
-
-
-    // LOGIN BUTTON STYLE
-
-
-    private void styleLoginButton() {
-
-        loginButton.setFont(
-                new Font(
-                        "SansSerif",
-                        Font.BOLD,
-                        15
-                )
-        );
-
-        loginButton.setForeground(
-                Color.WHITE
-        );
-
-        loginButton.setBackground(
-                BLUE
-        );
-
-        loginButton.setFocusPainted(
-                false
-        );
-
-        loginButton.setCursor(
-                new Cursor(
-                        Cursor.HAND_CURSOR
-                )
+        // LOGIN BUTTON
+        loginButton = new RoundedButton(
+                "Sign In"
         );
 
         loginButton.setAlignmentX(
@@ -1027,191 +584,421 @@ public class LoginFrame extends JFrame {
         loginButton.setMaximumSize(
                 new Dimension(
                         Integer.MAX_VALUE,
-                        50
+                        49
                 )
         );
 
         loginButton.setPreferredSize(
+                new Dimension(340, 49)
+        );
+
+        loginButton.addActionListener(
+                e -> handleLogin()
+        );
+
+
+        // STATUS LABEL
+
+        statusLabel = new JLabel(
+                " "
+        );
+
+        statusLabel.setFont(
+                new Font(
+                        "SansSerif",
+                        Font.PLAIN,
+                        12
+                )
+        );
+
+        statusLabel.setForeground(ERROR);
+
+        statusLabel.setAlignmentX(
+                Component.LEFT_ALIGNMENT
+        );
+
+
+        // KEYBOARD SUPPORT
+
+        usernameField.addActionListener(
+                e -> passwordField.requestFocusInWindow()
+        );
+
+        passwordField.addActionListener(
+                e -> handleLogin()
+        );
+
+        // ADD COMPONENTS TO LOGIN CARD
+
+
+        loginCard.add(welcomeLabel);
+
+        loginCard.add(
+                Box.createVerticalStrut(8)
+        );
+
+        loginCard.add(descriptionLabel);
+
+        loginCard.add(
+                Box.createVerticalStrut(30)
+        );
+
+
+        loginCard.add(usernameLabel);
+
+        loginCard.add(
+                Box.createVerticalStrut(9)
+        );
+
+        loginCard.add(usernameField);
+
+        loginCard.add(
+                Box.createVerticalStrut(22)
+        );
+
+
+        loginCard.add(passwordLabel);
+
+        loginCard.add(
+                Box.createVerticalStrut(9)
+        );
+
+        loginCard.add(passwordContainer);
+
+        loginCard.add(
+                Box.createVerticalStrut(17)
+        );
+
+
+        loginCard.add(rememberMeCheckBox);
+
+        loginCard.add(
+                Box.createVerticalStrut(24)
+        );
+
+
+        loginCard.add(loginButton);
+
+        loginCard.add(
+                Box.createVerticalStrut(10)
+        );
+
+        loginCard.add(statusLabel);
+
+        loginCard.add(
+                Box.createVerticalGlue()
+        );
+
+
+        // FOOTER
+
+        JLabel footerLabel = new JLabel(
+                "Faculty Academic Management System"
+        );
+
+        footerLabel.setFont(
+                new Font(
+                        "SansSerif",
+                        Font.PLAIN,
+                        11
+                )
+        );
+
+        footerLabel.setForeground(TEXT_MUTED);
+
+        footerLabel.setAlignmentX(
+                Component.CENTER_ALIGNMENT
+        );
+
+        // MAIN PANEL LAYOUT
+        JPanel cardWrapper = new JPanel();
+
+        cardWrapper.setOpaque(false);
+
+        cardWrapper.setLayout(
+                new BoxLayout(
+                        cardWrapper,
+                        BoxLayout.Y_AXIS
+                )
+        );
+
+        loginCard.setAlignmentX(
+                Component.CENTER_ALIGNMENT
+        );
+
+        cardWrapper.add(loginCard);
+
+        cardWrapper.add(
+                Box.createVerticalStrut(18)
+        );
+
+        cardWrapper.add(footerLabel);
+
+
+        mainPanel.add(cardWrapper);
+
+
+        return mainPanel;
+    }
+
+
+    // FIELD LABEL
+
+
+    private JLabel createFieldLabel(String text) {
+
+        JLabel label = new JLabel(text);
+
+        label.setFont(
+                new Font(
+                        "SansSerif",
+                        Font.BOLD,
+                        13
+                )
+        );
+
+        label.setForeground(TEXT_DARK);
+
+        label.setAlignmentX(
+                Component.LEFT_ALIGNMENT
+        );
+
+        return label;
+    }
+
+    // STYLE USERNAME FIELD
+
+
+    private void styleTextField(
+            RoundedTextField field
+    ) {
+
+        field.setFont(
+                new Font(
+                        "SansSerif",
+                        Font.PLAIN,
+                        13
+                )
+        );
+
+        field.setForeground(TEXT_DARK);
+
+        field.setBackground(FIELD_BACKGROUND);
+
+        field.setCaretColor(TEAL);
+
+        field.setPreferredSize(
+                new Dimension(340, 48)
+        );
+
+        field.setMaximumSize(
                 new Dimension(
-                        330,
-                        50
+                        Integer.MAX_VALUE,
+                        48
                 )
         );
 
 
-        // HOVER EFFECT
-
-        loginButton.addMouseListener(
-                new MouseAdapter() {
+        field.addFocusListener(
+                new FocusAdapter() {
 
                     @Override
-                    public void mouseEntered(
-                            MouseEvent e
-                    ) {
+                    public void focusGained(FocusEvent e) {
 
-                        loginButton.setBackground(
-                                BLUE_HOVER
-                        );
+                        field.setFocused(true);
                     }
 
-
                     @Override
-                    public void mouseExited(
-                            MouseEvent e
-                    ) {
+                    public void focusLost(FocusEvent e) {
 
-                        loginButton.setBackground(
-                                BLUE
-                        );
+                        field.setFocused(false);
                     }
                 }
         );
     }
 
+    // STYLE PASSWORD FIELD
+
+    private void stylePasswordField(
+            RoundedPasswordField field
+    ) {
+
+        field.setFont(
+                new Font(
+                        "SansSerif",
+                        Font.PLAIN,
+                        13
+                )
+        );
+
+        field.setForeground(TEXT_DARK);
+
+        field.setBackground(FIELD_BACKGROUND);
+
+        field.setCaretColor(TEAL);
+
+        field.setPreferredSize(
+                new Dimension(280, 48)
+        );
 
 
-    // PASSWORD SHOW / HIDE
+        field.addFocusListener(
+                new FocusAdapter() {
+
+                    @Override
+                    public void focusGained(FocusEvent e) {
+
+                        field.setFocused(true);
+                    }
+
+                    @Override
+                    public void focusLost(FocusEvent e) {
+
+                        field.setFocused(false);
+                    }
+                }
+        );
+    }
+
+    // PASSWORD VISIBILITY
+
+    private void togglePasswordVisibility() {
+
+        if (passwordField == null) {
+            return;
+        }
 
 
-    private void togglePassword() {
+        if (passwordField.isPasswordVisible()) {
 
-        if (
-                passwordField.getEchoChar()
-                        == (char) 0
-        ) {
+            passwordField.setPasswordVisible(false);
 
-            passwordField.setEchoChar(
-                    '•'
-            );
-
-            showPasswordButton.setShowing(
-                    false
-            );
+            eyeButton.setVisiblePassword(false);
 
         } else {
 
-            passwordField.setEchoChar(
-                    (char) 0
-            );
+            passwordField.setPasswordVisible(true);
 
-            showPasswordButton.setShowing(
-                    true
-            );
+            eyeButton.setVisiblePassword(true);
         }
+
 
         passwordField.requestFocusInWindow();
     }
 
 
-    // LOGIN FUNCTION
-
+    // LOGIN VALIDATION
 
     private void handleLogin() {
 
-        String username =
-                usernameField
-                        .getText()
-                        .trim();
+        String username = usernameField.getText().trim();
 
-        String password =
-                new String(
-                        passwordField.getPassword()
-                );
+        char[] passwordChars =
+                passwordField.getPassword();
+
+        String password = new String(passwordChars);
 
 
-        messageLabel.setText(
-                " "
+        // Clear temporary password array
+        java.util.Arrays.fill(
+                passwordChars,
+                '\0'
         );
 
+        // EMPTY FIELD VALIDATION
 
-        if (username.isEmpty()) {
+        if (username.isEmpty()
+                || username.equals("Enter your username")) {
 
-            messageLabel.setText(
+            showError(
                     "Please enter your username."
             );
 
-            usernameField.requestFocus();
+            usernameField.requestFocusInWindow();
 
             return;
         }
 
 
-        if (password.isEmpty()) {
+        if (password.isEmpty()
+                || password.equals("Enter your password")) {
 
-            messageLabel.setText(
+            showError(
                     "Please enter your password."
             );
 
-            passwordField.requestFocus();
+            passwordField.requestFocusInWindow();
 
             return;
         }
 
+        // TEMPORARY LOGIN
 
+        if (username.equals("admin")
+                && password.equals("1234")) {
 
-        // TEMPORARY LOGIN TEST
+            showSuccess(
+                    "Login successful!"
+            );
 
-
-        if (
-                username.equals("admin")
-                        &&
-                        password.equals("1234")
-        ) {
 
             JOptionPane.showMessageDialog(
                     this,
-                    "Login successful!",
-                    "FAMS",
+                    "Welcome to FAMS, " + username + "!",
+                    "Login Successful",
                     JOptionPane.INFORMATION_MESSAGE
             );
 
         } else {
 
-            messageLabel.setText(
+            showError(
                     "Invalid username or password."
             );
 
             passwordField.setText("");
 
-            passwordField.requestFocus();
+            passwordField.requestFocusInWindow();
         }
     }
 
+    // SHOW ERROR
 
+    private void showError(String message) {
+
+        statusLabel.setForeground(ERROR);
+
+        statusLabel.setText(message);
+    }
+
+    // SHOW SUCCESS
+
+    private void showSuccess(String message) {
+
+        statusLabel.setForeground(SUCCESS);
+
+        statusLabel.setText(message);
+    }
 
     // ROUNDED PANEL
 
 
-    private static class RoundedPanel
-            extends JPanel {
+    static class RoundedPanel extends JPanel {
 
-        private final int radius;
-        private final Color backgroundColor;
+        private final int cornerRadius;
 
 
-        public RoundedPanel(
-                int radius,
-                Color backgroundColor
-        ) {
+        public RoundedPanel(int radius) {
 
-            this.radius =
-                    radius;
-
-            this.backgroundColor =
-                    backgroundColor;
+            this.cornerRadius = radius;
 
             setOpaque(false);
         }
 
 
         @Override
-        protected void paintComponent(
-                Graphics g
-        ) {
+        protected void paintComponent(Graphics g) {
 
-            Graphics2D g2 =
-                    (Graphics2D) g.create();
-
+            Graphics2D g2 = (Graphics2D) g.create();
 
             g2.setRenderingHint(
                     RenderingHints.KEY_ANTIALIASING,
@@ -1219,21 +1006,31 @@ public class LoginFrame extends JFrame {
             );
 
 
-            g2.setColor(
-                    backgroundColor
-            );
+            g2.setColor(getBackground());
 
 
-            g2.fill(
-                    new RoundRectangle2D.Double(
-                            0,
-                            0,
-                            getWidth() - 1,
-                            getHeight() - 1,
-                            radius,
-                            radius
-                    )
-            );
+            if (cornerRadius <= 0) {
+
+                g2.fillRect(
+                        0,
+                        0,
+                        getWidth(),
+                        getHeight()
+                );
+
+            } else {
+
+                g2.fill(
+                        new RoundRectangle2D.Float(
+                                0,
+                                0,
+                                getWidth(),
+                                getHeight(),
+                                cornerRadius,
+                                cornerRadius
+                        )
+                );
+            }
 
 
             g2.dispose();
@@ -1242,171 +1039,88 @@ public class LoginFrame extends JFrame {
         }
     }
 
+    // ROUNDED USERNAME FIELD
 
-
-    // ROUNDED TEXT FIELD
-
-
-    private static class RoundedTextField
-            extends JTextField {
-
-        private final int radius;
+    static class RoundedTextField extends JTextField {
 
         private boolean focused = false;
 
+        private boolean showingPlaceholder = true;
 
-        public RoundedTextField(
-                int radius
-        ) {
+        private final String placeholder;
 
-            this.radius =
-                    radius;
+
+        public RoundedTextField(String placeholder) {
+
+            this.placeholder = placeholder;
+
+            setText(placeholder);
 
             setOpaque(false);
 
             setBorder(
-                    BorderFactory.createEmptyBorder(
-                            0,
-                            14,
-                            0,
-                            14
-                    )
+                    new EmptyBorder(0, 15, 0, 15)
+            );
+
+
+            addFocusListener(
+                    new FocusAdapter() {
+
+                        @Override
+                        public void focusGained(FocusEvent e) {
+
+                            if (showingPlaceholder) {
+
+                                setText("");
+
+                                showingPlaceholder = false;
+                            }
+
+                            repaint();
+                        }
+
+
+                        @Override
+                        public void focusLost(FocusEvent e) {
+
+                            if (getText().trim().isEmpty()) {
+
+                                setText(placeholder);
+
+                                showingPlaceholder = true;
+                            }
+
+                            repaint();
+                        }
+                    }
             );
         }
 
 
-        public void setFocusState(
-                boolean focused
-        ) {
+        public void setFocused(boolean focused) {
 
-            this.focused =
-                    focused;
+            this.focused = focused;
 
             repaint();
         }
 
 
         @Override
-        protected void paintComponent(
-                Graphics g
-        ) {
+        public String getText() {
 
-            Graphics2D g2 =
-                    (Graphics2D) g.create();
+            if (showingPlaceholder) {
 
+                return "";
+            }
 
-            g2.setRenderingHint(
-                    RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON
-            );
-
-
-            // Background
-            g2.setColor(
-                    Color.WHITE
-            );
-
-
-            g2.fillRoundRect(
-                    0,
-                    0,
-                    getWidth() - 1,
-                    getHeight() - 1,
-                    radius,
-                    radius
-            );
-
-
-            // Border
-            g2.setColor(
-                    focused
-                            ? FOCUS_BORDER
-                            : BORDER
-            );
-
-
-            g2.setStroke(
-                    new BasicStroke(
-                            focused
-                                    ? 2f
-                                    : 1f
-                    )
-            );
-
-
-            g2.drawRoundRect(
-                    focused ? 1 : 0,
-                    focused ? 1 : 0,
-                    getWidth()
-                            -
-                            (focused ? 2 : 1),
-                    getHeight()
-                            -
-                            (focused ? 2 : 1),
-                    radius,
-                    radius
-            );
-
-
-            g2.dispose();
-
-
-            super.paintComponent(g);
-        }
-    }
-
-
-
-    // ROUNDED PASSWORD FIELD
-
-
-    private static class RoundedPasswordField
-            extends JPasswordField {
-
-        private final int radius;
-
-        private boolean focused = false;
-
-
-        public RoundedPasswordField(
-                int radius
-        ) {
-
-            this.radius =
-                    radius;
-
-            setOpaque(false);
-
-            setBorder(
-                    BorderFactory.createEmptyBorder(
-                            0,
-                            14,
-                            0,
-                            45
-                    )
-            );
-        }
-
-
-        public void setFocusState(
-                boolean focused
-        ) {
-
-            this.focused =
-                    focused;
-
-            repaint();
+            return super.getText();
         }
 
 
         @Override
-        protected void paintComponent(
-                Graphics g
-        ) {
+        protected void paintComponent(Graphics g) {
 
-            Graphics2D g2 =
-                    (Graphics2D) g.create();
-
+            Graphics2D g2 = (Graphics2D) g.create();
 
             g2.setRenderingHint(
                     RenderingHints.KEY_ANTIALIASING,
@@ -1414,183 +1128,187 @@ public class LoginFrame extends JFrame {
             );
 
 
-            // Background
-            g2.setColor(
-                    Color.WHITE
-            );
-
-
-            g2.fillRoundRect(
-                    0,
-                    0,
-                    getWidth() - 1,
-                    getHeight() - 1,
-                    radius,
-                    radius
-            );
-
-
-            // Border
-            g2.setColor(
-                    focused
-                            ? FOCUS_BORDER
-                            : BORDER
-            );
-
-
-            g2.setStroke(
-                    new BasicStroke(
-                            focused
-                                    ? 2f
-                                    : 1f
-                    )
-            );
-
-
-            g2.drawRoundRect(
-                    focused ? 1 : 0,
-                    focused ? 1 : 0,
-                    getWidth()
-                            -
-                            (focused ? 2 : 1),
-                    getHeight()
-                            -
-                            (focused ? 2 : 1),
-                    radius,
-                    radius
-            );
-
-
-            g2.dispose();
-
-
-            super.paintComponent(g);
-        }
-    }
-
-
-
-    // ROUNDED BUTTON
-
-
-    private static class RoundedButton
-            extends JButton {
-
-        private final int radius;
-
-
-        public RoundedButton(
-                String text,
-                int radius
-        ) {
-
-            super(text);
-
-            this.radius =
-                    radius;
-
-            setOpaque(false);
-
-            setBorderPainted(false);
-
-            setFocusPainted(false);
-
-            setContentAreaFilled(false);
-        }
-
-
-        @Override
-        protected void paintComponent(
-                Graphics g
-        ) {
-
-            Graphics2D g2 =
-                    (Graphics2D) g.create();
-
-
-            g2.setRenderingHint(
-                    RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON
-            );
-
-
-            g2.setColor(
-                    getBackground()
-            );
-
+            g2.setColor(getBackground());
 
             g2.fillRoundRect(
                     0,
                     0,
                     getWidth(),
                     getHeight(),
-                    radius,
-                    radius
+                    14,
+                    14
+            );
+
+
+            g2.setColor(
+                    focused ? TEAL : BORDER
+            );
+
+            g2.setStroke(
+                    new BasicStroke(
+                            focused ? 1.8f : 1.0f
+                    )
+            );
+
+            g2.drawRoundRect(
+                    0,
+                    0,
+                    getWidth() - 1,
+                    getHeight() - 1,
+                    14,
+                    14
             );
 
 
             g2.dispose();
 
 
+            Color previousForeground = getForeground();
+
+
+            if (showingPlaceholder) {
+
+                setForeground(TEXT_MUTED);
+            }
+
+
             super.paintComponent(g);
+
+
+            if (showingPlaceholder) {
+
+                setForeground(TEXT_MUTED);
+
+            } else {
+
+                setForeground(previousForeground);
+            }
         }
     }
 
 
+    // ROUNDED PASSWORD FIELD
+    static class RoundedPasswordField
+            extends JPasswordField {
 
-    // PASSWORD EYE BUTTON
+        private boolean focused = false;
+
+        private boolean showingPlaceholder = true;
+
+        private final String placeholder;
+
+        private boolean passwordVisible = false;
 
 
-    private static class EyeButton
-            extends JButton {
+        public RoundedPasswordField(String placeholder) {
 
-        private boolean showing = false;
+            this.placeholder = placeholder;
 
-
-        public EyeButton() {
-
-            setPreferredSize(
-                    new Dimension(
-                            42,
-                            50
-                    )
-            );
+            setText(placeholder);
 
             setOpaque(false);
 
-            setContentAreaFilled(false);
+            setBorder(
+                    new EmptyBorder(0, 15, 0, 15)
+            );
 
-            setBorderPainted(false);
+            setEchoChar((char) 0);
 
-            setFocusPainted(false);
 
-            setCursor(
-                    new Cursor(
-                            Cursor.HAND_CURSOR
-                    )
+            addFocusListener(
+                    new FocusAdapter() {
+
+                        @Override
+                        public void focusGained(FocusEvent e) {
+
+                            if (showingPlaceholder) {
+
+                                setText("");
+
+                                showingPlaceholder = false;
+
+                                if (!passwordVisible) {
+
+                                    setEchoChar('\u2022');
+                                }
+                            }
+
+                            repaint();
+                        }
+
+
+                        @Override
+                        public void focusLost(FocusEvent e) {
+
+                            if (getPassword().length == 0) {
+
+                                setText(placeholder);
+
+                                showingPlaceholder = true;
+
+                                setEchoChar((char) 0);
+                            }
+
+                            repaint();
+                        }
+                    }
             );
         }
 
 
-        public void setShowing(
-                boolean showing
-        ) {
+        public void setFocused(boolean focused) {
 
-            this.showing =
-                    showing;
+            this.focused = focused;
+
+            repaint();
+        }
+
+
+        public boolean isPasswordVisible() {
+
+            return passwordVisible;
+        }
+
+
+        public void setPasswordVisible(boolean visible) {
+
+            passwordVisible = visible;
+
+
+            if (showingPlaceholder) {
+
+                setEchoChar((char) 0);
+
+            } else if (visible) {
+
+                setEchoChar((char) 0);
+
+            } else {
+
+                setEchoChar('\u2022');
+            }
+
 
             repaint();
         }
 
 
         @Override
-        protected void paintComponent(
-                Graphics g
-        ) {
+        public char[] getPassword() {
 
-            Graphics2D g2 =
-                    (Graphics2D) g.create();
+            if (showingPlaceholder) {
 
+                return new char[0];
+            }
+
+            return super.getPassword();
+        }
+
+
+        @Override
+        protected void paintComponent(Graphics g) {
+
+            Graphics2D g2 = (Graphics2D) g.create();
 
             g2.setRenderingHint(
                     RenderingHints.KEY_ANTIALIASING,
@@ -1598,56 +1316,285 @@ public class LoginFrame extends JFrame {
             );
 
 
-            int centerX =
-                    getWidth() / 2;
+            g2.setColor(getBackground());
 
-            int centerY =
-                    getHeight() / 2;
+            g2.fillRoundRect(
+                    0,
+                    0,
+                    getWidth(),
+                    getHeight(),
+                    14,
+                    14
+            );
 
 
-            // Eye outline
             g2.setColor(
-                    TEXT_GRAY
+                    focused ? TEAL : BORDER
             );
 
             g2.setStroke(
                     new BasicStroke(
-                            1.7f
+                            focused ? 1.8f : 1.0f
+                    )
+            );
+
+            g2.drawRoundRect(
+                    0,
+                    0,
+                    getWidth() - 1,
+                    getHeight() - 1,
+                    14,
+                    14
+            );
+
+
+            g2.dispose();
+
+
+            Color previousForeground = getForeground();
+
+
+            if (showingPlaceholder) {
+
+                setForeground(TEXT_MUTED);
+            }
+
+
+            super.paintComponent(g);
+
+
+            if (showingPlaceholder) {
+
+                setForeground(TEXT_MUTED);
+
+            } else {
+
+                setForeground(previousForeground);
+            }
+        }
+    }
+
+    // ROUNDED LOGIN BUTTON
+
+    static class RoundedButton extends JButton {
+
+        private boolean hovered = false;
+
+
+        public RoundedButton(String text) {
+
+            super(text);
+
+            setFont(
+                    new Font(
+                            "SansSerif",
+                            Font.BOLD,
+                            15
+                    )
+            );
+
+            setForeground(WHITE);
+
+            setBackground(TEAL);
+
+            setFocusPainted(false);
+
+            setBorderPainted(false);
+
+            setContentAreaFilled(false);
+
+            setOpaque(false);
+
+            setCursor(
+                    new Cursor(Cursor.HAND_CURSOR)
+            );
+
+            setBorder(
+                    new EmptyBorder(12, 20, 12, 20)
+            );
+
+
+            addMouseListener(
+                    new MouseAdapter() {
+
+                        @Override
+                        public void mouseEntered(MouseEvent e) {
+
+                            hovered = true;
+
+                            repaint();
+                        }
+
+
+                        @Override
+                        public void mouseExited(MouseEvent e) {
+
+                            hovered = false;
+
+                            repaint();
+                        }
+                    }
+            );
+        }
+
+
+        @Override
+        protected void paintComponent(Graphics g) {
+
+            Graphics2D g2 = (Graphics2D) g.create();
+
+            g2.setRenderingHint(
+                    RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON
+            );
+
+
+            Color buttonColor;
+
+
+            if (!isEnabled()) {
+
+                buttonColor = TEXT_MUTED;
+
+            } else if (getModel().isPressed()) {
+
+                buttonColor = TEAL_DARK;
+
+            } else if (hovered) {
+
+                buttonColor = TEAL_DARK;
+
+            } else {
+
+                buttonColor = TEAL;
+            }
+
+
+            g2.setColor(buttonColor);
+
+            g2.fillRoundRect(
+                    0,
+                    0,
+                    getWidth(),
+                    getHeight(),
+                    15,
+                    15
+            );
+
+
+            g2.dispose();
+
+
+            super.paintComponent(g);
+        }
+    }
+
+    // PASSWORD EYE BUTTON
+
+    static class EyeButton extends JButton {
+
+        private boolean visiblePassword = false;
+
+
+        public EyeButton() {
+
+            setPreferredSize(
+                    new Dimension(45, 48)
+            );
+
+            setMinimumSize(
+                    new Dimension(45, 48)
+            );
+
+            setMaximumSize(
+                    new Dimension(45, 48)
+            );
+
+            setFocusPainted(false);
+
+            setBorderPainted(false);
+
+            setContentAreaFilled(false);
+
+            setOpaque(false);
+
+            setCursor(
+                    new Cursor(Cursor.HAND_CURSOR)
+            );
+        }
+
+
+        public void setVisiblePassword(boolean visible) {
+
+            visiblePassword = visible;
+
+            repaint();
+        }
+
+
+        @Override
+        protected void paintComponent(Graphics g) {
+
+            Graphics2D g2 = (Graphics2D) g.create();
+
+            g2.setRenderingHint(
+                    RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON
+            );
+
+
+            int centerX = getWidth() / 2;
+
+            int centerY = getHeight() / 2;
+
+
+            // Eye outline
+            g2.setColor(
+                    new Color(110, 126, 145)
+            );
+
+            g2.setStroke(
+                    new BasicStroke(
+                            1.7f,
+                            BasicStroke.CAP_ROUND,
+                            BasicStroke.JOIN_ROUND
                     )
             );
 
 
             g2.drawOval(
-                    centerX - 9,
+                    centerX - 11,
                     centerY - 6,
-                    18,
-                    12
+                    22,
+                    13
             );
 
 
-            // Pupil
+            // Eye pupil
             g2.fillOval(
                     centerX - 3,
                     centerY - 3,
-                    6,
-                    6
+                    7,
+                    7
             );
 
 
-            // Slash
-            if (!showing) {
+            // Slash when password is hidden
+            if (!visiblePassword) {
 
                 g2.setStroke(
                         new BasicStroke(
-                                1.7f
+                                1.8f,
+                                BasicStroke.CAP_ROUND,
+                                BasicStroke.JOIN_ROUND
                         )
                 );
 
                 g2.drawLine(
-                        centerX - 9,
-                        centerY + 8,
-                        centerX + 9,
-                        centerY - 8
+                        centerX - 12,
+                        centerY + 10,
+                        centerX + 12,
+                        centerY - 10
                 );
             }
 
@@ -1656,26 +1603,22 @@ public class LoginFrame extends JFrame {
         }
     }
 
-
-
     // UNIVERSITY ILLUSTRATION
 
+    static class UniversityIllustration extends JPanel {
 
-    private static class UniversityIllustration
-            extends JPanel {
+        public UniversityIllustration() {
+
+            setOpaque(false);
+        }
 
 
         @Override
-        protected void paintComponent(
-                Graphics g
-        ) {
+        protected void paintComponent(Graphics g) {
 
             super.paintComponent(g);
 
-
-            Graphics2D g2 =
-                    (Graphics2D) g.create();
-
+            Graphics2D g2 = (Graphics2D) g.create();
 
             g2.setRenderingHint(
                     RenderingHints.KEY_ANTIALIASING,
@@ -1683,453 +1626,372 @@ public class LoginFrame extends JFrame {
             );
 
 
-            int width =
-                    getWidth();
+            int centerX = getWidth() / 2;
 
-
-
-            // FLOATING DECORATION
-
+            // BACKGROUND CIRCLE
 
             g2.setColor(
-                    new Color(
-                            255,
-                            255,
-                            255,
-                            20
-                    )
+                    new Color(255, 255, 255, 12)
             );
-
 
             g2.fillOval(
-                    45,
-                    25,
-                    55,
-                    55
+                    centerX - 145,
+                    10,
+                    290,
+                    250
             );
 
 
+            // Decorative circles
             g2.setColor(
-                    new Color(
-                            20,
-                            184,
-                            166,
-                            45
-                    )
+                    new Color(92, 195, 187, 110)
             );
-
 
             g2.fillOval(
-                    width - 90,
-                    40,
-                    70,
-                    70
+                    centerX + 115,
+                    42,
+                    12,
+                    12
             );
 
+            g2.fillOval(
+                    centerX - 130,
+                    80,
+                    8,
+                    8
+            );
+
+            // UNIVERSITY BUILDING
+
+            int buildingX = centerX - 105;
+
+            int buildingY = 105;
+
+            int buildingWidth = 210;
+
+            int buildingHeight = 110;
 
 
-            // GROUND
-
-
+            // Building shadow
             g2.setColor(
-                    new Color(
-                            255,
-                            255,
-                            255,
-                            35
-                    )
+                    new Color(0, 0, 0, 35)
             );
-
 
             g2.fillRoundRect(
-                    40,
-                    265,
-                    width - 80,
-                    3,
-                    3,
+                    buildingX + 7,
+                    buildingY + 7,
+                    buildingWidth,
+                    buildingHeight,
+                    8,
+                    8
+            );
+
+
+            // Main building
+            g2.setColor(
+                    new Color(238, 245, 250)
+            );
+
+            g2.fillRect(
+                    buildingX,
+                    buildingY + 25,
+                    buildingWidth,
+                    buildingHeight - 25
+            );
+
+
+            // Roof
+            int[] roofX = {
+                    buildingX - 12,
+                    centerX,
+                    buildingX + buildingWidth + 12
+            };
+
+            int[] roofY = {
+                    buildingY + 28,
+                    buildingY - 12,
+                    buildingY + 28
+            };
+
+
+            g2.setColor(
+                    new Color(116, 173, 190)
+            );
+
+            g2.fillPolygon(
+                    roofX,
+                    roofY,
                     3
             );
 
 
-
-            // UNIVERSITY BUILDING
-
-
-            int buildingX = 105;
-            int buildingY = 105;
-
-            int buildingWidth = 260;
-            int buildingHeight = 135;
-
-
-            // Shadow
+            // Roof outline
             g2.setColor(
-                    new Color(
-                            0,
-                            0,
-                            0,
-                            30
-                    )
+                    new Color(206, 231, 237)
             );
 
-
-            g2.fillRoundRect(
-                    buildingX + 8,
-                    buildingY + 8,
-                    buildingWidth,
-                    buildingHeight,
-                    12,
-                    12
+            g2.setStroke(
+                    new BasicStroke(2f)
             );
-
-
-            // Building
-            g2.setColor(
-                    new Color(
-                            246,
-                            249,
-                            252
-                    )
-            );
-
-
-            g2.fillRoundRect(
-                    buildingX,
-                    buildingY,
-                    buildingWidth,
-                    buildingHeight,
-                    12,
-                    12
-            );
-
-
-
-            // ROOF
-
-
-            Polygon roof =
-                    new Polygon();
-
-
-            roof.addPoint(
-                    buildingX - 18,
-                    buildingY
-            );
-
-
-            roof.addPoint(
-                    buildingX +
-                            buildingWidth / 2,
-                    buildingY - 65
-            );
-
-
-            roof.addPoint(
-                    buildingX +
-                            buildingWidth + 18,
-                    buildingY
-            );
-
-
-            g2.setColor(
-                    new Color(
-                            218,
-                            231,
-                            244
-                    )
-            );
-
-
-            g2.fillPolygon(
-                    roof
-            );
-
-
-            g2.setColor(
-                    new Color(
-                            160,
-                            184,
-                            208
-                    )
-            );
-
 
             g2.drawPolygon(
-                    roof
+                    roofX,
+                    roofY,
+                    3
             );
 
+            // WINDOWS
+
+            g2.setColor(NAVY_LIGHT);
 
 
-            // FLAG
+            int windowWidth = 20;
+
+            int windowHeight = 27;
+
+            int windowY = buildingY + 42;
 
 
-            g2.setColor(
-                    TEAL
-            );
+            for (int i = 0; i < 6; i++) {
 
-
-            g2.fillRect(
-                    buildingX +
-                            buildingWidth / 2 - 2,
-                    buildingY - 95,
-                    4,
-                    35
-            );
-
-
-            Polygon flag =
-                    new Polygon();
-
-
-            flag.addPoint(
-                    buildingX +
-                            buildingWidth / 2 + 2,
-                    buildingY - 94
-            );
-
-
-            flag.addPoint(
-                    buildingX +
-                            buildingWidth / 2 + 28,
-                    buildingY - 85
-            );
-
-
-            flag.addPoint(
-                    buildingX +
-                            buildingWidth / 2 + 2,
-                    buildingY - 76
-            );
-
-
-            g2.fillPolygon(
-                    flag
-            );
-
-
-
-            // COLUMNS
-
-
-            g2.setColor(
-                    NAVY
-            );
-
-
-            int[] columns = {
-                    buildingX + 25,
-                    buildingX + 75,
-                    buildingX + 125,
-                    buildingX + 175,
-                    buildingX + 225
-            };
-
-
-            for (int x : columns) {
+                int windowX =
+                        buildingX + 14 + i * 34;
 
                 g2.fillRoundRect(
-                        x,
-                        buildingY + 48,
-                        15,
-                        85,
-                        6,
-                        6
+                        windowX,
+                        windowY,
+                        windowWidth,
+                        windowHeight,
+                        4,
+                        4
                 );
+
+
+                g2.setColor(
+                        new Color(115, 205, 197)
+                );
+
+                g2.fillRect(
+                        windowX + 8,
+                        windowY + 2,
+                        3,
+                        windowHeight - 4
+                );
+
+
+                g2.setColor(NAVY_LIGHT);
             }
 
-
-
-            // DOOR
-
-
+            // BUILDING DOOR
             g2.setColor(
-                    TEAL
+                    new Color(25, 62, 88)
             );
-
 
             g2.fillRoundRect(
-                    buildingX + 113,
-                    buildingY + 83,
-                    35,
-                    50,
-                    6,
-                    6
-            );
-
-
-            // Door handle
-            g2.setColor(
-                    Color.WHITE
-            );
-
-
-            g2.fillOval(
-                    buildingX + 140,
-                    buildingY + 107,
+                    centerX - 17,
+                    buildingY + 72,
+                    34,
+                    43,
                     4,
                     4
             );
 
 
+            // Door detail
+            g2.setColor(
+                    new Color(115, 205, 197)
+            );
 
-            // FAMS SYMBOL
+            g2.fillOval(
+                    centerX + 8,
+                    buildingY + 91,
+                    4,
+                    4
+            );
+
+
+            // FLAG
+
+            g2.setColor(
+                    new Color(220, 235, 245)
+            );
+
+            g2.fillRect(
+                    centerX - 2,
+                    buildingY - 38,
+                    4,
+                    28
+            );
+
+
+            g2.setColor(TEAL);
+
+            int[] flagX = {
+                    centerX + 2,
+                    centerX + 31,
+                    centerX + 2
+            };
+
+            int[] flagY = {
+                    buildingY - 37,
+                    buildingY - 27,
+                    buildingY - 17
+            };
+
+
+            g2.fillPolygon(
+                    flagX,
+                    flagY,
+                    3
+            );
+            // GROUND
+
+            g2.setColor(
+                    new Color(104, 191, 180)
+            );
+
+            g2.fillRoundRect(
+                    centerX - 150,
+                    buildingY + 112,
+                    300,
+                    7,
+                    7,
+                    7
+            );
+
+
+            // Ground details
+            g2.setColor(
+                    new Color(255, 255, 255, 90)
+            );
+
+            g2.fillRoundRect(
+                    centerX - 120,
+                    buildingY + 125,
+                    70,
+                    3,
+                    3,
+                    3
+            );
+
+            g2.fillRoundRect(
+                    centerX + 55,
+                    buildingY + 125,
+                    70,
+                    3,
+                    3,
+                    3
+            );
+
+            // DECORATIVE BOOK
+
+            int bookX = centerX - 125;
+
+            int bookY = 35;
 
 
             g2.setColor(
-                    BLUE
+                    new Color(93, 193, 184)
+            );
+
+            g2.fillRoundRect(
+                    bookX,
+                    bookY,
+                    40,
+                    28,
+                    4,
+                    4
+            );
+
+
+            g2.setColor(WHITE);
+
+            g2.setStroke(
+                    new BasicStroke(1.5f)
+            );
+
+            g2.drawLine(
+                    bookX + 20,
+                    bookY + 4,
+                    bookX + 20,
+                    bookY + 24
+            );
+
+            g2.drawLine(
+                    bookX + 7,
+                    bookY + 9,
+                    bookX + 15,
+                    bookY + 9
+            );
+
+            g2.drawLine(
+                    bookX + 25,
+                    bookY + 9,
+                    bookX + 33,
+                    bookY + 9
+            );
+            // DECORATIVE GRADUATION CAP
+
+            int capX = centerX + 91;
+
+            int capY = 38;
+
+
+            int[] capXPoints = {
+                    capX - 22,
+                    capX,
+                    capX + 22,
+                    capX
+            };
+
+            int[] capYPoints = {
+                    capY + 7,
+                    capY - 3,
+                    capY + 7,
+                    capY + 17
+            };
+
+
+            g2.setColor(
+                    new Color(105, 207, 195)
+            );
+
+            g2.fillPolygon(
+                    capXPoints,
+                    capYPoints,
+                    4
+            );
+
+
+            g2.setColor(
+                    new Color(180, 231, 222)
+            );
+
+            g2.setStroke(
+                    new BasicStroke(2f)
+            );
+
+            g2.drawLine(
+                    capX + 17,
+                    capY + 8,
+                    capX + 23,
+                    capY + 25
             );
 
 
             g2.fillOval(
-                    buildingX + 117,
-                    buildingY + 17,
-                    27,
-                    27
-            );
-
-
-            g2.setColor(
-                    Color.WHITE
-            );
-
-
-            g2.setFont(
-                    new Font(
-                            "SansSerif",
-                            Font.BOLD,
-                            13
-                    )
-            );
-
-
-            g2.drawString(
-                    "F",
-                    buildingX + 126,
-                    buildingY + 36
-            );
-
-
-
-            // BOOK
-
-
-            g2.setColor(
-                    Color.WHITE
-            );
-
-
-            g2.fillRoundRect(
-                    170,
-                    265,
-                    90,
-                    22,
-                    5,
-                    5
-            );
-
-
-            g2.setColor(
-                    TEAL
-            );
-
-
-            g2.fillRect(
-                    213,
-                    265,
-                    3,
-                    22
-            );
-
-
-
-            // STUDENTS
-
-            drawStudent(
-                    g2,
-                    75,
-                    270,
-                    BLUE
-            );
-
-
-            drawStudent(
-                    g2,
-                    300,
-                    268,
-                    TEAL
+                    capX + 20,
+                    capY + 23,
+                    6,
+                    6
             );
 
 
             g2.dispose();
         }
-
-
-        private void drawStudent(
-                Graphics2D g2,
-                int x,
-                int y,
-                Color color
-        ) {
-
-            // Head
-            g2.setColor(
-                    new Color(
-                            239,
-                            184,
-                            145
-                    )
-            );
-
-
-            g2.fillOval(
-                    x,
-                    y,
-                    20,
-                    20
-            );
-
-
-            // Body
-            g2.setColor(
-                    color
-            );
-
-
-            g2.fillRoundRect(
-                    x - 7,
-                    y + 18,
-                    34,
-                    40,
-                    12,
-                    12
-            );
-
-
-            // Book
-            g2.setColor(
-                    Color.WHITE
-            );
-
-
-            g2.fillRoundRect(
-                    x + 24,
-                    y + 26,
-                    24,
-                    16,
-                    3,
-                    3
-            );
-        }
     }
-
-
-    
     // MAIN METHOD
-
-
-    public static void main(
-            String[] args
-    ) {
+    public static void main(String[] args) {
 
         SwingUtilities.invokeLater(
                 () -> {
@@ -2137,21 +1999,22 @@ public class LoginFrame extends JFrame {
                     try {
 
                         UIManager.setLookAndFeel(
-                                UIManager
-                                        .getSystemLookAndFeelClassName()
+                                UIManager.getSystemLookAndFeelClassName()
                         );
 
                     } catch (Exception e) {
 
-                        e.printStackTrace();
+                        System.err.println(
+                                "Unable to set system look and feel: "
+                                        + e.getMessage()
+                        );
                     }
 
 
-                    LoginFrame frame =
+                    LoginFrame loginFrame =
                             new LoginFrame();
 
-
-                    frame.setVisible(true);
+                    loginFrame.setVisible(true);
                 }
         );
     }
