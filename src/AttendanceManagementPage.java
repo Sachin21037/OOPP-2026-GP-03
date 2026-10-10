@@ -171,16 +171,11 @@ public class AttendanceManagementPage extends JPanel {
         tableActions.setOpaque(false);
 
         addRowButton = createStyledButton("+ Add Row", primaryBlue, Color.WHITE);
-        addRowButton.setFont(new Font("Arial", Font.PLAIN, 11));
-        addRowButton.setBorder(new EmptyBorder(5, 10, 5, 10));
+        addRowButton.setFont(new Font("Arial", Font.BOLD, 12));
         addRowButton.addActionListener(e -> addNewRow());
 
         removeRowButton = createStyledButton("- Remove Row", Color.WHITE, textDark);
-        removeRowButton.setFont(new Font("Arial", Font.PLAIN, 11));
-        removeRowButton.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(borderColor, 1),
-                new EmptyBorder(5, 10, 5, 10)
-        ));
+        removeRowButton.setFont(new Font("Arial", Font.PLAIN, 12));
         removeRowButton.addActionListener(e -> removeSelectedRow());
 
         tableActions.add(addRowButton);
@@ -213,21 +208,41 @@ public class AttendanceManagementPage extends JPanel {
         };
 
         attendanceTable = new JTable(tableModel);
-        attendanceTable.setRowHeight(32);
+        attendanceTable.setRowHeight(34);
         attendanceTable.setFont(new Font("Arial", Font.PLAIN, 13));
-        attendanceTable.setGridColor(new Color(235, 238, 242));
+        attendanceTable.setGridColor(new Color(230, 235, 240));
         attendanceTable.setShowGrid(true);
+        attendanceTable.setShowHorizontalLines(true);
+        attendanceTable.setShowVerticalLines(true);
         attendanceTable.setSelectionBackground(new Color(225, 237, 248));
         attendanceTable.setSelectionForeground(darkNavy);
         attendanceTable.setFillsViewportHeight(true);
 
+        // custom header renderer to ensure dark navy background and clear white text across all look and feels
         JTableHeader tableHeader = attendanceTable.getTableHeader();
         tableHeader.setFont(new Font("Arial", Font.BOLD, 12));
-        tableHeader.setBackground(darkNavy);
-        tableHeader.setForeground(Color.WHITE);
-        tableHeader.setPreferredSize(new Dimension(tableHeader.getWidth(), 34));
+        tableHeader.setPreferredSize(new Dimension(tableHeader.getWidth(), 36));
         tableHeader.setReorderingAllowed(false);
-        ((DefaultTableCellRenderer) tableHeader.getDefaultRenderer()).setHorizontalAlignment(SwingConstants.CENTER);
+        tableHeader.setResizingAllowed(true);
+
+        tableHeader.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                JLabel headerLabel = new JLabel(value != null ? value.toString() : "");
+                headerLabel.setOpaque(true);
+                headerLabel.setBackground(darkNavy);
+                headerLabel.setForeground(Color.WHITE);
+                headerLabel.setFont(new Font("Arial", Font.BOLD, 12));
+                headerLabel.setHorizontalAlignment(column == 3 || column == 5 ? SwingConstants.LEFT : SwingConstants.CENTER);
+                headerLabel.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 0, 1, 1, new Color(45, 90, 135)),
+                        BorderFactory.createEmptyBorder(6, 10, 6, 10)
+                ));
+                return headerLabel;
+            }
+        });
 
         // column widths
         setColumnWidth(0, 45, 55);
@@ -291,10 +306,6 @@ public class AttendanceManagementPage extends JPanel {
         actionPanel.setOpaque(false);
 
         clearButton = createStyledButton("Clear", Color.WHITE, textDark);
-        clearButton.setBorder(BorderFactory.createCompoundBorder(
-                new LineBorder(borderColor, 1),
-                new EmptyBorder(7, 12, 7, 12)
-        ));
         clearButton.addActionListener(e -> clearTable());
 
         markAllPresentButton = createStyledButton("Mark All Present", primaryBlue, Color.WHITE);
@@ -393,29 +404,43 @@ public class AttendanceManagementPage extends JPanel {
         return label;
     }
 
+    // custom painted button ensuring correct background and foreground colors across all Look and Feels
     private JButton createStyledButton(String text, Color bg, Color fg) {
-        JButton button = new JButton(text);
-        button.setFont(new Font("Arial", Font.BOLD, 12));
-        button.setBackground(bg);
-        button.setForeground(fg);
-        button.setFocusPainted(false);
-        button.setBorder(new EmptyBorder(7, 14, 7, 14));
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        boolean isWhite = Color.WHITE.equals(bg);
+        JButton button = new JButton(text) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                if (bg != Color.WHITE) {
-                    button.setBackground(bg.darker());
+                if (getModel().isPressed()) {
+                    g2.setColor(isWhite ? new Color(225, 230, 238) : bg.darker().darker());
+                } else if (getModel().isRollover()) {
+                    g2.setColor(isWhite ? new Color(242, 245, 248) : bg.darker());
                 } else {
-                    button.setBackground(new Color(240, 242, 245));
+                    g2.setColor(bg);
                 }
-            }
 
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setBackground(bg);
-            }
-        });
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
 
+                if (isWhite) {
+                    g2.setColor(borderColor);
+                    g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 6, 6);
+                }
+
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+
+        button.setContentAreaFilled(false);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setOpaque(false);
+        button.setForeground(fg);
+        button.setFont(new Font("Arial", Font.BOLD, 12));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setBorder(new EmptyBorder(6, 14, 6, 14));
         return button;
     }
 
@@ -551,25 +576,20 @@ public class AttendanceManagementPage extends JPanel {
                                                        boolean isSelected, boolean hasFocus,
                                                        int row, int column) {
             JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            label.setOpaque(true);
             label.setHorizontalAlignment(SwingConstants.CENTER);
             label.setFont(new Font("Arial", Font.BOLD, 12));
 
             String status = value != null ? value.toString() : "";
             if ("Present".equalsIgnoreCase(status)) {
-                label.setForeground(successGreen);
-                if (!isSelected) {
-                    label.setBackground(new Color(230, 247, 244));
-                }
+                label.setForeground(new Color(15, 125, 110));
+                label.setBackground(isSelected ? new Color(205, 235, 230) : new Color(230, 247, 244));
             } else if ("Absent".equalsIgnoreCase(status)) {
-                label.setForeground(alertRed);
-                if (!isSelected) {
-                    label.setBackground(new Color(254, 237, 237));
-                }
+                label.setForeground(new Color(190, 40, 40));
+                label.setBackground(isSelected ? new Color(250, 215, 215) : new Color(254, 237, 237));
             } else {
                 label.setForeground(textDark);
-                if (!isSelected) {
-                    label.setBackground(Color.WHITE);
-                }
+                label.setBackground(isSelected ? new Color(225, 237, 248) : Color.WHITE);
             }
 
             label.setBorder(new EmptyBorder(3, 8, 3, 8));
@@ -586,11 +606,15 @@ public class AttendanceManagementPage extends JPanel {
             Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
             if (!isSelected) {
+                c.setForeground(textDark);
                 if (row % 2 == 0) {
                     c.setBackground(Color.WHITE);
                 } else {
                     c.setBackground(tableStripe);
                 }
+            } else {
+                c.setForeground(darkNavy);
+                c.setBackground(new Color(225, 237, 248));
             }
 
             if (column == 0 || column == 1 || column == 2) {
