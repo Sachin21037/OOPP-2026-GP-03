@@ -79,7 +79,7 @@ public class TechnicalOfficerDashboard extends JFrame {
 
 
         // DASHBOARD DEMO CONTENT
-        
+
         JPanel contentPanel = new JPanel(new BorderLayout());
         contentPanel.setBackground(lightBackground);
 
