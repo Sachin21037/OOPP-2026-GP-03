@@ -20,9 +20,7 @@ public class TechnicalOfficerDashboard extends JFrame {
         JPanel mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBackground(lightBackground);
 
-        // =========================
-        // TOP HEADER
-        // =========================
+       //head
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(darkBlue);
         header.setPreferredSize(new Dimension(1050, 65));
@@ -38,9 +36,8 @@ public class TechnicalOfficerDashboard extends JFrame {
         header.add(systemTitle, BorderLayout.WEST);
         header.add(userType, BorderLayout.EAST);
 
-        // =========================
         // LEFT SIDEBAR
-        // =========================
+
         JPanel sidebar = new JPanel(new BorderLayout());
         sidebar.setBackground(sidebarColor);
         sidebar.setPreferredSize(new Dimension(190, 585));
@@ -80,9 +77,9 @@ public class TechnicalOfficerDashboard extends JFrame {
         logoutPanel.add(logoutButton);
         sidebar.add(logoutPanel, BorderLayout.SOUTH);
 
-        // =========================
+
         // DASHBOARD DEMO CONTENT
-        // =========================
+        
         JPanel contentPanel = new JPanel(new BorderLayout());
         contentPanel.setBackground(lightBackground);
 
