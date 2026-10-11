@@ -126,10 +126,10 @@ public class StudentDashboard extends JFrame {
         JPanel cardsPanel = new JPanel(new GridLayout(1, 4, 12, 0));
         cardsPanel.setBackground(lightBackground);
 
-        cardsPanel.add(createCard("My Courses", "6", new Color(45, 100, 160)));
+        cardsPanel.add(createCard("My Courses", "9", new Color(45, 100, 160)));
         cardsPanel.add(createCard("Attendance", "87%", new Color(20, 165, 145)));
-        cardsPanel.add(createCard("Assignments", "5", new Color(45, 75, 100)));
-        cardsPanel.add(createCard("Current GPA", "3.42", new Color(115, 75, 180)));
+        cardsPanel.add(createCard("Assignments", "3", new Color(45, 75, 100)));
+        cardsPanel.add(createCard("Current GPA", "2.42", new Color(115, 75, 180)));
 
         // activities
         JPanel activityPanel = new JPanel(new BorderLayout());
