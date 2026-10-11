@@ -42,7 +42,7 @@ public class MyCoursesFrame extends JFrame {
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 25, 20, 25));
 
         //subtitle
-        JLabel subtitle = new JLabel("Here are the active courses registered for the current academic semester:");
+        JLabel subtitle = new JLabel("Level 2 Semester 1");
         subtitle.setFont(new Font("Arial", Font.PLAIN, 14));
         subtitle.setForeground(new Color(100, 110, 120));
         contentPanel.add(subtitle, BorderLayout.NORTH);
