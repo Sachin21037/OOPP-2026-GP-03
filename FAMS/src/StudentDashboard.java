@@ -146,10 +146,8 @@ public class StudentDashboard extends JFrame {
         activityList.setBackground(Color.WHITE);
         activityList.setLayout(new BoxLayout(activityList, BoxLayout.Y_AXIS));
 
-        addActivity(activityList, "Attendance marked for ICT2132");
-        addActivity(activityList, "New assignment available");
-        addActivity(activityList, "Programming marks released");
-        addActivity(activityList, "New course material uploaded");
+        addActivity(activityList, "Available New Assignment");
+        addActivity(activityList, "Course material uploaded");
 
         activityPanel.add(activityTitle, BorderLayout.NORTH);
         activityPanel.add(activityList, BorderLayout.CENTER);
