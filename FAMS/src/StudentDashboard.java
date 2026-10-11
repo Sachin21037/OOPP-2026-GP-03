@@ -24,15 +24,11 @@ public class StudentDashboard extends JFrame {
         mainPanel.setBackground(lightBackground);
 
         // header
-
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(darkBlue);
         header.setPreferredSize(new Dimension(1050, 65));
 
-        JLabel systemTitle = new JLabel(
-                "  FACULTY ACADEMIC MANAGEMENT SYSTEM"
-        );
-
+        JLabel systemTitle = new JLabel("  FACULTY ACADEMIC MANAGEMENT SYSTEM");
         systemTitle.setForeground(Color.WHITE);
         systemTitle.setFont(new Font("Arial", Font.BOLD, 19));
 
@@ -44,8 +40,6 @@ public class StudentDashboard extends JFrame {
         header.add(userType, BorderLayout.EAST);
 
         // left side bar
-
-
         JPanel sidebar = new JPanel();
         sidebar.setBackground(sidebarColor);
         sidebar.setPreferredSize(new Dimension(190, 585));
@@ -58,10 +52,7 @@ public class StudentDashboard extends JFrame {
         JLabel menuTitle = new JLabel("  STUDENT MENU");
         menuTitle.setFont(new Font("Arial", Font.BOLD, 12));
         menuTitle.setForeground(new Color(110, 120, 130));
-
-        menuTitle.setBorder(
-                BorderFactory.createEmptyBorder(20, 10, 15, 0)
-        );
+        menuTitle.setBorder(BorderFactory.createEmptyBorder(20, 10, 15, 0));
 
         menuPanel.add(menuTitle);
 
@@ -101,7 +92,6 @@ public class StudentDashboard extends JFrame {
         sidebar.add(logoutPanel, BorderLayout.SOUTH);
 
         // content area
-
         contentPanel = new JPanel();
         contentPanel.setBackground(lightBackground);
         contentPanel.setLayout(new BorderLayout());
@@ -110,19 +100,13 @@ public class StudentDashboard extends JFrame {
         JPanel welcomePanel = new JPanel();
         welcomePanel.setBackground(lightBackground);
         welcomePanel.setLayout(new BoxLayout(welcomePanel, BoxLayout.Y_AXIS));
-
-        welcomePanel.setBorder(
-                BorderFactory.createEmptyBorder(25, 25, 15, 25)
-        );
+        welcomePanel.setBorder(BorderFactory.createEmptyBorder(25, 25, 15, 25));
 
         JLabel welcome = new JLabel("Welcome, Student");
         welcome.setFont(new Font("Arial", Font.BOLD, 28));
         welcome.setForeground(textColor);
 
-        JLabel subtitle = new JLabel(
-                "Manage your courses, results, attendance and academic activities."
-        );
-
+        JLabel subtitle = new JLabel("Manage your courses, results, attendance and academic activities.");
         subtitle.setFont(new Font("Arial", Font.PLAIN, 13));
         subtitle.setForeground(new Color(100, 110, 120));
 
@@ -132,129 +116,50 @@ public class StudentDashboard extends JFrame {
 
         contentPanel.add(welcomePanel, BorderLayout.NORTH);
 
-
         // dashboard center
-
         JPanel centerPanel = new JPanel();
         centerPanel.setBackground(lightBackground);
         centerPanel.setLayout(new BorderLayout());
-
-        centerPanel.setBorder(
-                BorderFactory.createEmptyBorder(0, 25, 20, 25)
-        );
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(0, 25, 20, 25));
 
         // cards
-        JPanel cardsPanel = new JPanel(
-                new GridLayout(1, 4, 12, 0)
-        );
-
+        JPanel cardsPanel = new JPanel(new GridLayout(1, 4, 12, 0));
         cardsPanel.setBackground(lightBackground);
 
-        cardsPanel.add(
-                createCard(
-                        "My Courses",
-                        "6",
-                        new Color(45, 100, 160)
-                )
-        );
-
-        cardsPanel.add(
-                createCard(
-                        "Attendance",
-                        "87%",
-                        new Color(20, 165, 145)
-                )
-        );
-
-        cardsPanel.add(
-                createCard(
-                        "Assignments",
-                        "5",
-                        new Color(45, 75, 100)
-                )
-        );
-
-        cardsPanel.add(
-                createCard(
-                        "Current GPA",
-                        "3.42",
-                        new Color(115, 75, 180)
-                )
-        );
+        cardsPanel.add(createCard("My Courses", "6", new Color(45, 100, 160)));
+        cardsPanel.add(createCard("Attendance", "87%", new Color(20, 165, 145)));
+        cardsPanel.add(createCard("Assignments", "5", new Color(45, 75, 100)));
+        cardsPanel.add(createCard("Current GPA", "3.42", new Color(115, 75, 180)));
 
         // activities
         JPanel activityPanel = new JPanel(new BorderLayout());
         activityPanel.setBackground(Color.WHITE);
-
-        activityPanel.setBorder(
-                BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(
-                                new Color(225, 228, 232)
-                        ),
-                        BorderFactory.createEmptyBorder(
-                                18, 18, 18, 18
-                        )
-                )
-        );
+        activityPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(225, 228, 232)),
+                BorderFactory.createEmptyBorder(18, 18, 18, 18)
+        ));
 
         JLabel activityTitle = new JLabel("Student Activities");
-        activityTitle.setFont(
-                new Font("Arial", Font.BOLD, 16)
-        );
+        activityTitle.setFont(new Font("Arial", Font.BOLD, 16));
 
         JPanel activityList = new JPanel();
         activityList.setBackground(Color.WHITE);
-        activityList.setLayout(
-                new BoxLayout(activityList, BoxLayout.Y_AXIS)
-        );
+        activityList.setLayout(new BoxLayout(activityList, BoxLayout.Y_AXIS));
 
-        addActivity(
-                activityList,
-                "Attendance marked for ICT2132"
-        );
+        addActivity(activityList, "Attendance marked for ICT2132");
+        addActivity(activityList, "New assignment available");
+        addActivity(activityList, "Programming marks released");
+        addActivity(activityList, "New course material uploaded");
 
-        addActivity(
-                activityList,
-                "New assignment available"
-        );
+        activityPanel.add(activityTitle, BorderLayout.NORTH);
+        activityPanel.add(activityList, BorderLayout.CENTER);
 
-        addActivity(
-                activityList,
-                "Programming marks released"
-        );
+        centerPanel.add(cardsPanel, BorderLayout.NORTH);
+        centerPanel.add(activityPanel, BorderLayout.CENTER);
 
-        addActivity(
-                activityList,
-                "New course material uploaded"
-        );
-
-        activityPanel.add(
-                activityTitle,
-                BorderLayout.NORTH
-        );
-
-        activityPanel.add(
-                activityList,
-                BorderLayout.CENTER
-        );
-
-        centerPanel.add(
-                cardsPanel,
-                BorderLayout.NORTH
-        );
-
-        centerPanel.add(
-                activityPanel,
-                BorderLayout.CENTER
-        );
-
-        contentPanel.add(
-                centerPanel,
-                BorderLayout.CENTER
-        );
+        contentPanel.add(centerPanel, BorderLayout.CENTER);
 
         // add everything
-
         mainPanel.add(header, BorderLayout.NORTH);
         mainPanel.add(sidebar, BorderLayout.WEST);
         mainPanel.add(contentPanel, BorderLayout.CENTER);
@@ -264,129 +169,68 @@ public class StudentDashboard extends JFrame {
         setVisible(true);
     }
 
-    // crate menu button
-
-    private void addMenuButton(
-            JPanel panel,
-            String text
-    ) {
+    // create menu button
+    private void addMenuButton(JPanel panel, String text) {
 
         JButton button = new JButton(text);
-
-        button.setHorizontalAlignment(
-                SwingConstants.LEFT
-        );
-
-        button.setFont(
-                new Font("Arial", Font.PLAIN, 13)
-        );
-
+        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setFont(new Font("Arial", Font.PLAIN, 13));
         button.setForeground(textColor);
         button.setBackground(Color.WHITE);
-
-        button.setBorder(
-                BorderFactory.createEmptyBorder(
-                        12, 15, 12, 10
-                )
-        );
-
+        button.setBorder(BorderFactory.createEmptyBorder(12, 15, 12, 10));
         button.setFocusPainted(false);
         button.setBorderPainted(false);
-        button.setMaximumSize(
-                new Dimension(
-                        Integer.MAX_VALUE,
-                        45
-                )
-        );
-
-        button.setCursor(
-                new Cursor(Cursor.HAND_CURSOR)
-        );
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         // hover effect
-        button.addMouseListener(
-                new MouseAdapter() {
+        button.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(new Color(235, 242, 248));
+            }
 
-                    public void mouseEntered(
-                            MouseEvent e
-                    ) {
-                        button.setBackground(
-                                new Color(235, 242, 248)
-                        );
-                    }
-
-                    public void mouseExited(
-                            MouseEvent e
-                    ) {
-                        button.setBackground(
-                                Color.WHITE
-                        );
-                    }
-                }
-        );
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(Color.WHITE);
+            }
+        });
 
         // button action
         button.addActionListener(e -> {
-
             String selected = button.getText();
 
-            JOptionPane.showMessageDialog(
-                    this,
-                    selected + " page selected.",
-                    selected,
-                    JOptionPane.INFORMATION_MESSAGE
-            );
+            if (selected.equals("My Courses")) {
+                MyCoursesFrame coursesWindow = new MyCoursesFrame();
+                coursesWindow.setVisible(true);
+            } else {
+                JOptionPane.showMessageDialog(
+                        this,
+                        selected + " page selected.",
+                        selected,
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+            }
         });
 
-        panel.add(button);
-    }
+        panel.add(button); // කලින් අතහැරී තිබූ කොටස
+    } // කලින් අතහැරී තිබූ closing brace එක
 
     // create dashboard card
-
-
-    private JPanel createCard(
-            String title,
-            String value,
-            Color valueColor
-    ) {
+    private JPanel createCard(String title, String value, Color valueColor) {
 
         JPanel card = new JPanel();
         card.setBackground(Color.WHITE);
-
-        card.setLayout(
-                new BoxLayout(
-                        card,
-                        BoxLayout.Y_AXIS
-                )
-        );
-
-        card.setBorder(
-                BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(
-                                new Color(225, 228, 232)
-                        ),
-                        BorderFactory.createEmptyBorder(
-                                18, 18, 18, 18
-                        )
-                )
-        );
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(225, 228, 232)),
+                BorderFactory.createEmptyBorder(18, 18, 18, 18)
+        ));
 
         JLabel titleLabel = new JLabel(title);
-
-        titleLabel.setFont(
-                new Font("Arial", Font.PLAIN, 13)
-        );
-
-        titleLabel.setForeground(
-                new Color(100, 110, 120)
-        );
+        titleLabel.setFont(new Font("Arial", Font.PLAIN, 13));
+        titleLabel.setForeground(new Color(100, 110, 120));
 
         JLabel valueLabel = new JLabel(value);
-
-        valueLabel.setFont(
-                new Font("Arial", Font.BOLD, 25)
-        );
-
+        valueLabel.setFont(new Font("Arial", Font.BOLD, 25));
         valueLabel.setForeground(valueColor);
 
         card.add(titleLabel);
@@ -397,37 +241,18 @@ public class StudentDashboard extends JFrame {
     }
 
     // add activity
+    private void addActivity(JPanel panel, String text) {
 
-    private void addActivity(
-            JPanel panel,
-            String text
-    ) {
-
-        JLabel activity = new JLabel(
-                "• " + text
-        );
-
-        activity.setFont(
-                new Font("Arial", Font.PLAIN, 13)
-        );
-
-        activity.setForeground(
-                new Color(70, 80, 90)
-        );
-
-        activity.setBorder(
-                BorderFactory.createEmptyBorder(
-                        6, 0, 6, 0
-                )
-        );
+        JLabel activity = new JLabel("• " + text);
+        activity.setFont(new Font("Arial", Font.PLAIN, 13));
+        activity.setForeground(new Color(70, 80, 90));
+        activity.setBorder(BorderFactory.createEmptyBorder(6, 0, 6, 0));
 
         panel.add(activity);
     }
 
     // main method
-
     public static void main(String[] args) {
-
         SwingUtilities.invokeLater(() -> {
             new StudentDashboard();
         });
