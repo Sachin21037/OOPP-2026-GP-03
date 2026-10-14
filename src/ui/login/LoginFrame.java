@@ -3,6 +3,7 @@ package ui.login;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import ui.admin.AdminDashboard;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
@@ -181,10 +182,10 @@ public class LoginFrame extends JFrame {
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setBorder(new EmptyBorder(30, 28, 8, 28));
 
-        // Sized-up Faculty Academic Management System title
+        // Sized-up Faculty Academic Management System title matching sign button color
         JLabel appCategoryLabel = new JLabel("Faculty Academic Management System");
-        appCategoryLabel.setFont(new Font("SansSerif", Font.BOLD, 15));
-        appCategoryLabel.setForeground(PRIMARY_NAVY);
+        appCategoryLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        appCategoryLabel.setForeground(SECONDARY_BLUE);
         appCategoryLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         // Main Welcome Heading
@@ -527,17 +528,14 @@ public class LoginFrame extends JFrame {
             return;
         }
 
-        // Credentials provided: display explicit message that authentication service will be connected later
-        String rememberStatus = rememberMeCheckbox.isSelected() ? "Enabled" : "Disabled";
-        JOptionPane.showMessageDialog(
-                this,
-                "Authentication will be connected in the upcoming phase.\n\n" +
-                "• Entered Username: " + username + "\n" +
-                "• Remember Me: " + rememberStatus + "\n\n" +
-                "Note: No credentials were authenticated or modified at this stage.",
-                "Authentication Notice",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+        // Non-empty credentials provided: launch AdminDashboard for UI testing
+        SwingUtilities.invokeLater(() -> {
+            AdminDashboard dashboard = new AdminDashboard(username);
+            dashboard.setVisible(true);
+        });
+
+        // Close and dispose of the Login Frame
+        dispose();
     }
 
 

@@ -7,18 +7,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.*;
 
-/**
- * FAMS - Faculty Academic Management System
- * Admin Dashboard UI
- *
- * Enterprise-grade, modern desktop management dashboard for administrators.
- * Designed with pure Java Swing and Java2D vector graphics.
- */
 public class AdminDashboard extends JFrame {
 
-    // ==========================================
     // THEME PALETTE
-    // ==========================================
     private static final Color PRIMARY_NAVY    = new Color(16, 40, 74);    // #10284A
     private static final Color SECONDARY_BLUE  = new Color(29, 78, 216);   // #1D4ED8
     private static final Color LIGHT_BLUE      = new Color(234, 242, 255); // #EAF2FF
@@ -86,9 +77,7 @@ public class AdminDashboard extends JFrame {
         setContentPane(rootPanel);
     }
 
-    // ==========================================
     // FONT RESOLVER
-    // ==========================================
     public static Font getModernFont(int style, int size) {
         String[] preferredFonts = {
                 "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Segoe UI", "Inter", "Arial", "SansSerif"
@@ -102,9 +91,7 @@ public class AdminDashboard extends JFrame {
         return new Font("SansSerif", style, size);
     }
 
-    // ==========================================
     // LEFT SIDEBAR
-    // ==========================================
     private JPanel createSidebar() {
         JPanel sidebar = new JPanel() {
             @Override
@@ -443,9 +430,7 @@ public class AdminDashboard extends JFrame {
         }
     }
 
-    // ==========================================
     // TOP HEADER
-    // ==========================================
     private JPanel createHeader() {
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(Color.WHITE);
@@ -577,10 +562,7 @@ public class AdminDashboard extends JFrame {
         header.add(rightPanel, BorderLayout.EAST);
         return header;
     }
-
-    // ==========================================
     // MAIN CONTENT
-    // ==========================================
     private JPanel createMainContent() {
         JPanel content = new JPanel();
         content.setBackground(MAIN_BG);
@@ -597,9 +579,7 @@ public class AdminDashboard extends JFrame {
         return content;
     }
 
-    // ==========================================
     // WELCOME BANNER
-    // ==========================================
     private JPanel createWelcomeBanner() {
         JPanel banner = new JPanel() {
             @Override
@@ -647,9 +627,7 @@ public class AdminDashboard extends JFrame {
         return banner;
     }
 
-    // ==========================================
     // STATISTICS CARDS ROW
-    // ==========================================
     private JPanel createStatsRow() {
         JPanel row = new JPanel(new GridLayout(1, 4, 16, 0));
         row.setOpaque(false);
@@ -761,9 +739,7 @@ public class AdminDashboard extends JFrame {
         }
     }
 
-    // ==========================================
     // LOWER SECTION (Quick Actions, Activity, Overview)
-    // ==========================================
     private JPanel createLowerSection() {
         JPanel section = new JPanel(new GridLayout(1, 3, 16, 0));
         section.setOpaque(false);
@@ -1009,12 +985,8 @@ public class AdminDashboard extends JFrame {
         return name.toUpperCase();
     }
 
-    // ==========================================
     // EXTENSION POINT FOR FUTURE SERVICE/DAO DATA
-    // ==========================================
-    /**
-     * Programmatically update the live statistics once the database layer is connected.
-     */
+     //Programmatically update the live statistics once the database layer is connected.
     public void updateStatistics(String students, String lecturers, String technicalOfficers, String courses) {
         if (lblStudentsCount != null) lblStudentsCount.setText(students);
         if (lblLecturersCount != null) lblLecturersCount.setText(lecturers);
@@ -1022,9 +994,8 @@ public class AdminDashboard extends JFrame {
         if (lblCoursesCount != null) lblCoursesCount.setText(courses);
     }
 
-    // ==========================================
     // STANDALONE RUNNER FOR UI PREVIEW & TESTING
-    // ==========================================
+
     public static void main(String[] args) {
         try {
             // Set platform Look and Feel for native crispness where available
