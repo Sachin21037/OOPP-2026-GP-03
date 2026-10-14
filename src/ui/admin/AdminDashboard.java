@@ -1,11 +1,16 @@
 package ui.admin;
 
+import model.AdminDashboardStats;
+import model.RecentActivityItem;
+import service.AdminDashboardService;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.*;
+import java.util.List;
 
 public class AdminDashboard extends JFrame {
 
@@ -22,11 +27,23 @@ public class AdminDashboard extends JFrame {
     private static final Color DANGER_COLOR    = new Color(220, 38, 38);   // #DC2626
     private static final Color BORDER_COLOR    = new Color(226, 232, 240); // #E2E8F0
 
-    // Statistic Labels for future DAO/Service population
+    // Statistic Count Labels
     private JLabel lblStudentsCount;
     private JLabel lblLecturersCount;
     private JLabel lblOfficersCount;
     private JLabel lblCoursesCount;
+    private JLabel lblNoticesCount;
+
+    // Statistic Subtitle Status Labels
+    private JLabel lblStudentsSub;
+    private JLabel lblLecturersSub;
+    private JLabel lblOfficersSub;
+    private JLabel lblCoursesSub;
+    private JLabel lblNoticesSub;
+
+    // Containers for dynamic database content
+    private JPanel recentActivityContainer;
+    private JPanel systemOverviewContainer;
 
     // Current Administrator Display Name
     private final String adminDisplayName;
@@ -75,6 +92,9 @@ public class AdminDashboard extends JFrame {
 
         rootPanel.add(workspacePanel, BorderLayout.CENTER);
         setContentPane(rootPanel);
+
+        // Asynchronously load real database metrics on background thread
+        loadDashboardDataAsync();
     }
 
     // FONT RESOLVER
@@ -629,7 +649,7 @@ public class AdminDashboard extends JFrame {
 
     // STATISTICS CARDS ROW
     private JPanel createStatsRow() {
-        JPanel row = new JPanel(new GridLayout(1, 4, 16, 0));
+        JPanel row = new JPanel(new GridLayout(1, 5, 12, 0));
         row.setOpaque(false);
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
 
@@ -637,16 +657,24 @@ public class AdminDashboard extends JFrame {
         lblLecturersCount = new JLabel("--");
         lblOfficersCount  = new JLabel("--");
         lblCoursesCount   = new JLabel("--");
+        lblNoticesCount   = new JLabel("--");
 
-        row.add(createStatCard("Total Students", "students", SECONDARY_BLUE, LIGHT_BLUE, lblStudentsCount));
-        row.add(createStatCard("Total Lecturers", "lecturers", new Color(79, 70, 229), new Color(238, 242, 255), lblLecturersCount));
-        row.add(createStatCard("Total Technical Officers", "officers", WARNING_COLOR, new Color(254, 243, 199), lblOfficersCount));
-        row.add(createStatCard("Total Courses", "courses", SUCCESS_COLOR, new Color(220, 252, 231), lblCoursesCount));
+        lblStudentsSub  = new JLabel("Loading...");
+        lblLecturersSub = new JLabel("Loading...");
+        lblOfficersSub  = new JLabel("Loading...");
+        lblCoursesSub   = new JLabel("Loading...");
+        lblNoticesSub   = new JLabel("Loading...");
+
+        row.add(createStatCard("Total Students", "students", SECONDARY_BLUE, LIGHT_BLUE, lblStudentsCount, lblStudentsSub));
+        row.add(createStatCard("Total Lecturers", "lecturers", new Color(79, 70, 229), new Color(238, 242, 255), lblLecturersCount, lblLecturersSub));
+        row.add(createStatCard("Technical Officers", "officers", WARNING_COLOR, new Color(254, 243, 199), lblOfficersCount, lblOfficersSub));
+        row.add(createStatCard("Total Courses", "courses", SUCCESS_COLOR, new Color(220, 252, 231), lblCoursesCount, lblCoursesSub));
+        row.add(createStatCard("Total Notices", "notices", new Color(14, 165, 233), new Color(224, 242, 254), lblNoticesCount, lblNoticesSub));
 
         return row;
     }
 
-    private JPanel createStatCard(String title, String type, Color accentColor, Color iconBg, JLabel valLabel) {
+    private JPanel createStatCard(String title, String type, Color accentColor, Color iconBg, JLabel valLabel, JLabel statusLabel) {
         JPanel card = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -666,7 +694,7 @@ public class AdminDashboard extends JFrame {
         };
         card.setOpaque(false);
         card.setLayout(new BorderLayout());
-        card.setBorder(new EmptyBorder(16, 18, 14, 18));
+        card.setBorder(new EmptyBorder(16, 16, 14, 16));
 
         JPanel leftCol = new JPanel();
         leftCol.setOpaque(false);
@@ -676,10 +704,9 @@ public class AdminDashboard extends JFrame {
         titleLabel.setFont(getModernFont(Font.BOLD, 12));
         titleLabel.setForeground(TEXT_SECONDARY);
 
-        valLabel.setFont(getModernFont(Font.BOLD, 26));
+        valLabel.setFont(getModernFont(Font.BOLD, 24));
         valLabel.setForeground(TEXT_PRIMARY);
 
-        JLabel statusLabel = new JLabel("Live Data Pending");
         statusLabel.setFont(getModernFont(Font.PLAIN, 10));
         statusLabel.setForeground(new Color(148, 163, 184));
 
@@ -697,14 +724,14 @@ public class AdminDashboard extends JFrame {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(iconBg);
-                g2.fillOval(0, 0, 40, 40);
+                g2.fillOval(0, 0, 38, 38);
                 g2.setColor(accentColor);
-                drawStatIcon(g2, type, 10, 10);
+                drawStatIcon(g2, type, 9, 9);
                 g2.dispose();
             }
         };
         iconPill.setOpaque(false);
-        iconPill.setPreferredSize(new Dimension(40, 40));
+        iconPill.setPreferredSize(new Dimension(38, 38));
 
         card.add(leftCol, BorderLayout.CENTER);
         card.add(iconPill, BorderLayout.EAST);
@@ -735,6 +762,13 @@ public class AdminDashboard extends JFrame {
             case "courses":
                 g2.drawRoundRect(x + 2, y + 2, 16, 15, 3, 3);
                 g2.drawLine(x + 10, y + 2, x + 10, y + 17);
+                break;
+            case "notices":
+                g2.drawArc(x + 3, y + 3, 11, 10, 0, 180);
+                g2.drawLine(x + 3, y + 8, x + 1, y + 13);
+                g2.drawLine(x + 14, y + 8, x + 16, y + 13);
+                g2.drawLine(x + 1, y + 13, x + 16, y + 13);
+                g2.fillOval(x + 7, y + 14, 3, 3);
                 break;
         }
     }
@@ -844,6 +878,15 @@ public class AdminDashboard extends JFrame {
     private JPanel createRecentActivityCard() {
         JPanel card = createBaseCard("Recent Activity");
 
+        recentActivityContainer = new JPanel(new BorderLayout());
+        recentActivityContainer.setOpaque(false);
+        recentActivityContainer.add(createActivityEmptyState(), BorderLayout.CENTER);
+
+        card.add(recentActivityContainer, BorderLayout.CENTER);
+        return card;
+    }
+
+    private JPanel createActivityEmptyState() {
         JPanel emptyState = new JPanel();
         emptyState.setOpaque(false);
         emptyState.setLayout(new BoxLayout(emptyState, BoxLayout.Y_AXIS));
@@ -863,7 +906,6 @@ public class AdminDashboard extends JFrame {
 
                 g2.setColor(TEXT_SECONDARY);
                 g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                // Clock/audit icon
                 g2.drawOval(14, 14, 20, 20);
                 g2.drawLine(24, 18, 24, 24);
                 g2.drawLine(24, 24, 28, 24);
@@ -889,27 +931,150 @@ public class AdminDashboard extends JFrame {
         emptyState.add(Box.createVerticalStrut(6));
         emptyState.add(emptyDesc);
 
-        card.add(emptyState, BorderLayout.CENTER);
-        return card;
+        return emptyState;
+    }
+
+    private void renderRecentActivities(List<RecentActivityItem> items) {
+        if (recentActivityContainer == null) return;
+        recentActivityContainer.removeAll();
+
+        if (items == null || items.isEmpty()) {
+            recentActivityContainer.add(createActivityEmptyState(), BorderLayout.CENTER);
+        } else {
+            JPanel listPanel = new JPanel();
+            listPanel.setOpaque(false);
+            listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
+
+            int maxToShow = Math.min(items.size(), 4);
+            for (int i = 0; i < maxToShow; i++) {
+                RecentActivityItem item = items.get(i);
+                listPanel.add(createActivityRow(item));
+                if (i < maxToShow - 1) {
+                    listPanel.add(Box.createVerticalStrut(6));
+                }
+            }
+
+            recentActivityContainer.add(listPanel, BorderLayout.CENTER);
+        }
+
+        recentActivityContainer.revalidate();
+        recentActivityContainer.repaint();
+    }
+
+    private JPanel createActivityRow(RecentActivityItem item) {
+        JPanel row = new JPanel(new BorderLayout(10, 0));
+        row.setOpaque(false);
+        row.setBorder(new EmptyBorder(6, 4, 6, 4));
+
+        JPanel iconPill = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(LIGHT_BLUE);
+                g2.fillOval(0, 0, 30, 30);
+                g2.setColor(SECONDARY_BLUE);
+                g2.setStroke(new BasicStroke(1.3f));
+                g2.drawArc(8, 7, 14, 12, 0, 180);
+                g2.drawLine(8, 13, 6, 18);
+                g2.drawLine(22, 13, 24, 18);
+                g2.drawLine(6, 18, 24, 18);
+                g2.dispose();
+            }
+        };
+        iconPill.setOpaque(false);
+        iconPill.setPreferredSize(new Dimension(30, 30));
+
+        JPanel text = new JPanel();
+        text.setOpaque(false);
+        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
+
+        String titleText = item.getTitle();
+        if (titleText != null && titleText.length() > 28) {
+            titleText = titleText.substring(0, 26) + "...";
+        }
+        JLabel titleLbl = new JLabel(titleText);
+        titleLbl.setFont(getModernFont(Font.BOLD, 12));
+        titleLbl.setForeground(TEXT_PRIMARY);
+
+        String subText = item.getTimestamp() != null ? item.getTimestamp() : "Active";
+        JLabel subLbl = new JLabel(subText);
+        subLbl.setFont(getModernFont(Font.PLAIN, 10));
+        subLbl.setForeground(TEXT_SECONDARY);
+
+        text.add(titleLbl);
+        text.add(Box.createVerticalStrut(2));
+        text.add(subLbl);
+
+        JLabel badge = new JLabel("Notice");
+        badge.setFont(getModernFont(Font.BOLD, 10));
+        badge.setForeground(SECONDARY_BLUE);
+        badge.setBorder(new EmptyBorder(2, 6, 2, 6));
+
+        row.add(iconPill, BorderLayout.WEST);
+        row.add(text, BorderLayout.CENTER);
+        row.add(badge, BorderLayout.EAST);
+
+        if (item.getDescription() != null && !item.getDescription().isBlank()) {
+            row.setToolTipText("<html><b>" + item.getTitle() + "</b><br>" + item.getDescription() + "</html>");
+        }
+
+        return row;
     }
 
     private JPanel createSystemOverviewCard() {
         JPanel card = createBaseCard("System Overview");
 
-        JPanel list = new JPanel();
-        list.setOpaque(false);
-        list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
+        systemOverviewContainer = new JPanel();
+        systemOverviewContainer.setOpaque(false);
+        systemOverviewContainer.setLayout(new BoxLayout(systemOverviewContainer, BoxLayout.Y_AXIS));
 
-        list.add(createOverviewRow("Students Module", "Enrolled faculty learners", SUCCESS_COLOR, "Active"));
-        list.add(Box.createVerticalStrut(10));
-        list.add(createOverviewRow("Lecturers Module", "Course educators & grading", SUCCESS_COLOR, "Active"));
-        list.add(Box.createVerticalStrut(10));
-        list.add(createOverviewRow("Technical Officers", "Lab & attendance monitoring", SUCCESS_COLOR, "Active"));
-        list.add(Box.createVerticalStrut(10));
-        list.add(createOverviewRow("Admin Oversight", "Full system governance", SECONDARY_BLUE, "Ready"));
+        renderSystemOverview(null);
 
-        card.add(list, BorderLayout.CENTER);
+        card.add(systemOverviewContainer, BorderLayout.CENTER);
         return card;
+    }
+
+    private void renderSystemOverview(AdminDashboardStats stats) {
+        if (systemOverviewContainer == null) return;
+        systemOverviewContainer.removeAll();
+
+        int std = (stats != null) ? stats.getTotalStudents() : 0;
+        int lec = (stats != null) ? stats.getTotalLecturers() : 0;
+        int to  = (stats != null) ? stats.getTotalTechnicalOfficers() : 0;
+        boolean connected = (stats != null && stats.isDbConnected());
+
+        systemOverviewContainer.add(createOverviewRow(
+                "Students Module",
+                std > 0 ? std + " Enrolled Learners" : "Faculty Learners",
+                connected ? SUCCESS_COLOR : TEXT_SECONDARY,
+                connected ? "Active" : "Pending"));
+        systemOverviewContainer.add(Box.createVerticalStrut(10));
+
+        systemOverviewContainer.add(createOverviewRow(
+                "Lecturers Module",
+                lec > 0 ? lec + " Academic Staff" : "Course Educators",
+                connected ? SUCCESS_COLOR : TEXT_SECONDARY,
+                connected ? "Active" : "Pending"));
+        systemOverviewContainer.add(Box.createVerticalStrut(10));
+
+        systemOverviewContainer.add(createOverviewRow(
+                "Technical Officers",
+                to > 0 ? to + " Laboratory Staff" : "Lab & Attendance Staff",
+                connected ? SUCCESS_COLOR : TEXT_SECONDARY,
+                connected ? "Active" : "Pending"));
+        systemOverviewContainer.add(Box.createVerticalStrut(10));
+
+        String port = (stats != null && stats.getActivePort() != null) ? stats.getActivePort() : "3307";
+        systemOverviewContainer.add(createOverviewRow(
+                "Admin Oversight",
+                connected ? "MariaDB Online (Port " + port + ")" : "Connecting to Database",
+                connected ? SECONDARY_BLUE : WARNING_COLOR,
+                connected ? "Ready" : "Waiting"));
+
+        systemOverviewContainer.revalidate();
+        systemOverviewContainer.repaint();
     }
 
     private JPanel createOverviewRow(String title, String desc, Color dotColor, String badgeText) {
@@ -985,13 +1150,88 @@ public class AdminDashboard extends JFrame {
         return name.toUpperCase();
     }
 
-    // EXTENSION POINT FOR FUTURE SERVICE/DAO DATA
-     //Programmatically update the live statistics once the database layer is connected.
+    // =========================================================================
+    // DATABASE INTEGRATION & ASYNCHRONOUS DATA LOADING (JDBC / SwingWorker)
+    // =========================================================================
+
+    /**
+     * Asynchronously queries the database in the background using SwingWorker,
+     * maintaining Swing UI responsiveness and updating all cards upon completion.
+     */
+    public void loadDashboardDataAsync() {
+        SwingWorker<AdminDashboardStats, Void> worker = new SwingWorker<>() {
+            private List<RecentActivityItem> recentItems;
+
+            @Override
+            protected AdminDashboardStats doInBackground() {
+                AdminDashboardService service = AdminDashboardService.getInstance();
+                recentItems = service.getRecentActivities(4);
+                return service.getDashboardStats();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    AdminDashboardStats stats = get();
+                    applyDashboardData(stats, recentItems);
+                } catch (Exception e) {
+                    System.err.println("[AdminDashboard] Error applying database data to UI: " + e.getMessage());
+                    applyFallbackData();
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    private void applyDashboardData(AdminDashboardStats stats, List<RecentActivityItem> recentItems) {
+        if (stats == null || !stats.isDbConnected()) {
+            applyFallbackData();
+            return;
+        }
+
+        // 1. Update Statistic Values
+        if (lblStudentsCount != null)  lblStudentsCount.setText(String.valueOf(stats.getTotalStudents()));
+        if (lblLecturersCount != null) lblLecturersCount.setText(String.valueOf(stats.getTotalLecturers()));
+        if (lblOfficersCount != null)  lblOfficersCount.setText(String.valueOf(stats.getTotalTechnicalOfficers()));
+        if (lblCoursesCount != null)   lblCoursesCount.setText(String.valueOf(stats.getTotalCourses()));
+        if (lblNoticesCount != null)   lblNoticesCount.setText(String.valueOf(stats.getTotalNotices()));
+
+        // 2. Update Subtitle Status Labels
+        if (lblStudentsSub != null)  lblStudentsSub.setText(stats.getTotalStudents() + " Active Learners");
+        if (lblLecturersSub != null) lblLecturersSub.setText(stats.getTotalLecturers() + " Academic Staff");
+        if (lblOfficersSub != null)  lblOfficersSub.setText(stats.getTotalTechnicalOfficers() + " Laboratory Staff");
+        if (lblCoursesSub != null)   lblCoursesSub.setText(stats.getTotalCourses() + " Active Modules");
+        if (lblNoticesSub != null)   lblNoticesSub.setText(stats.getTotalNotices() + " Published Notices");
+
+        // 3. Update Recent Activities
+        renderRecentActivities(recentItems);
+
+        // 4. Update System Overview
+        renderSystemOverview(stats);
+    }
+
+    private void applyFallbackData() {
+        if (lblStudentsSub != null)  lblStudentsSub.setText("Offline");
+        if (lblLecturersSub != null) lblLecturersSub.setText("Offline");
+        if (lblOfficersSub != null)  lblOfficersSub.setText("Offline");
+        if (lblCoursesSub != null)   lblCoursesSub.setText("Offline");
+        if (lblNoticesSub != null)   lblNoticesSub.setText("Offline");
+
+        renderRecentActivities(null);
+        renderSystemOverview(null);
+    }
+
+    // Programmatically update statistics (backward-compatible extension point)
     public void updateStatistics(String students, String lecturers, String technicalOfficers, String courses) {
-        if (lblStudentsCount != null) lblStudentsCount.setText(students);
-        if (lblLecturersCount != null) lblLecturersCount.setText(lecturers);
-        if (lblOfficersCount != null) lblOfficersCount.setText(technicalOfficers);
-        if (lblCoursesCount != null) lblCoursesCount.setText(courses);
+        updateStatistics(students, lecturers, technicalOfficers, courses, null);
+    }
+
+    public void updateStatistics(String students, String lecturers, String technicalOfficers, String courses, String notices) {
+        if (lblStudentsCount != null && students != null) lblStudentsCount.setText(students);
+        if (lblLecturersCount != null && lecturers != null) lblLecturersCount.setText(lecturers);
+        if (lblOfficersCount != null && technicalOfficers != null) lblOfficersCount.setText(technicalOfficers);
+        if (lblCoursesCount != null && courses != null) lblCoursesCount.setText(courses);
+        if (lblNoticesCount != null && notices != null) lblNoticesCount.setText(notices);
     }
 
     // STANDALONE RUNNER FOR UI PREVIEW & TESTING

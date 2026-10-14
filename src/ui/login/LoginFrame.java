@@ -1,5 +1,6 @@
 package ui.login;
 
+import database.DBConnection;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -10,6 +11,11 @@ import java.awt.geom.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Arrays;
 
 public class LoginFrame extends JFrame {
 
@@ -499,17 +505,18 @@ public class LoginFrame extends JFrame {
     }
 
 
-     //Handles the login action:
+     //Handles the database-authenticated login action:
 
     private void handleLogin() {
-        String username = usernameField.getText().trim();
+        String usernameInput = usernameField.getText().trim();
         char[] passwordChars = passwordField.getPassword();
-        String password = new String(passwordChars).trim();
+        String passwordInput = new String(passwordChars).trim();
 
-        if (username.isEmpty()) {
+        // 1. Validate required fields
+        if (usernameInput.isEmpty()) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Username cannot be empty. Please enter your username or ID.",
+                    "Username cannot be empty. Please enter your username, email, or ID.",
                     "Validation Error",
                     JOptionPane.WARNING_MESSAGE
             );
@@ -517,7 +524,7 @@ public class LoginFrame extends JFrame {
             return;
         }
 
-        if (password.isEmpty()) {
+        if (passwordInput.isEmpty()) {
             JOptionPane.showMessageDialog(
                     this,
                     "Password cannot be empty. Please enter your password.",
@@ -528,14 +535,113 @@ public class LoginFrame extends JFrame {
             return;
         }
 
-        // Non-empty credentials provided: launch AdminDashboard for UI testing
-        SwingUtilities.invokeLater(() -> {
-            AdminDashboard dashboard = new AdminDashboard(username);
-            dashboard.setVisible(true);
-        });
+        // 2. Query database for user credentials
+        String sql = "SELECT user_id, username, password, role, first_name, last_name, email, status "
+                   + "FROM users WHERE username = ? OR email = ? OR user_id = ?";
 
-        // Close and dispose of the Login Frame
-        dispose();
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, usernameInput);
+            pstmt.setString(2, usernameInput);
+            pstmt.setString(3, usernameInput);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    String dbPassword = rs.getString("password");
+                    String status = rs.getString("status");
+                    String role = rs.getString("role");
+                    String firstName = rs.getString("first_name");
+                    String lastName = rs.getString("last_name");
+                    String dbUsername = rs.getString("username");
+
+                    // 3. Verify account status
+                    if ("INACTIVE".equalsIgnoreCase(status)) {
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "This account is currently marked as INACTIVE. Please contact the administrator.",
+                                "Account Inactive",
+                                JOptionPane.WARNING_MESSAGE
+                        );
+                        return;
+                    }
+
+                    // 4. Verify password
+                    if (dbPassword != null && dbPassword.equals(passwordInput)) {
+                        String displayName = (firstName != null && !firstName.isBlank())
+                                ? (firstName + " " + (lastName != null ? lastName : "")).trim()
+                                : dbUsername;
+
+                        // 5. Open appropriate dashboard based on authenticated role
+                        if ("ADMIN".equalsIgnoreCase(role)) {
+                            SwingUtilities.invokeLater(() -> {
+                                AdminDashboard dashboard = new AdminDashboard(displayName);
+                                dashboard.setVisible(true);
+                            });
+                            dispose();
+                        } else {
+                            String roleName = formatRoleName(role);
+                            JOptionPane.showMessageDialog(
+                                    this,
+                                    "<html><body style='font-family: sans-serif; width: 280px;'>" +
+                                    "<h4 style='color: #10284A; margin-bottom: 6px;'>Welcome, " + displayName + "!</h4>" +
+                                    "<p style='color: #4A5568; line-height: 1.4;'>" +
+                                    "You have successfully authenticated as <b>" + roleName + "</b>.<br><br>" +
+                                    "The " + roleName + " portal is currently in development and will be available soon." +
+                                    "</p></body></html>",
+                                    "Login Successful - " + roleName,
+                                    JOptionPane.INFORMATION_MESSAGE
+                            );
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "Invalid username or password. Please try again.",
+                                "Authentication Failed",
+                                JOptionPane.ERROR_MESSAGE
+                        );
+                        passwordField.setText("");
+                        passwordField.requestFocusInWindow();
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Invalid username or password. Please try again.",
+                            "Authentication Failed",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                    passwordField.setText("");
+                    usernameField.requestFocusInWindow();
+                }
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "<html><body style='font-family: sans-serif; width: 300px;'>" +
+                    "<h4 style='color: #DC2626; margin-bottom: 6px;'>Database Connection Error</h4>" +
+                    "<p style='color: #4A5568; line-height: 1.4;'>" +
+                    "Unable to connect to the database.<br><br>" +
+                    "• Please verify that MySQL is started in XAMPP.<br>" +
+                    "• Ensure the database <b>fams</b> is active.<br><br>" +
+                    "<small style='color: #718096;'>Details: " + ex.getMessage() + "</small>" +
+                    "</p></body></html>",
+                    "Database Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        } finally {
+            Arrays.fill(passwordChars, '0');
+        }
+    }
+
+    private String formatRoleName(String role) {
+        if (role == null) return "User";
+        switch (role.toUpperCase()) {
+            case "ADMIN": return "Administrator";
+            case "LECTURER": return "Lecturer";
+            case "TECHNICAL_OFFICER": return "Technical Officer";
+            case "UNDERGRADUATE": return "Undergraduate";
+            default: return role;
+        }
     }
 
 
