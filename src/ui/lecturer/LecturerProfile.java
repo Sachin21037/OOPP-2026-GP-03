@@ -7,12 +7,17 @@ import java.awt.*;
 
 public class LecturerProfile extends JFrame {
 
-    private final Color NAVY = new Color(33, 70, 100);
-    private final Color LIGHT_BG = new Color(244, 247, 251);
-    private final Color WHITE = Color.WHITE;
-    private final Color TEXT = new Color(30, 48, 68);
-    private final Color BORDER = new Color(215, 224, 235);
-    private final Color ACTIVE_BG = new Color(231, 239, 248);
+    private static final Color NAVY = new Color(31, 66, 99);
+    private static final Color BACKGROUND = new Color(244, 247, 251);
+    private static final Color WHITE = Color.WHITE;
+    private static final Color TEXT = new Color(35, 48, 65);
+    private static final Color MUTED = new Color(100, 116, 139);
+    private static final Color BORDER = new Color(220, 227, 235);
+    private static final Color RED = new Color(190, 55, 55);
+    private static final Color ACTIVE_BG = new Color(232, 240, 248);
+
+    private static final Font BODY =
+            new Font("Arial", Font.PLAIN, 13);
 
     private JTextField nameField;
     private JTextField idField;
@@ -25,26 +30,26 @@ public class LecturerProfile extends JFrame {
     private JButton saveButton;
     private JButton cancelButton;
 
-    private String originalName;
-    private String originalEmail;
-    private String originalPhone;
-    private String originalDepartment;
-    private String originalDesignation;
+    private String savedName;
+    private String savedEmail;
+    private String savedPhone;
+    private String savedDepartment;
+    private String savedDesignation;
 
     public LecturerProfile() {
 
-        setTitle("Faculty Academic Management System - Profile");
-        setSize(1450, 900);
-        setMinimumSize(new Dimension(1100, 700));
+        setTitle("Faculty Academic Management System - Lecturer");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(1180, 760);
+        setMinimumSize(new Dimension(1000, 650));
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        getContentPane().setBackground(LIGHT_BG);
+        getContentPane().setBackground(BACKGROUND);
 
         add(createHeader(), BorderLayout.NORTH);
         add(createSidebar(), BorderLayout.WEST);
-        add(createMainContent(), BorderLayout.CENTER);
+        add(createProfileContent(), BorderLayout.CENTER);
     }
 
     // ================= HEADER =================
@@ -54,22 +59,20 @@ public class LecturerProfile extends JFrame {
         JPanel header = new JPanel(new BorderLayout());
 
         header.setBackground(NAVY);
-        header.setPreferredSize(new Dimension(1450, 90));
-        header.setBorder(
-                new EmptyBorder(10, 28, 10, 30)
-        );
+        header.setPreferredSize(new Dimension(0, 72));
+        header.setBorder(new EmptyBorder(0, 26, 0, 26));
 
         JLabel title = new JLabel(
                 "FACULTY ACADEMIC MANAGEMENT SYSTEM"
         );
 
-        title.setFont(new Font("Arial", Font.BOLD, 24));
         title.setForeground(WHITE);
+        title.setFont(new Font("Arial", Font.BOLD, 19));
 
         JLabel role = new JLabel("LECTURER");
 
-        role.setFont(new Font("Arial", Font.BOLD, 16));
         role.setForeground(WHITE);
+        role.setFont(new Font("Arial", Font.BOLD, 13));
 
         header.add(title, BorderLayout.WEST);
         header.add(role, BorderLayout.EAST);
@@ -81,77 +84,103 @@ public class LecturerProfile extends JFrame {
 
     private JPanel createSidebar() {
 
-        JPanel sidebar = new JPanel();
-
-        sidebar.setLayout(
-                new BoxLayout(sidebar, BoxLayout.Y_AXIS)
-        );
+        JPanel sidebar = new JPanel(new BorderLayout());
 
         sidebar.setBackground(WHITE);
-        sidebar.setPreferredSize(new Dimension(250, 700));
+        sidebar.setPreferredSize(new Dimension(205, 0));
 
         sidebar.setBorder(
-                new EmptyBorder(25, 14, 20, 14)
+                BorderFactory.createMatteBorder(
+                        0, 0, 0, 1, BORDER
+                )
+        );
+
+        JPanel menu = new JPanel();
+
+        menu.setBackground(WHITE);
+        menu.setLayout(
+                new BoxLayout(menu, BoxLayout.Y_AXIS)
+        );
+
+        menu.setBorder(
+                new EmptyBorder(25, 14, 12, 14)
         );
 
         JLabel menuTitle = new JLabel("LECTURER MENU");
 
-        menuTitle.setFont(new Font("Arial", Font.PLAIN, 13));
-        menuTitle.setForeground(new Color(75, 100, 130));
-
+        menuTitle.setFont(new Font("Arial", Font.BOLD, 11));
+        menuTitle.setForeground(MUTED);
         menuTitle.setBorder(
-                new EmptyBorder(0, 12, 25, 0)
+                new EmptyBorder(0, 9, 18, 0)
         );
 
         menuTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        sidebar.add(menuTitle);
+        menu.add(menuTitle);
 
-        sidebar.add(createMenuButton("Dashboard", false, () -> {
+        menu.add(createMenuButton("Dashboard", false, () -> {
             new LecturerDashboard().setVisible(true);
             dispose();
         }));
 
-        sidebar.add(createMenuButton("My Courses", false, () -> {
+        menu.add(createMenuButton("My Courses", false, () -> {
             new MyCourses().setVisible(true);
             dispose();
         }));
 
-        sidebar.add(createMenuButton("Students", false, () -> {
+        menu.add(createMenuButton("Students", false, () -> {
             new Student().setVisible(true);
             dispose();
         }));
 
-        sidebar.add(createMenuButton("Attendance", false, () -> {
+        menu.add(createMenuButton("Attendance", false, () -> {
             showComingSoon("Attendance");
         }));
 
-        sidebar.add(createMenuButton("Marks / Grades", false, () -> {
+        menu.add(createMenuButton("Marks / Grades", false, () -> {
             showComingSoon("Marks / Grades");
         }));
 
-        sidebar.add(createMenuButton("Assignments", false, () -> {
+        menu.add(createMenuButton("Assignments", false, () -> {
             showComingSoon("Assignments");
         }));
 
-        sidebar.add(createMenuButton("Profile", true, () -> {
-            // Already on Profile page
+        // Profile is highlighted because this is the Profile page
+        menu.add(createMenuButton("Profile", true, () -> {
+            // Already on the Profile page
         }));
 
-        sidebar.add(Box.createVerticalGlue());
+        sidebar.add(menu, BorderLayout.NORTH);
 
-        JButton logoutButton = createMenuButton(
-                "Logout", false, this::logout
+        // Logout section
+        JPanel bottom = new JPanel(new BorderLayout());
+
+        bottom.setBackground(WHITE);
+        bottom.setBorder(
+                new EmptyBorder(10, 14, 22, 14)
         );
 
-        logoutButton.setForeground(new Color(190, 45, 45));
+        JButton logout = new JButton("Logout");
 
-        sidebar.add(logoutButton);
+        logout.setFont(new Font("Arial", Font.BOLD, 13));
+        logout.setForeground(RED);
+        logout.setBackground(WHITE);
+        logout.setHorizontalAlignment(SwingConstants.LEFT);
+        logout.setBorder(new EmptyBorder(10, 10, 10, 10));
+        logout.setFocusPainted(false);
+        logout.setCursor(
+                Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+        );
+
+        logout.addActionListener(e -> logout());
+
+        bottom.add(logout, BorderLayout.SOUTH);
+        sidebar.add(bottom, BorderLayout.SOUTH);
 
         return sidebar;
     }
 
-    // ================= SIDEBAR BUTTON =================
+    // ================= MENU BUTTON =================
 
     private JButton createMenuButton(
             String text,
@@ -161,191 +190,240 @@ public class LecturerProfile extends JFrame {
 
         JButton button = new JButton(text);
 
-        button.setFont(
-                new Font("Arial",
-                        active ? Font.BOLD : Font.PLAIN, 15)
+        button.setFont(active
+                ? new Font("Arial", Font.BOLD, 13)
+                : BODY);
+
+        button.setForeground(active ? NAVY : TEXT);
+
+        button.setBackground(
+                active ? ACTIVE_BG : WHITE
         );
 
         button.setHorizontalAlignment(SwingConstants.LEFT);
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setOpaque(true);
-        button.setContentAreaFilled(true);
 
-        button.setPreferredSize(new Dimension(220, 54));
-        button.setMinimumSize(new Dimension(220, 54));
         button.setMaximumSize(
-                new Dimension(Integer.MAX_VALUE, 54)
+                new Dimension(Integer.MAX_VALUE, 43)
         );
 
-        button.setAlignmentX(Component.LEFT_ALIGNMENT);
+        button.setPreferredSize(
+                new Dimension(175, 43)
+        );
 
         button.setBorder(
-                BorderFactory.createEmptyBorder(0, 18, 0, 10)
+                BorderFactory.createCompoundBorder(
+                        active
+                                ? BorderFactory.createMatteBorder(
+                                0, 4, 0, 0, NAVY
+                        )
+                                : BorderFactory.createEmptyBorder(
+                                0, 4, 0, 0
+                        ),
+                        new EmptyBorder(0, 13, 0, 8)
+                )
         );
 
-        if (active) {
-            button.setBackground(ACTIVE_BG);
-            button.setForeground(NAVY);
-
-            button.setBorder(
-                    BorderFactory.createCompoundBorder(
-                            BorderFactory.createMatteBorder(
-                                    0, 5, 0, 0, NAVY
-                            ),
-                            BorderFactory.createEmptyBorder(
-                                    0, 13, 0, 10
-                            )
-                    )
-            );
-
-        } else {
-            button.setBackground(WHITE);
-            button.setForeground(TEXT);
-        }
+        button.setFocusPainted(false);
 
         button.setCursor(
                 Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
         );
 
+        button.setAlignmentX(Component.LEFT_ALIGNMENT);
+
         button.addActionListener(e -> action.run());
+
+        button.addMouseListener(
+                new java.awt.event.MouseAdapter() {
+
+                    @Override
+                    public void mouseEntered(
+                            java.awt.event.MouseEvent e) {
+
+                        if (!active) {
+                            button.setBackground(
+                                    new Color(245, 248, 252)
+                            );
+                        }
+                    }
+
+                    @Override
+                    public void mouseExited(
+                            java.awt.event.MouseEvent e) {
+
+                        button.setBackground(
+                                active ? ACTIVE_BG : WHITE
+                        );
+                    }
+                }
+        );
 
         return button;
     }
 
-    // ================= MAIN CONTENT =================
+    // ================= PROFILE CONTENT =================
 
-    private JPanel createMainContent() {
+    private JPanel createProfileContent() {
 
-        JPanel main = new JPanel(new BorderLayout(0, 25));
+        JPanel content = new JPanel(
+                new BorderLayout(0, 22)
+        );
 
-        main.setBackground(LIGHT_BG);
+        content.setBackground(BACKGROUND);
 
-        main.setBorder(
-                new EmptyBorder(32, 38, 30, 38)
+        content.setBorder(
+                new EmptyBorder(28, 30, 30, 30)
         );
 
         // Page heading
         JPanel headingPanel = new JPanel();
 
+        headingPanel.setBackground(BACKGROUND);
+
         headingPanel.setLayout(
                 new BoxLayout(headingPanel, BoxLayout.Y_AXIS)
         );
 
-        headingPanel.setBackground(LIGHT_BG);
-
         JLabel heading = new JLabel("My Profile");
 
-        heading.setFont(new Font("Arial", Font.BOLD, 36));
+        heading.setFont(new Font("Arial", Font.BOLD, 29));
         heading.setForeground(TEXT);
 
         JLabel subtitle = new JLabel(
                 "View and manage your lecturer information."
         );
 
-        subtitle.setFont(new Font("Arial", Font.PLAIN, 16));
-        subtitle.setForeground(new Color(95, 115, 140));
+        subtitle.setFont(new Font("Arial", Font.PLAIN, 14));
+        subtitle.setForeground(MUTED);
+
+        subtitle.setBorder(
+                new EmptyBorder(5, 1, 0, 0)
+        );
 
         headingPanel.add(heading);
-        headingPanel.add(Box.createVerticalStrut(8));
         headingPanel.add(subtitle);
 
-        main.add(headingPanel, BorderLayout.NORTH);
+        content.add(headingPanel, BorderLayout.NORTH);
 
-        // Profile card
-        JPanel profileCard = new JPanel(new BorderLayout(25, 0));
+        // White profile panel
+        JPanel profileCard = new JPanel(
+                new BorderLayout(22, 18)
+        );
 
         profileCard.setBackground(WHITE);
 
         profileCard.setBorder(
                 BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(BORDER),
-                        new EmptyBorder(30, 28, 25, 28)
+                        new EmptyBorder(22, 22, 20, 22)
                 )
         );
 
-        // Left profile section
-        JPanel leftPanel = new JPanel();
+        // Left-side lecturer information
+        JPanel lecturerPanel = new JPanel();
 
-        leftPanel.setLayout(
-                new BoxLayout(leftPanel, BoxLayout.Y_AXIS)
+        lecturerPanel.setBackground(WHITE);
+
+        lecturerPanel.setLayout(
+                new BoxLayout(lecturerPanel, BoxLayout.Y_AXIS)
         );
 
-        leftPanel.setBackground(WHITE);
-        leftPanel.setPreferredSize(new Dimension(220, 300));
+        lecturerPanel.setPreferredSize(
+                new Dimension(155, 220)
+        );
 
-        JLabel avatar = new JLabel("L", SwingConstants.CENTER);
+        JLabel avatar = new JLabel(
+                "L", SwingConstants.CENTER
+        );
 
         avatar.setOpaque(true);
         avatar.setBackground(NAVY);
         avatar.setForeground(WHITE);
-        avatar.setFont(new Font("Arial", Font.BOLD, 46));
+        avatar.setFont(new Font("Arial", Font.BOLD, 40));
 
-        avatar.setPreferredSize(new Dimension(110, 110));
-        avatar.setMinimumSize(new Dimension(110, 110));
-        avatar.setMaximumSize(new Dimension(110, 110));
+        avatar.setPreferredSize(new Dimension(90, 90));
+        avatar.setMinimumSize(new Dimension(90, 90));
+        avatar.setMaximumSize(new Dimension(90, 90));
         avatar.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel lecturerName = new JLabel("Lecturer");
+        JLabel lecturerTitle = new JLabel("Lecturer");
 
-        lecturerName.setFont(new Font("Arial", Font.BOLD, 23));
-        lecturerName.setForeground(TEXT);
-        lecturerName.setAlignmentX(Component.CENTER_ALIGNMENT);
+        lecturerTitle.setFont(
+                new Font("Arial", Font.BOLD, 19)
+        );
 
-        JLabel staffRole = new JLabel("Academic Staff");
+        lecturerTitle.setForeground(TEXT);
+        lecturerTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        staffRole.setFont(new Font("Arial", Font.PLAIN, 16));
-        staffRole.setForeground(new Color(100, 120, 145));
-        staffRole.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JLabel staffTitle = new JLabel("Academic Staff");
 
-        leftPanel.add(avatar);
-        leftPanel.add(Box.createVerticalStrut(18));
-        leftPanel.add(lecturerName);
-        leftPanel.add(Box.createVerticalStrut(8));
-        leftPanel.add(staffRole);
+        staffTitle.setFont(
+                new Font("Arial", Font.PLAIN, 12)
+        );
 
-        profileCard.add(leftPanel, BorderLayout.WEST);
+        staffTitle.setForeground(MUTED);
+        staffTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Right information section
+        lecturerPanel.add(avatar);
+        lecturerPanel.add(Box.createVerticalStrut(14));
+        lecturerPanel.add(lecturerTitle);
+        lecturerPanel.add(Box.createVerticalStrut(6));
+        lecturerPanel.add(staffTitle);
+
+        profileCard.add(
+                lecturerPanel, BorderLayout.WEST
+        );
+
+        // Lecturer fields
         JPanel fieldsPanel = new JPanel(
-                new GridLayout(3, 2, 22, 20)
+                new GridLayout(3, 2, 16, 15)
         );
 
         fieldsPanel.setBackground(WHITE);
 
         nameField = addField(
-                fieldsPanel, "Full Name", "Lecturer Name"
+                fieldsPanel,
+                "Full Name",
+                "Lecturer Name"
         );
 
         idField = addField(
-                fieldsPanel, "Lecturer ID", "LEC001"
+                fieldsPanel,
+                "Lecturer ID",
+                "LEC001"
         );
 
         emailField = addField(
-                fieldsPanel, "Email Address",
+                fieldsPanel,
+                "Email Address",
                 "lecturer@university.edu"
         );
 
         phoneField = addField(
-                fieldsPanel, "Phone Number", "07XXXXXXXX"
+                fieldsPanel,
+                "Phone Number",
+                "07XXXXXXXX"
         );
 
         departmentField = addField(
-                fieldsPanel, "Department", "ICT Department"
+                fieldsPanel,
+                "Department",
+                "ICT Department"
         );
 
         designationField = addField(
-                fieldsPanel, "Designation", "Lecturer"
+                fieldsPanel,
+                "Designation",
+                "Lecturer"
         );
 
-        profileCard.add(fieldsPanel, BorderLayout.CENTER);
+        profileCard.add(
+                fieldsPanel, BorderLayout.CENTER
+        );
 
-        // Save original sample values
-        saveOriginalValues();
-
-        // Bottom action buttons
+        // Bottom buttons
         JPanel buttonPanel = new JPanel(
-                new FlowLayout(FlowLayout.RIGHT, 10, 0)
+                new FlowLayout(FlowLayout.RIGHT, 8, 0)
         );
 
         buttonPanel.setBackground(WHITE);
@@ -365,17 +443,21 @@ public class LecturerProfile extends JFrame {
         buttonPanel.add(saveButton);
         buttonPanel.add(cancelButton);
 
-        JPanel cardContent = new JPanel(new BorderLayout(0, 25));
+        JPanel cardContainer = new JPanel(
+                new BorderLayout(0, 16)
+        );
 
-        cardContent.setBackground(WHITE);
-        cardContent.add(profileCard, BorderLayout.CENTER);
-        cardContent.add(buttonPanel, BorderLayout.SOUTH);
+        cardContainer.setBackground(BACKGROUND);
+        cardContainer.add(profileCard, BorderLayout.CENTER);
+        cardContainer.add(buttonPanel, BorderLayout.SOUTH);
 
-        main.add(cardContent, BorderLayout.CENTER);
+        content.add(cardContainer, BorderLayout.CENTER);
 
+        saveOriginalValues();
         setFieldsEditable(false);
 
         editButton.addActionListener(e -> {
+
             setFieldsEditable(true);
 
             editButton.setVisible(false);
@@ -386,6 +468,7 @@ public class LecturerProfile extends JFrame {
         saveButton.addActionListener(e -> saveProfile());
 
         cancelButton.addActionListener(e -> {
+
             restoreOriginalValues();
             setFieldsEditable(false);
 
@@ -394,47 +477,49 @@ public class LecturerProfile extends JFrame {
             cancelButton.setVisible(false);
         });
 
-        return main;
+        return content;
     }
 
     // ================= FIELD CREATION =================
 
     private JTextField addField(
-            JPanel parent,
+            JPanel panel,
             String labelText,
             String value
     ) {
 
-        JPanel fieldPanel = new JPanel(new BorderLayout(0, 9));
+        JPanel fieldPanel = new JPanel(
+                new BorderLayout(0, 7)
+        );
 
         fieldPanel.setBackground(WHITE);
 
         JLabel label = new JLabel(labelText);
 
-        label.setFont(new Font("Arial", Font.BOLD, 15));
+        label.setFont(new Font("Arial", Font.BOLD, 12));
         label.setForeground(TEXT);
 
         JTextField field = new JTextField(value);
 
-        field.setFont(new Font("Arial", Font.PLAIN, 15));
-        field.setPreferredSize(new Dimension(220, 62));
+        field.setFont(new Font("Arial", Font.PLAIN, 13));
+        field.setPreferredSize(new Dimension(200, 43));
 
         field.setBorder(
                 BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(BORDER),
-                        new EmptyBorder(8, 10, 8, 10)
+                        new EmptyBorder(5, 9, 5, 9)
                 )
         );
 
         fieldPanel.add(label, BorderLayout.NORTH);
         fieldPanel.add(field, BorderLayout.CENTER);
 
-        parent.add(fieldPanel);
+        panel.add(fieldPanel);
 
         return field;
     }
 
-    // ================= EDITABLE FIELDS =================
+    // ================= EDIT FIELDS =================
 
     private void setFieldsEditable(boolean editable) {
 
@@ -448,7 +533,7 @@ public class LecturerProfile extends JFrame {
 
         Color fieldColor = editable
                 ? new Color(250, 252, 255)
-                : new Color(244, 247, 251);
+                : BACKGROUND;
 
         nameField.setBackground(fieldColor);
         idField.setBackground(fieldColor);
@@ -458,24 +543,24 @@ public class LecturerProfile extends JFrame {
         designationField.setBackground(fieldColor);
     }
 
-    // ================= ORIGINAL VALUES =================
+    // ================= SAVE ORIGINAL VALUES =================
 
     private void saveOriginalValues() {
 
-        originalName = nameField.getText();
-        originalEmail = emailField.getText();
-        originalPhone = phoneField.getText();
-        originalDepartment = departmentField.getText();
-        originalDesignation = designationField.getText();
+        savedName = nameField.getText();
+        savedEmail = emailField.getText();
+        savedPhone = phoneField.getText();
+        savedDepartment = departmentField.getText();
+        savedDesignation = designationField.getText();
     }
 
     private void restoreOriginalValues() {
 
-        nameField.setText(originalName);
-        emailField.setText(originalEmail);
-        phoneField.setText(originalPhone);
-        departmentField.setText(originalDepartment);
-        designationField.setText(originalDesignation);
+        nameField.setText(savedName);
+        emailField.setText(savedEmail);
+        phoneField.setText(savedPhone);
+        departmentField.setText(savedDepartment);
+        designationField.setText(savedDesignation);
     }
 
     // ================= SAVE PROFILE =================
@@ -514,27 +599,29 @@ public class LecturerProfile extends JFrame {
 
     private void styleButton(JButton button) {
 
-        button.setFont(new Font("Arial", Font.BOLD, 14));
+        button.setFont(new Font("Arial", Font.BOLD, 12));
         button.setBackground(NAVY);
         button.setForeground(WHITE);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
 
-        button.setPreferredSize(new Dimension(155, 45));
+        button.setPreferredSize(
+                new Dimension(125, 36)
+        );
 
         button.setCursor(
                 Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
         );
     }
 
-    // ================= PLACEHOLDER =================
+    // ================= OTHER PAGES =================
 
-    private void showComingSoon(String feature) {
+    private void showComingSoon(String page) {
 
         JOptionPane.showMessageDialog(
                 this,
-                feature + " page is not connected yet.",
-                "Information",
+                page + " page will be added next.",
+                page,
                 JOptionPane.INFORMATION_MESSAGE
         );
     }
@@ -543,16 +630,20 @@ public class LecturerProfile extends JFrame {
 
     private void logout() {
 
-        int choice = JOptionPane.showConfirmDialog(
+        int answer = JOptionPane.showConfirmDialog(
                 this,
                 "Are you sure you want to logout?",
                 "Confirm Logout",
                 JOptionPane.YES_NO_OPTION
         );
 
-        if (choice == JOptionPane.YES_OPTION) {
+        if (answer == JOptionPane.YES_OPTION) {
             dispose();
-            new LecturerDashboard().setVisible(true);
+
+            JOptionPane.showMessageDialog(
+                    null,
+                    "You have been logged out."
+            );
         }
     }
 
@@ -560,8 +651,8 @@ public class LecturerProfile extends JFrame {
 
     public static void main(String[] args) {
 
-        SwingUtilities.invokeLater(() -> {
-            new LecturerProfile().setVisible(true);
-        });
+        SwingUtilities.invokeLater(
+                () -> new LecturerProfile().setVisible(true)
+        );
     }
 }
