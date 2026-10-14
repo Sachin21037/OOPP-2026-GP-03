@@ -1,3 +1,4 @@
+
 package ui;
 
 import javax.swing.*;
@@ -6,909 +7,485 @@ import java.awt.*;
 
 public class LecturerDashboard extends JFrame {
 
-    // ================= COLORS =================
+    private static final Color NAVY = new Color(31, 66, 99);
+    private static final Color BACKGROUND = new Color(244, 247, 251);
+    private static final Color WHITE = Color.WHITE;
+    private static final Color TEXT = new Color(35, 48, 65);
+    private static final Color MUTED = new Color(100, 116, 139);
+    private static final Color TEAL = new Color(43, 169, 155);
+    private static final Color PURPLE = new Color(133, 71, 199);
+    private static final Color BORDER = new Color(220, 227, 235);
+    private static final Color RED = new Color(190, 55, 55);
 
-    private final Color HEADER_COLOR = new Color(25, 67, 103);
-    private final Color BACKGROUND_COLOR = new Color(247, 249, 252);
-    private final Color TEXT_COLOR = new Color(35, 45, 55);
-    private final Color SUBTEXT_COLOR = new Color(105, 115, 125);
-
-    // ================= CONSTRUCTOR =================
+    private static final Font BODY =
+            new Font("Arial", Font.PLAIN, 13);
 
     public LecturerDashboard() {
-
         setTitle("Faculty Academic Management System - Lecturer");
-
-        setSize(1100, 700);
-
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
+        setSize(1180, 760);
+        setMinimumSize(new Dimension(1000, 650));
         setLocationRelativeTo(null);
-
         setLayout(new BorderLayout());
+        getContentPane().setBackground(BACKGROUND);
 
-        // Header
         add(createHeader(), BorderLayout.NORTH);
-
-        // Sidebar
         add(createSidebar(), BorderLayout.WEST);
-
-        // Dashboard
-        add(createDashboard(), BorderLayout.CENTER);
+        add(createDashboardContent(), BorderLayout.CENTER);
     }
 
-    // =====================================================
-    // HEADER
-    // =====================================================
-
     private JPanel createHeader() {
-
         JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(NAVY);
+        header.setPreferredSize(new Dimension(0, 72));
+        header.setBorder(new EmptyBorder(0, 26, 0, 26));
 
-        header.setBackground(HEADER_COLOR);
-
-        header.setPreferredSize(
-                new Dimension(0, 65)
+        JLabel title = new JLabel(
+                "FACULTY ACADEMIC MANAGEMENT SYSTEM"
         );
+        title.setForeground(WHITE);
+        title.setFont(new Font("Arial", Font.BOLD, 19));
 
-        header.setBorder(
-                new EmptyBorder(
-                        0,
-                        20,
-                        0,
-                        20
-                )
-        );
+        JLabel role = new JLabel("LECTURER");
+        role.setForeground(WHITE);
+        role.setFont(new Font("Arial", Font.BOLD, 13));
 
-        // System title
-        JLabel title =
-                new JLabel(
-                        "FACULTY ACADEMIC MANAGEMENT SYSTEM"
-                );
-
-        title.setForeground(Color.WHITE);
-
-        title.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        18
-                )
-        );
-
-        // Lecturer
-        JLabel role =
-                new JLabel("LECTURER");
-
-        role.setForeground(Color.WHITE);
-
-        role.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        13
-                )
-        );
-
-        header.add(
-                title,
-                BorderLayout.WEST
-        );
-
-        header.add(
-                role,
-                BorderLayout.EAST
-        );
+        header.add(title, BorderLayout.WEST);
+        header.add(role, BorderLayout.EAST);
 
         return header;
     }
 
-    // =====================================================
-    // SIDEBAR
-    // =====================================================
-
     private JPanel createSidebar() {
-
-        JPanel sidebar =
-                new JPanel(
-                        new BorderLayout()
-                );
-
-        sidebar.setBackground(
-                Color.WHITE
-        );
-
-        sidebar.setPreferredSize(
-                new Dimension(
-                        190,
-                        0
+        JPanel sidebar = new JPanel(new BorderLayout());
+        sidebar.setBackground(WHITE);
+        sidebar.setPreferredSize(new Dimension(205, 0));
+        sidebar.setBorder(
+                BorderFactory.createMatteBorder(
+                        0, 0, 0, 1, BORDER
                 )
         );
 
-        // ================= MENU PANEL =================
+        JPanel menu = new JPanel();
+        menu.setBackground(WHITE);
+        menu.setLayout(new BoxLayout(menu, BoxLayout.Y_AXIS));
+        menu.setBorder(new EmptyBorder(25, 14, 12, 14));
 
-        JPanel menuPanel =
-                new JPanel();
+        JLabel menuTitle = new JLabel("LECTURER MENU");
+        menuTitle.setFont(new Font("Arial", Font.BOLD, 11));
+        menuTitle.setForeground(MUTED);
+        menuTitle.setBorder(
+                new EmptyBorder(0, 9, 18, 0)
+        );
+        menuTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        menuPanel.setBackground(
-                Color.WHITE
+        menu.add(menuTitle);
+
+        menu.add(createMenuButton(
+                "Dashboard", true, () -> {}
+        ));
+
+        menu.add(createMenuButton(
+                "My Courses", false, () -> {
+                    new MyCourses().setVisible(true);
+                    dispose();
+                }
+        ));
+
+        menu.add(createMenuButton(
+                "Students", false,
+                () -> showComingSoon("Students")
+        ));
+
+        menu.add(createMenuButton(
+                "Attendance", false,
+                () -> showComingSoon("Attendance")
+        ));
+
+        menu.add(createMenuButton(
+                "Marks / Grades", false,
+                () -> showComingSoon("Marks / Grades")
+        ));
+
+        menu.add(createMenuButton(
+                "Assignments", false,
+                () -> showComingSoon("Assignments")
+        ));
+
+        menu.add(createMenuButton(
+                "My Profile", false,
+                () -> showComingSoon("My Profile")
+        ));
+
+        sidebar.add(menu, BorderLayout.NORTH);
+
+        JPanel bottom = new JPanel(new BorderLayout());
+        bottom.setBackground(WHITE);
+        bottom.setBorder(new EmptyBorder(10, 14, 22, 14));
+
+        JButton logout = new JButton("Logout");
+        logout.setFont(new Font("Arial", Font.BOLD, 13));
+        logout.setForeground(RED);
+        logout.setBackground(WHITE);
+        logout.setHorizontalAlignment(SwingConstants.LEFT);
+        logout.setBorder(new EmptyBorder(10, 10, 10, 10));
+        logout.setFocusPainted(false);
+        logout.setCursor(
+                Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
         );
 
-        menuPanel.setLayout(
-                new BoxLayout(
-                        menuPanel,
-                        BoxLayout.Y_AXIS
-                )
-        );
-
-        menuPanel.setBorder(
-                new EmptyBorder(
-                        25,
-                        15,
-                        10,
-                        15
-                )
-        );
-
-        // Lecturer Menu
-        JLabel menuTitle =
-                new JLabel(
-                        "LECTURER MENU"
-                );
-
-        menuTitle.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        11
-                )
-        );
-
-        menuTitle.setForeground(
-                SUBTEXT_COLOR
-        );
-
-        menuPanel.add(menuTitle);
-
-        menuPanel.add(
-                Box.createVerticalStrut(15)
-        );
-
-        // =================================================
-        // DASHBOARD BUTTON
-        // =================================================
-
-        JButton dashboardButton =
-                createMenuButton(
-                        "Dashboard"
-                );
-
-        // Make dashboard bold because this is current page
-        dashboardButton.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        13
-                )
-        );
-
-        menuPanel.add(
-                dashboardButton
-        );
-
-        // =================================================
-        // MY COURSES BUTTON
-        // =================================================
-
-        JButton coursesButton =
-                createMenuButton(
-                        "My Courses"
-                );
-
-        /*
-         * IMPORTANT
-         *
-         * This connects LecturerDashboard
-         * with MyCourses.java
-         */
-
-        coursesButton.addActionListener(e -> {
-
-            MyCourses myCourses =
-                    new MyCourses();
-
-            myCourses.setVisible(true);
-
-            // Close dashboard
-            dispose();
-        });
-
-        menuPanel.add(
-                coursesButton
-        );
-
-        // =================================================
-        // STUDENTS
-        // =================================================
-
-        JButton studentsButton =
-                createMenuButton(
-                        "Students"
-                );
-
-        studentsButton.addActionListener(e -> {
-
-            JOptionPane.showMessageDialog(
+        logout.addActionListener(e -> {
+            int answer = JOptionPane.showConfirmDialog(
                     this,
-                    "Students page will be added next."
+                    "Are you sure you want to logout?",
+                    "Confirm Logout",
+                    JOptionPane.YES_NO_OPTION
             );
 
-        });
-
-        menuPanel.add(
-                studentsButton
-        );
-
-        // =================================================
-        // ATTENDANCE
-        // =================================================
-
-        JButton attendanceButton =
-                createMenuButton(
-                        "Attendance"
+            if (answer == JOptionPane.YES_OPTION) {
+                dispose();
+                JOptionPane.showMessageDialog(
+                        null, "You have been logged out."
                 );
-
-        attendanceButton.addActionListener(e -> {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Attendance page will be added next."
-            );
-
-        });
-
-        menuPanel.add(
-                attendanceButton
-        );
-
-        // =================================================
-        // MARKS / GRADES
-        // =================================================
-
-        JButton marksButton =
-                createMenuButton(
-                        "Marks / Grades"
-                );
-
-        marksButton.addActionListener(e -> {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Marks / Grades page will be added next."
-            );
-
-        });
-
-        menuPanel.add(
-                marksButton
-        );
-
-        // =================================================
-        // ASSIGNMENTS
-        // =================================================
-
-        JButton assignmentsButton =
-                createMenuButton(
-                        "Assignments"
-                );
-
-        assignmentsButton.addActionListener(e -> {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Assignments page will be added next."
-            );
-
-        });
-
-        menuPanel.add(
-                assignmentsButton
-        );
-
-        // =================================================
-        // PROFILE
-        // =================================================
-
-        JButton profileButton =
-                createMenuButton(
-                        "My Profile"
-                );
-
-        profileButton.addActionListener(e -> {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Profile page will be added next."
-            );
-
-        });
-
-        menuPanel.add(
-                profileButton
-        );
-
-        sidebar.add(
-                menuPanel,
-                BorderLayout.NORTH
-        );
-
-        // =================================================
-        // LOGOUT
-        // =================================================
-
-        JPanel logoutPanel =
-                new JPanel(
-                        new BorderLayout()
-                );
-
-        logoutPanel.setBackground(
-                Color.WHITE
-        );
-
-        logoutPanel.setBorder(
-                new EmptyBorder(
-                        10,
-                        15,
-                        20,
-                        15
-                )
-        );
-
-        JButton logoutButton =
-                new JButton(
-                        "Logout"
-                );
-
-        logoutButton.setForeground(
-                new Color(
-                        190,
-                        60,
-                        60
-                )
-        );
-
-        logoutButton.setBackground(
-                Color.WHITE
-        );
-
-        logoutButton.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        12
-                )
-        );
-
-        logoutButton.setBorderPainted(false);
-
-        logoutButton.setFocusPainted(false);
-
-        logoutButton.setHorizontalAlignment(
-                SwingConstants.LEFT
-        );
-
-        logoutButton.addActionListener(e -> {
-
-            int answer =
-                    JOptionPane.showConfirmDialog(
-                            this,
-                            "Are you sure you want to logout?",
-                            "Logout",
-                            JOptionPane.YES_NO_OPTION
-                    );
-
-            if (answer ==
-                    JOptionPane.YES_OPTION) {
-
-                System.exit(0);
             }
         });
 
-        logoutPanel.add(
-                logoutButton,
-                BorderLayout.WEST
-        );
-
-        sidebar.add(
-                logoutPanel,
-                BorderLayout.SOUTH
-        );
+        bottom.add(logout, BorderLayout.SOUTH);
+        sidebar.add(bottom, BorderLayout.SOUTH);
 
         return sidebar;
     }
 
-    // =====================================================
-    // CREATE MENU BUTTON
-    // =====================================================
-
     private JButton createMenuButton(
-            String text
-    ) {
+            String text, boolean active, Runnable action) {
 
-        JButton button =
-                new JButton(text);
+        JButton button = new JButton(text);
 
-        button.setMaximumSize(
-                new Dimension(
-                        Integer.MAX_VALUE,
-                        45
-                )
-        );
+        button.setFont(active
+                ? new Font("Arial", Font.BOLD, 13)
+                : BODY);
 
-        button.setPreferredSize(
-                new Dimension(
-                        160,
-                        45
-                )
-        );
-
-        button.setFont(
-                new Font(
-                        "Arial",
-                        Font.PLAIN,
-                        13
-                )
-        );
-
-        button.setForeground(
-                TEXT_COLOR
-        );
-
+        button.setForeground(active ? NAVY : TEXT);
         button.setBackground(
-                Color.WHITE
+                active ? new Color(232, 240, 248) : WHITE
         );
 
-        button.setBorderPainted(false);
+        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setMaximumSize(
+                new Dimension(Integer.MAX_VALUE, 43)
+        );
+        button.setPreferredSize(new Dimension(175, 43));
+
+        button.setBorder(
+                BorderFactory.createCompoundBorder(
+                        active
+                                ? BorderFactory.createMatteBorder(
+                                0, 4, 0, 0, NAVY
+                        )
+                                : BorderFactory.createEmptyBorder(
+                                0, 4, 0, 0
+                        ),
+                        new EmptyBorder(0, 13, 0, 8)
+                )
+        );
 
         button.setFocusPainted(false);
-
-        button.setHorizontalAlignment(
-                SwingConstants.LEFT
-        );
-
         button.setCursor(
-                new Cursor(
-                        Cursor.HAND_CURSOR
-                )
+                Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+        );
+        button.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        button.addActionListener(e -> action.run());
+
+        button.addMouseListener(
+                new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseEntered(
+                            java.awt.event.MouseEvent e) {
+                        if (!active) {
+                            button.setBackground(
+                                    new Color(245, 248, 252)
+                            );
+                        }
+                    }
+
+                    @Override
+                    public void mouseExited(
+                            java.awt.event.MouseEvent e) {
+                        button.setBackground(
+                                active
+                                        ? new Color(232, 240, 248)
+                                        : WHITE
+                        );
+                    }
+                }
         );
 
         return button;
     }
 
-    // =====================================================
-    // DASHBOARD
-    // =====================================================
-
-    private JPanel createDashboard() {
-
-        JPanel dashboard =
-                new JPanel(
-                        new BorderLayout()
-                );
-
-        dashboard.setBackground(
-                BACKGROUND_COLOR
+    private JPanel createDashboardContent() {
+        JPanel content = new JPanel(
+                new BorderLayout(0, 22)
         );
 
-        dashboard.setBorder(
-                new EmptyBorder(
-                        25,
-                        25,
-                        25,
-                        25
-                )
+        content.setBackground(BACKGROUND);
+        content.setBorder(
+                new EmptyBorder(28, 30, 30, 30)
         );
 
-        // =================================================
-        // WELCOME
-        // =================================================
-
-        JPanel welcomePanel =
-                new JPanel();
-
-        welcomePanel.setBackground(
-                BACKGROUND_COLOR
+        JPanel welcome = new JPanel();
+        welcome.setBackground(BACKGROUND);
+        welcome.setLayout(
+                new BoxLayout(welcome, BoxLayout.Y_AXIS)
         );
 
-        welcomePanel.setLayout(
-                new BoxLayout(
-                        welcomePanel,
-                        BoxLayout.Y_AXIS
-                )
+        JLabel heading = new JLabel("Welcome, Lecturer");
+        heading.setFont(new Font("Arial", Font.BOLD, 29));
+        heading.setForeground(TEXT);
+
+        JLabel subtitle = new JLabel(
+                "Manage your courses, students, attendance "
+                        + "and academic activities."
         );
 
-        JLabel welcome =
-                new JLabel(
-                        "Welcome, Lecturer"
-                );
-
-        welcome.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        28
-                )
+        subtitle.setFont(new Font("Arial", Font.PLAIN, 14));
+        subtitle.setForeground(MUTED);
+        subtitle.setBorder(
+                new EmptyBorder(5, 1, 0, 0)
         );
 
-        welcome.setForeground(
-                TEXT_COLOR
+        welcome.add(heading);
+        welcome.add(subtitle);
+
+        content.add(welcome, BorderLayout.NORTH);
+
+        JPanel main = new JPanel(
+                new BorderLayout(0, 22)
+        );
+        main.setBackground(BACKGROUND);
+
+        JPanel stats = new JPanel(
+                new GridLayout(1, 4, 16, 0)
+        );
+        stats.setBackground(BACKGROUND);
+
+        stats.add(createStatCard(
+                "MY COURSES", "4", NAVY,
+                "Assigned courses"
+        ));
+
+        stats.add(createStatCard(
+                "STUDENTS", "86", TEAL,
+                "Across your courses"
+        ));
+
+        stats.add(createStatCard(
+                "ASSIGNMENTS", "12",
+                new Color(48, 77, 111),
+                "Created this semester"
+        ));
+
+        stats.add(createStatCard(
+                "PENDING MARKS", "8", PURPLE,
+                "Need your attention"
+        ));
+
+        main.add(stats, BorderLayout.NORTH);
+
+        JPanel activity = new JPanel(
+                new BorderLayout(0, 16)
         );
 
-        JLabel description =
-                new JLabel(
-                        "Manage your courses, students, attendance and academic activities."
-                );
-
-        description.setFont(
-                new Font(
-                        "Arial",
-                        Font.PLAIN,
-                        14
-                )
-        );
-
-        description.setForeground(
-                SUBTEXT_COLOR
-        );
-
-        welcomePanel.add(welcome);
-
-        welcomePanel.add(
-                Box.createVerticalStrut(5)
-        );
-
-        welcomePanel.add(
-                description
-        );
-
-        dashboard.add(
-                welcomePanel,
-                BorderLayout.NORTH
-        );
-
-        // =================================================
-        // CENTER PANEL
-        // =================================================
-
-        JPanel centerPanel =
-                new JPanel(
-                        new BorderLayout(
-                                0,
-                                20
-                        )
-                );
-
-        centerPanel.setBackground(
-                BACKGROUND_COLOR
-        );
-
-        centerPanel.setBorder(
-                new EmptyBorder(
-                        25,
-                        0,
-                        0,
-                        0
-                )
-        );
-
-        // =================================================
-        // CARDS
-        // =================================================
-
-        JPanel cardsPanel =
-                new JPanel(
-                        new GridLayout(
-                                1,
-                                4,
-                                15,
-                                0
-                        )
-                );
-
-        cardsPanel.setBackground(
-                BACKGROUND_COLOR
-        );
-
-        cardsPanel.add(
-                createCard(
-                        "My Courses",
-                        "4",
-                        new Color(
-                                45,
-                                90,
-                                135
-                        )
-                )
-        );
-
-        cardsPanel.add(
-                createCard(
-                        "Students",
-                        "86",
-                        new Color(
-                                40,
-                                170,
-                                160
-                        )
-                )
-        );
-
-        cardsPanel.add(
-                createCard(
-                        "Assignments",
-                        "12",
-                        new Color(
-                                45,
-                                70,
-                                95
-                        )
-                )
-        );
-
-        cardsPanel.add(
-                createCard(
-                        "Pending Marks",
-                        "8",
-                        new Color(
-                                125,
-                                65,
-                                180
-                        )
-                )
-        );
-
-        centerPanel.add(
-                cardsPanel,
-                BorderLayout.NORTH
-        );
-
-        // =================================================
-        // ACTIVITIES
-        // =================================================
-
-        JPanel activitiesPanel =
-                new JPanel();
-
-        activitiesPanel.setBackground(
-                Color.WHITE
-        );
-
-        activitiesPanel.setBorder(
+        activity.setBackground(WHITE);
+        activity.setBorder(
                 BorderFactory.createCompoundBorder(
-
-                        BorderFactory.createLineBorder(
-                                new Color(
-                                        225,
-                                        230,
-                                        235
-                                )
-                        ),
-
-                        new EmptyBorder(
-                                18,
-                                18,
-                                18,
-                                18
-                        )
+                        BorderFactory.createLineBorder(BORDER),
+                        new EmptyBorder(20, 22, 20, 22)
                 )
         );
 
-        activitiesPanel.setLayout(
-                new BoxLayout(
-                        activitiesPanel,
-                        BoxLayout.Y_AXIS
-                )
+        JPanel activityHeading = new JPanel(
+                new BorderLayout()
+        );
+        activityHeading.setBackground(WHITE);
+
+        JLabel activityTitle =
+                new JLabel("Lecturer Activities");
+
+        activityTitle.setFont(
+                new Font("Arial", Font.BOLD, 18)
+        );
+        activityTitle.setForeground(TEXT);
+
+        JLabel recent = new JLabel("RECENT UPDATES");
+        recent.setFont(new Font("Arial", Font.BOLD, 10));
+        recent.setForeground(MUTED);
+
+        activityHeading.add(
+                activityTitle, BorderLayout.WEST
+        );
+        activityHeading.add(recent, BorderLayout.EAST);
+
+        activity.add(activityHeading, BorderLayout.NORTH);
+
+        JPanel activityList = new JPanel();
+        activityList.setBackground(WHITE);
+        activityList.setLayout(
+                new BoxLayout(activityList, BoxLayout.Y_AXIS)
         );
 
-        JLabel activitiesTitle =
-                new JLabel(
-                        "Lecturer Activities"
-                );
+        activityList.add(createActivity(
+                "Attendance updated for ICT2132",
+                "ATTENDANCE", TEAL
+        ));
 
-        activitiesTitle.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        17
-                )
-        );
+        activityList.add(createActivity(
+                "New assignment created",
+                "ASSIGNMENT", NAVY
+        ));
 
-        activitiesTitle.setForeground(
-                TEXT_COLOR
-        );
+        activityList.add(createActivity(
+                "Marks submitted for Programming",
+                "MARKS", PURPLE
+        ));
 
-        activitiesPanel.add(
-                activitiesTitle
-        );
+        activityList.add(createActivity(
+                "Course materials updated",
+                "MATERIALS", new Color(190, 125, 45)
+        ));
 
-        activitiesPanel.add(
-                createActivity(
-                        "Attendance updated for ICT2132"
-                )
-        );
+        activity.add(activityList, BorderLayout.CENTER);
 
-        activitiesPanel.add(
-                createActivity(
-                        "New assignment created"
-                )
-        );
+        main.add(activity, BorderLayout.CENTER);
+        content.add(main, BorderLayout.CENTER);
 
-        activitiesPanel.add(
-                createActivity(
-                        "Marks submitted for Programming"
-                )
-        );
-
-        activitiesPanel.add(
-                createActivity(
-                        "Course materials updated"
-                )
-        );
-
-        centerPanel.add(
-                activitiesPanel,
-                BorderLayout.CENTER
-        );
-
-        dashboard.add(
-                centerPanel,
-                BorderLayout.CENTER
-        );
-
-        return dashboard;
+        return content;
     }
 
-    // =====================================================
-    // CREATE CARD
-    // =====================================================
+    private JPanel createStatCard(
+            String title, String value,
+            Color accent, String caption) {
 
-    private JPanel createCard(
-            String title,
-            String value,
-            Color valueColor
-    ) {
-
-        JPanel card =
-                new JPanel();
-
-        card.setBackground(
-                Color.WHITE
+        JPanel card = new JPanel(
+                new BorderLayout(0, 12)
         );
 
+        card.setBackground(WHITE);
         card.setBorder(
                 BorderFactory.createCompoundBorder(
-
-                        BorderFactory.createLineBorder(
-                                new Color(
-                                        225,
-                                        230,
-                                        235
-                                )
-                        ),
-
-                        new EmptyBorder(
-                                18,
-                                18,
-                                18,
-                                18
-                        )
+                        BorderFactory.createLineBorder(BORDER),
+                        new EmptyBorder(17, 18, 16, 18)
                 )
         );
 
-        card.setLayout(
-                new BoxLayout(
-                        card,
-                        BoxLayout.Y_AXIS
-                )
-        );
+        JPanel top = new JPanel(new BorderLayout());
+        top.setBackground(WHITE);
 
-        JLabel titleLabel =
-                new JLabel(title);
-
+        JLabel titleLabel = new JLabel(title);
         titleLabel.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        13
-                )
+                new Font("Arial", Font.BOLD, 11)
+        );
+        titleLabel.setForeground(MUTED);
+
+        JLabel dot = new JLabel("●");
+        dot.setForeground(accent);
+        dot.setFont(new Font("Arial", Font.BOLD, 13));
+
+        top.add(titleLabel, BorderLayout.WEST);
+        top.add(dot, BorderLayout.EAST);
+
+        JLabel number = new JLabel(value);
+        number.setFont(
+                new Font("Arial", Font.BOLD, 34)
+        );
+        number.setForeground(accent);
+
+        JLabel note = new JLabel(caption);
+        note.setFont(
+                new Font("Arial", Font.PLAIN, 11)
+        );
+        note.setForeground(MUTED);
+
+        JPanel lower = new JPanel();
+        lower.setBackground(WHITE);
+        lower.setLayout(
+                new BoxLayout(lower, BoxLayout.Y_AXIS)
         );
 
-        titleLabel.setForeground(
-                SUBTEXT_COLOR
-        );
+        lower.add(number);
+        lower.add(Box.createVerticalStrut(3));
+        lower.add(note);
 
-        JLabel valueLabel =
-                new JLabel(value);
-
-        valueLabel.setFont(
-                new Font(
-                        "Arial",
-                        Font.BOLD,
-                        30
-                )
-        );
-
-        valueLabel.setForeground(
-                valueColor
-        );
-
-        card.add(
-                titleLabel
-        );
-
-        card.add(
-                Box.createVerticalStrut(8)
-        );
-
-        card.add(
-                valueLabel
-        );
+        card.add(top, BorderLayout.NORTH);
+        card.add(lower, BorderLayout.CENTER);
 
         return card;
     }
 
-    // =====================================================
-    // CREATE ACTIVITY
-    // =====================================================
+    private JPanel createActivity(
+            String text, String category, Color accent) {
 
-    private JLabel createActivity(
-            String text
-    ) {
-
-        JLabel activity =
-                new JLabel(
-                        "• " + text
-                );
-
-        activity.setFont(
-                new Font(
-                        "Arial",
-                        Font.PLAIN,
-                        13
-                )
+        JPanel row = new JPanel(
+                new BorderLayout(12, 0)
         );
 
-        activity.setForeground(
-                SUBTEXT_COLOR
+        row.setBackground(WHITE);
+        row.setBorder(
+                new EmptyBorder(12, 0, 12, 0)
+        );
+        row.setMaximumSize(
+                new Dimension(Integer.MAX_VALUE, 58)
         );
 
-        activity.setBorder(
-                new EmptyBorder(
-                        7,
-                        0,
-                        7,
-                        0
-                )
+        JPanel marker = new JPanel();
+        marker.setBackground(accent);
+        marker.setPreferredSize(new Dimension(4, 34));
+
+        JLabel description = new JLabel(text);
+        description.setFont(BODY);
+        description.setForeground(TEXT);
+
+        JLabel tag = new JLabel(category);
+        tag.setFont(new Font("Arial", Font.BOLD, 10));
+        tag.setForeground(accent);
+        tag.setBorder(
+                new EmptyBorder(4, 8, 4, 8)
+        );
+        tag.setOpaque(true);
+
+        tag.setBackground(new Color(
+                Math.min(255, accent.getRed() + 105),
+                Math.min(255, accent.getGreen() + 105),
+                Math.min(255, accent.getBlue() + 105)
+        ));
+
+        row.add(marker, BorderLayout.WEST);
+        row.add(description, BorderLayout.CENTER);
+        row.add(tag, BorderLayout.EAST);
+
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setBackground(WHITE);
+        wrapper.add(row, BorderLayout.CENTER);
+        wrapper.setMaximumSize(
+                new Dimension(Integer.MAX_VALUE, 60)
         );
 
-        return activity;
+        return wrapper;
     }
 
-    // =====================================================
-    // MAIN METHOD
-    // =====================================================
+    private void showComingSoon(String page) {
+        JOptionPane.showMessageDialog(
+                this,
+                page + " page will be added next.",
+                page,
+                JOptionPane.INFORMATION_MESSAGE
+        );
+    }
 
-    public static void main(
-            String[] args
-    ) {
-
-        SwingUtilities.invokeLater(() -> {
-
-            LecturerDashboard dashboard =
-                    new LecturerDashboard();
-
-            dashboard.setVisible(true);
-
-        });
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(
+                () -> new LecturerDashboard().setVisible(true)
+        );
     }
 }
