@@ -12,14 +12,17 @@ import java.net.URL;
 
 public class LoginFrame extends JFrame {
 
-    // Light Blue & White Theme Palette
-    private static final Color BG_LEFT_TOP     = new Color(243, 247, 253);
-    private static final Color BG_LEFT_BOTTOM  = new Color(225, 236, 249);
-    private static final Color PRIMARY_BLUE    = new Color(37, 99, 235);
-    private static final Color PRIMARY_HOVER   = new Color(29, 78, 216);
-    private static final Color PRIMARY_PRESSED = new Color(30, 64, 175);
+    // Theme Palette - Harmonized with Admin Dashboard
+    private static final Color PRIMARY_NAVY    = new Color(16, 40, 74);    // #10284A
+    private static final Color SECONDARY_BLUE  = new Color(29, 78, 216);   // #1D4ED8
+    private static final Color LIGHT_BLUE      = new Color(234, 242, 255); // #EAF2FF
+    private static final Color BG_LEFT_TOP     = new Color(245, 248, 254);
+    private static final Color BG_LEFT_BOTTOM  = new Color(228, 238, 252);
+    private static final Color PRIMARY_BLUE    = new Color(29, 78, 216);   // #1D4ED8
+    private static final Color PRIMARY_HOVER   = new Color(16, 40, 74);    // #10284A
+    private static final Color PRIMARY_PRESSED = new Color(10, 25, 47);    // #0A192F
 
-    private static final Color TEXT_PRIMARY    = new Color(15, 23, 42);
+    private static final Color TEXT_PRIMARY    = new Color(23, 43, 77);    // #172B4D
     private static final Color TEXT_SECONDARY  = new Color(71, 85, 105);
     private static final Color TEXT_MUTED      = new Color(100, 116, 139);
     private static final Color BORDER_COLOR    = new Color(203, 213, 225);
@@ -125,12 +128,13 @@ public class LoginFrame extends JFrame {
                 g2.setPaint(bgGradient);
                 g2.fillRect(0, 0, getWidth(), getHeight());
 
-                // Subtle background soft ambient circles
-                g2.setColor(new Color(191, 219, 254, 40));
+                // Subtle ambient geometric shapes in Admin Navy & Blue
+                g2.setColor(new Color(16, 40, 74, 15));
                 g2.fillOval(-40, -40, 160, 160);
-                g2.fillOval(getWidth() - 80, getHeight() / 2 - 40, 140, 140);
+                g2.setColor(new Color(29, 78, 216, 20));
+                g2.fillOval(getWidth() - 90, getHeight() / 2 - 50, 150, 150);
 
-                // Draw exact 3D illustration image in the lower section
+                // Draw exact 3D illustration image in the lower section with Admin Dashboard colors
                 if (illustrationImage != null) {
                     int padX = 24;
                     int targetW = getWidth() - (padX * 2);
@@ -138,21 +142,30 @@ public class LoginFrame extends JFrame {
                     int targetH = (int) (targetW * (490.0 / 735.0));
                     int targetY = getHeight() - targetH - 24;
 
-                    // Rounded card clip
-                    RoundRectangle2D.Float clipRect = new RoundRectangle2D.Float(padX, targetY, targetW, targetH, 16, 16);
-
-                    // Soft card shadow
-                    g2.setColor(new Color(148, 163, 184, 45));
+                    // 1. Soft Navy card shadow
+                    g2.setColor(new Color(16, 40, 74, 38));
                     g2.fill(new RoundRectangle2D.Float(padX - 2, targetY + 3, targetW + 4, targetH + 4, 18, 18));
 
+                    // 2. Admin Light Blue container mat / backing
+                    RoundRectangle2D.Float matRect = new RoundRectangle2D.Float(padX - 3, targetY - 3, targetW + 6, targetH + 6, 18, 18);
+                    g2.setColor(LIGHT_BLUE);
+                    g2.fill(matRect);
+
+                    // 3. Admin Secondary Blue accent border around the mat
+                    g2.setColor(new Color(29, 78, 216, 120));
+                    g2.setStroke(new BasicStroke(1.5f));
+                    g2.draw(matRect);
+
+                    // 4. Rounded card clip for the image
+                    RoundRectangle2D.Float clipRect = new RoundRectangle2D.Float(padX, targetY, targetW, targetH, 14, 14);
                     Shape oldClip = g2.getClip();
                     g2.clip(clipRect);
                     g2.drawImage(illustrationImage, padX, targetY, targetW, targetH, null);
                     g2.setClip(oldClip);
 
-                    // Elegant border around the illustration card
-                    g2.setColor(new Color(255, 255, 255, 220));
-                    g2.setStroke(new BasicStroke(1.5f));
+                    // 5. Crisp inner border
+                    g2.setColor(new Color(255, 255, 255, 230));
+                    g2.setStroke(new BasicStroke(1.2f));
                     g2.draw(clipRect);
                 }
 
@@ -162,39 +175,16 @@ public class LoginFrame extends JFrame {
         leftPanel.setLayout(new BorderLayout());
         leftPanel.setPreferredSize(new Dimension(378, 550));
 
-        // Content branding & description panel
+        // Content branding & description panel (Logo removed, title sized up)
         JPanel contentPanel = new JPanel();
         contentPanel.setOpaque(false);
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBorder(new EmptyBorder(26, 28, 8, 28));
+        contentPanel.setBorder(new EmptyBorder(30, 28, 8, 28));
 
-        // Academic Icon Badge (White circle with primary blue cap)
-        JPanel iconBadge = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                g2.setColor(Color.WHITE);
-                g2.fillOval(0, 0, 36, 36);
-                g2.setColor(new Color(191, 219, 254));
-                g2.setStroke(new BasicStroke(1.2f));
-                g2.drawOval(0, 0, 36, 36);
-
-                drawBadgeCap(g2, 18, 18, 20);
-                g2.dispose();
-            }
-        };
-        iconBadge.setOpaque(false);
-        iconBadge.setPreferredSize(new Dimension(36, 36));
-        iconBadge.setMaximumSize(new Dimension(36, 36));
-        iconBadge.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        // System Tagline / Category
-        JLabel appCategoryLabel = new JLabel("FACULTY ACADEMIC MANAGEMENT SYSTEM");
-        appCategoryLabel.setFont(new Font("SansSerif", Font.BOLD, 10));
-        appCategoryLabel.setForeground(PRIMARY_BLUE);
+        // Sized-up Faculty Academic Management System title
+        JLabel appCategoryLabel = new JLabel("Faculty Academic Management System");
+        appCategoryLabel.setFont(new Font("SansSerif", Font.BOLD, 15));
+        appCategoryLabel.setForeground(PRIMARY_NAVY);
         appCategoryLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         // Main Welcome Heading
@@ -206,23 +196,21 @@ public class LoginFrame extends JFrame {
         // FAMS Description Section
         JLabel famsHeadline = new JLabel("One Platform. Every Academic Need.");
         famsHeadline.setFont(new Font("SansSerif", Font.BOLD, 12));
-        famsHeadline.setForeground(PRIMARY_BLUE);
+        famsHeadline.setForeground(SECONDARY_BLUE);
         famsHeadline.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel famsDesc = new JLabel(
-                "<html><body style='width: 250px; color: #475569; font-family: sans-serif; font-size: 10px; line-height: 1.35;'>" +
+                "<html><body style='width: 315px; color: #475569; font-family: sans-serif; font-size: 10px; line-height: 1.4;'>" +
                 "FAMS is a user-friendly Faculty Academic Management System designed to simplify " +
-                "academic activities for students, lecturers, technical officers, and administrators. " +
+                "academic activities for students, lecturers, technical officers, and administrators." +
                 "</body></html>"
         );
         famsDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        contentPanel.add(iconBadge);
-        contentPanel.add(Box.createVerticalStrut(8));
         contentPanel.add(appCategoryLabel);
-        contentPanel.add(Box.createVerticalStrut(4));
+        contentPanel.add(Box.createVerticalStrut(8));
         contentPanel.add(welcomeHeading);
-        contentPanel.add(Box.createVerticalStrut(12));
+        contentPanel.add(Box.createVerticalStrut(10));
         contentPanel.add(famsHeadline);
         contentPanel.add(Box.createVerticalStrut(5));
         contentPanel.add(famsDesc);
@@ -230,29 +218,6 @@ public class LoginFrame extends JFrame {
         leftPanel.add(contentPanel, BorderLayout.NORTH);
 
         return leftPanel;
-    }
-
-    private void drawBadgeCap(Graphics2D g2, int cx, int cy, int size) {
-        Polygon top = new Polygon();
-        top.addPoint(cx, cy - 5);
-        top.addPoint(cx + (size / 2), cy - 1);
-        top.addPoint(cx, cy + 3);
-        top.addPoint(cx - (size / 2), cy - 1);
-        g2.setColor(PRIMARY_BLUE);
-        g2.fill(top);
-
-        Polygon base = new Polygon();
-        base.addPoint(cx - 5, cy + 2);
-        base.addPoint(cx + 5, cy + 2);
-        base.addPoint(cx + 4, cy + 7);
-        base.addPoint(cx - 4, cy + 7);
-        g2.setColor(new Color(147, 197, 253));
-        g2.fill(base);
-
-        g2.setColor(PRIMARY_HOVER);
-        g2.setStroke(new BasicStroke(1.2f));
-        g2.drawLine(cx, cy - 1, cx + 9, cy + 3);
-        g2.fillOval(cx + 8, cy + 3, 3, 4);
     }
 
       //Creates the Right Panel (58% width):
@@ -426,8 +391,8 @@ public class LoginFrame extends JFrame {
         optionsRow.add(rememberMeCheckbox, BorderLayout.WEST);
         optionsRow.add(forgotPasswordLabel, BorderLayout.EAST);
 
-        // 5. Prominent Vibrant Royal-Blue LOGIN Button
-        loginButton = new RoundedButton("LOGIN", PRIMARY_BLUE, PRIMARY_HOVER, PRIMARY_PRESSED, 8);
+        // 5. Prominent Navy & Blue LOGIN Button (Admin Dashboard Theme)
+        loginButton = new RoundedButton("LOGIN", PRIMARY_NAVY, SECONDARY_BLUE, PRIMARY_PRESSED, 8);
         loginButton.setFont(new Font("SansSerif", Font.BOLD, 13));
         loginButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         loginButton.setPreferredSize(new Dimension(320, 42));
@@ -655,7 +620,8 @@ public class LoginFrame extends JFrame {
             } else if (getModel().isRollover()) {
                 g2.setColor(hoverColor);
             } else {
-                g2.setColor(normalColor);
+                GradientPaint gp = new GradientPaint(0, 0, normalColor, getWidth(), 0, hoverColor);
+                g2.setPaint(gp);
             }
 
             g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), radius, radius));
