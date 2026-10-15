@@ -1,23 +1,47 @@
-
 package ui;
+
+import database.DBConnection;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.regex.Pattern;
 
 public class LecturerProfile extends JFrame {
 
-    private static final Color NAVY = new Color(31, 66, 99);
-    private static final Color BACKGROUND = new Color(244, 247, 251);
-    private static final Color WHITE = Color.WHITE;
-    private static final Color TEXT = new Color(35, 48, 65);
-    private static final Color MUTED = new Color(100, 116, 139);
-    private static final Color BORDER = new Color(220, 227, 235);
-    private static final Color RED = new Color(190, 55, 55);
-    private static final Color ACTIVE_BG = new Color(232, 240, 248);
+    private static final Color NAVY = LecturerTheme.PRIMARY_NAVY;
+    private static final Color BACKGROUND = LecturerTheme.MAIN_BG;
+    private static final Color WHITE = LecturerTheme.CARD_BG;
+    private static final Color TEXT = LecturerTheme.TEXT_PRIMARY;
+    private static final Color MUTED = LecturerTheme.TEXT_SECONDARY;
+    private static final Color BORDER = LecturerTheme.BORDER_COLOR;
+    private static final Color RED = LecturerTheme.DANGER_RED;
+    private static final Color ACTIVE_BG = LecturerTheme.LIGHT_BLUE;
 
     private static final Font BODY =
             new Font("Arial", Font.PLAIN, 13);
+
+    private static final Pattern EMAIL_PATTERN =
+            Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    private static final Pattern PHONE_PATTERN =
+            Pattern.compile("^[0-9+ \\-()]{7,20}$");
+
+    private String lecturerId;
+
+    private JLabel avatar;
+    private JLabel lecturerTitle;
+    private JLabel staffTitle;
+    private JButton changePhotoButton;
 
     private JTextField nameField;
     private JTextField idField;
@@ -35,8 +59,29 @@ public class LecturerProfile extends JFrame {
     private String savedPhone;
     private String savedDepartment;
     private String savedDesignation;
+    private String currentPhotoPath;
+    private File pendingPhotoFile;
 
+    /**
+     * Default constructor: dynamically resolves the active lecturer session.
+     */
     public LecturerProfile() {
+        this(resolveActiveLecturerId());
+    }
+
+    /**
+     * Overloaded constructor accepting an explicit lecturer ID.
+     *
+     * @param lecturerId the active lecturer ID (e.g. "LEC001")
+     */
+    public LecturerProfile(String lecturerId) {
+        this.lecturerId = (lecturerId != null && !lecturerId.trim().isEmpty())
+                ? lecturerId.trim()
+                : null;
+
+        if (this.lecturerId != null) {
+            LecturerDashboard.setActiveLecturerId(this.lecturerId);
+        }
 
         setTitle("Faculty Academic Management System - Lecturer");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -50,218 +95,43 @@ public class LecturerProfile extends JFrame {
         add(createHeader(), BorderLayout.NORTH);
         add(createSidebar(), BorderLayout.WEST);
         add(createProfileContent(), BorderLayout.CENTER);
+
+        // Load profile data directly from MySQL
+        loadProfileFromDatabase();
+    }
+
+    /**
+     * Resolves the active lecturer ID from session state or system property.
+     */
+    private static String resolveActiveLecturerId() {
+        String active = LecturerDashboard.getActiveLecturerId();
+        if (active != null && !active.trim().isEmpty()) {
+            return active.trim();
+        }
+        String sysProp = System.getProperty("fams.lecturer.id");
+        if (sysProp != null && !sysProp.trim().isEmpty()) {
+            return sysProp.trim();
+        }
+        // Fallback: query MySQL for the first lecturer record
+        try (Connection conn = DBConnection.getConnection();
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT lecturer_id FROM lecturers ORDER BY lecturer_id LIMIT 1")) {
+            if (rs.next()) {
+                return rs.getString("lecturer_id");
+            }
+        } catch (SQLException ignored) {
+        }
+        return null;
     }
 
     // ================= HEADER =================
 
     private JPanel createHeader() {
-
-        JPanel header = new JPanel(new BorderLayout());
-
-        header.setBackground(NAVY);
-        header.setPreferredSize(new Dimension(0, 72));
-        header.setBorder(new EmptyBorder(0, 26, 0, 26));
-
-        JLabel title = new JLabel(
-                "FACULTY ACADEMIC MANAGEMENT SYSTEM"
-        );
-
-        title.setForeground(WHITE);
-        title.setFont(new Font("Arial", Font.BOLD, 19));
-
-        JLabel role = new JLabel("LECTURER");
-
-        role.setForeground(WHITE);
-        role.setFont(new Font("Arial", Font.BOLD, 13));
-
-        header.add(title, BorderLayout.WEST);
-        header.add(role, BorderLayout.EAST);
-
-        return header;
+        return LecturerTheme.createHeader(lecturerId, this);
     }
-
-    // ================= SIDEBAR =================
 
     private JPanel createSidebar() {
-
-        JPanel sidebar = new JPanel(new BorderLayout());
-
-        sidebar.setBackground(WHITE);
-        sidebar.setPreferredSize(new Dimension(205, 0));
-
-        sidebar.setBorder(
-                BorderFactory.createMatteBorder(
-                        0, 0, 0, 1, BORDER
-                )
-        );
-
-        JPanel menu = new JPanel();
-
-        menu.setBackground(WHITE);
-        menu.setLayout(
-                new BoxLayout(menu, BoxLayout.Y_AXIS)
-        );
-
-        menu.setBorder(
-                new EmptyBorder(25, 14, 12, 14)
-        );
-
-        JLabel menuTitle = new JLabel("LECTURER MENU");
-
-        menuTitle.setFont(new Font("Arial", Font.BOLD, 11));
-        menuTitle.setForeground(MUTED);
-        menuTitle.setBorder(
-                new EmptyBorder(0, 9, 18, 0)
-        );
-
-        menuTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        menu.add(menuTitle);
-
-        menu.add(createMenuButton("Dashboard", false, () -> {
-            new LecturerDashboard().setVisible(true);
-            dispose();
-        }));
-
-        menu.add(createMenuButton("My Courses", false, () -> {
-            new MyCourses().setVisible(true);
-            dispose();
-        }));
-
-        menu.add(createMenuButton("Students", false, () -> {
-            new Student().setVisible(true);
-            dispose();
-        }));
-
-        menu.add(createMenuButton("Attendance", false, () -> {
-            new Attendance().setVisible(true);
-            dispose();
-        }));
-
-        menu.add(createMenuButton("Marks / Grades", false, () -> {
-            new MarksGrades().setVisible(true);
-            dispose();
-        }));
-
-        menu.add(createMenuButton("Assignments", false, () -> {
-            new Assignments().setVisible(true);
-            dispose();
-        }));
-
-        // Profile is highlighted because this is the Profile page
-        menu.add(createMenuButton("Profile", true, () -> {
-            // Already on the Profile page
-        }));
-
-        sidebar.add(menu, BorderLayout.NORTH);
-
-        // Logout section
-        JPanel bottom = new JPanel(new BorderLayout());
-
-        bottom.setBackground(WHITE);
-        bottom.setBorder(
-                new EmptyBorder(10, 14, 22, 14)
-        );
-
-        JButton logout = new JButton("Logout");
-
-        logout.setFont(new Font("Arial", Font.BOLD, 13));
-        logout.setForeground(RED);
-        logout.setBackground(WHITE);
-        logout.setHorizontalAlignment(SwingConstants.LEFT);
-        logout.setBorder(new EmptyBorder(10, 10, 10, 10));
-        logout.setFocusPainted(false);
-        logout.setCursor(
-                Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-        );
-
-        logout.addActionListener(e -> logout());
-
-        bottom.add(logout, BorderLayout.SOUTH);
-        sidebar.add(bottom, BorderLayout.SOUTH);
-
-        return sidebar;
-    }
-
-    // ================= MENU BUTTON =================
-
-    private JButton createMenuButton(
-            String text,
-            boolean active,
-            Runnable action
-    ) {
-
-        JButton button = new JButton(text);
-
-        button.setFont(active
-                ? new Font("Arial", Font.BOLD, 13)
-                : BODY);
-
-        button.setForeground(active ? NAVY : TEXT);
-
-        button.setBackground(
-                active ? ACTIVE_BG : WHITE
-        );
-
-        button.setHorizontalAlignment(SwingConstants.LEFT);
-
-        button.setMaximumSize(
-                new Dimension(Integer.MAX_VALUE, 43)
-        );
-
-        button.setPreferredSize(
-                new Dimension(175, 43)
-        );
-
-        button.setBorder(
-                BorderFactory.createCompoundBorder(
-                        active
-                                ? BorderFactory.createMatteBorder(
-                                0, 4, 0, 0, NAVY
-                        )
-                                : BorderFactory.createEmptyBorder(
-                                0, 4, 0, 0
-                        ),
-                        new EmptyBorder(0, 13, 0, 8)
-                )
-        );
-
-        button.setFocusPainted(false);
-
-        button.setCursor(
-                Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-        );
-
-        button.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        button.addActionListener(e -> action.run());
-
-        button.addMouseListener(
-                new java.awt.event.MouseAdapter() {
-
-                    @Override
-                    public void mouseEntered(
-                            java.awt.event.MouseEvent e) {
-
-                        if (!active) {
-                            button.setBackground(
-                                    new Color(245, 248, 252)
-                            );
-                        }
-                    }
-
-                    @Override
-                    public void mouseExited(
-                            java.awt.event.MouseEvent e) {
-
-                        button.setBackground(
-                                active ? ACTIVE_BG : WHITE
-                        );
-                    }
-                }
-        );
-
-        return button;
+        return LecturerTheme.createSidebar("Profile", lecturerId, this);
     }
 
     // ================= PROFILE CONTENT =================
@@ -332,10 +202,10 @@ public class LecturerProfile extends JFrame {
         );
 
         lecturerPanel.setPreferredSize(
-                new Dimension(155, 220)
+                new Dimension(155, 230)
         );
 
-        JLabel avatar = new JLabel(
+        avatar = new JLabel(
                 "L", SwingConstants.CENTER
         );
 
@@ -349,16 +219,28 @@ public class LecturerProfile extends JFrame {
         avatar.setMaximumSize(new Dimension(90, 90));
         avatar.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel lecturerTitle = new JLabel("Lecturer");
+        changePhotoButton = new JButton("Change Photo");
+        changePhotoButton.setFont(new Font("Arial", Font.PLAIN, 11));
+        changePhotoButton.setForeground(NAVY);
+        changePhotoButton.setBackground(ACTIVE_BG);
+        changePhotoButton.setFocusPainted(false);
+        changePhotoButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        changePhotoButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        changePhotoButton.setMaximumSize(new Dimension(115, 26));
+        changePhotoButton.setPreferredSize(new Dimension(115, 26));
+        changePhotoButton.setVisible(false);
+        changePhotoButton.addActionListener(e -> selectProfilePhoto());
+
+        lecturerTitle = new JLabel("Lecturer");
 
         lecturerTitle.setFont(
-                new Font("Arial", Font.BOLD, 19)
+                new Font("Arial", Font.BOLD, 18)
         );
 
         lecturerTitle.setForeground(TEXT);
         lecturerTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel staffTitle = new JLabel("Academic Staff");
+        staffTitle = new JLabel("Academic Staff");
 
         staffTitle.setFont(
                 new Font("Arial", Font.PLAIN, 12)
@@ -368,7 +250,9 @@ public class LecturerProfile extends JFrame {
         staffTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         lecturerPanel.add(avatar);
-        lecturerPanel.add(Box.createVerticalStrut(14));
+        lecturerPanel.add(Box.createVerticalStrut(8));
+        lecturerPanel.add(changePhotoButton);
+        lecturerPanel.add(Box.createVerticalStrut(10));
         lecturerPanel.add(lecturerTitle);
         lecturerPanel.add(Box.createVerticalStrut(6));
         lecturerPanel.add(staffTitle);
@@ -460,8 +344,8 @@ public class LecturerProfile extends JFrame {
         setFieldsEditable(false);
 
         editButton.addActionListener(e -> {
-
             setFieldsEditable(true);
+            changePhotoButton.setVisible(true);
 
             editButton.setVisible(false);
             saveButton.setVisible(true);
@@ -471,9 +355,9 @@ public class LecturerProfile extends JFrame {
         saveButton.addActionListener(e -> saveProfile());
 
         cancelButton.addActionListener(e -> {
-
             restoreOriginalValues();
             setFieldsEditable(false);
+            changePhotoButton.setVisible(false);
 
             editButton.setVisible(true);
             saveButton.setVisible(false);
@@ -522,28 +406,175 @@ public class LecturerProfile extends JFrame {
         return field;
     }
 
+    // ================= DATABASE OPERATIONS =================
+
+    /**
+     * Loads the profile details for the active lecturer from MySQL.
+     */
+    private void loadProfileFromDatabase() {
+        if (lecturerId == null || lecturerId.trim().isEmpty()) {
+            showEmptyProfileState("No active lecturer session found. Please log in or provide a lecturer ID.");
+            return;
+        }
+
+        String sql = "SELECT l.lecturer_id, l.staff_no, l.department, l.designation, " +
+                     "       u.first_name, u.last_name, u.email, u.phone, u.profile_picture " +
+                     "FROM lecturers l " +
+                     "LEFT JOIN users u ON l.lecturer_id = u.user_id " +
+                     "WHERE l.lecturer_id = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, lecturerId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String id = rs.getString("lecturer_id");
+                    String dept = rs.getString("department");
+                    String desig = rs.getString("designation");
+                    String firstName = rs.getString("first_name");
+                    String lastName = rs.getString("last_name");
+                    String email = rs.getString("email");
+                    String phone = rs.getString("phone");
+                    String photo = rs.getString("profile_picture");
+
+                    String fullName = "";
+                    if (firstName != null) {
+                        fullName += firstName.trim();
+                    }
+                    if (lastName != null && !lastName.trim().isEmpty()) {
+                        fullName = fullName.isEmpty() ? lastName.trim() : (fullName + " " + lastName.trim());
+                    }
+                    if (!fullName.isEmpty() && lecturerId != null) {
+                        LecturerTheme.setLecturerDisplayName(lecturerId, fullName);
+                    }
+
+                    idField.setText(id != null ? id : "");
+                    nameField.setText(fullName);
+                    emailField.setText(email != null ? email : "");
+                    phoneField.setText(phone != null ? phone : "");
+                    departmentField.setText(dept != null ? dept : "");
+                    designationField.setText(desig != null ? desig : "");
+
+                    if (desig != null && !desig.trim().isEmpty()) {
+                        lecturerTitle.setText(desig.trim());
+                    } else {
+                        lecturerTitle.setText("Lecturer");
+                    }
+
+                    currentPhotoPath = photo;
+                    pendingPhotoFile = null;
+                    updateAvatarDisplay(currentPhotoPath, fullName);
+
+                    saveOriginalValues();
+                } else {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Lecturer profile record not found in MySQL database for ID: " + lecturerId,
+                            "Profile Not Found",
+                            JOptionPane.WARNING_MESSAGE
+                    );
+                    showEmptyProfileState("Lecturer record not found for ID: " + lecturerId);
+                }
+            }
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Failed to load profile from MySQL database: " + ex.getMessage(),
+                    "MySQL Database Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+    private void showEmptyProfileState(String message) {
+        idField.setText(lecturerId != null ? lecturerId : "-");
+        nameField.setText("-");
+        emailField.setText("-");
+        phoneField.setText("-");
+        departmentField.setText("-");
+        designationField.setText("-");
+        lecturerTitle.setText("Lecturer");
+        avatar.setIcon(null);
+        avatar.setText("?");
+        saveOriginalValues();
+    }
+
+    private void updateAvatarDisplay(String photoPath, String name) {
+        if (photoPath != null && !photoPath.trim().isEmpty()) {
+            File photoFile = new File(photoPath.trim());
+            if (photoFile.exists() && photoFile.isFile()) {
+                try {
+                    ImageIcon rawIcon = new ImageIcon(photoFile.getAbsolutePath());
+                    Image rawImg = rawIcon.getImage();
+                    Image scaled = rawImg.getScaledInstance(90, 90, Image.SCALE_SMOOTH);
+                    avatar.setIcon(new ImageIcon(scaled));
+                    avatar.setText("");
+                    avatar.setOpaque(false);
+                    return;
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
+        // Default avatar fallback with initial
+        avatar.setIcon(null);
+        avatar.setOpaque(true);
+        avatar.setBackground(NAVY);
+        avatar.setForeground(WHITE);
+        String initial = "L";
+        if (name != null && !name.trim().isEmpty()) {
+            initial = name.trim().substring(0, 1).toUpperCase();
+        }
+        avatar.setText(initial);
+    }
+
+    private void selectProfilePhoto() {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Select Profile Photo");
+        chooser.setFileFilter(new FileNameExtensionFilter("Image files (*.png, *.jpg, *.jpeg)", "png", "jpg", "jpeg"));
+        int res = chooser.showOpenDialog(this);
+        if (res == JFileChooser.APPROVE_OPTION) {
+            File chosen = chooser.getSelectedFile();
+            if (!chosen.exists() || !chosen.isFile()) {
+                JOptionPane.showMessageDialog(this, "The selected file does not exist.", "Invalid File", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            String fileName = chosen.getName().toLowerCase();
+            if (!fileName.endsWith(".png") && !fileName.endsWith(".jpg") && !fileName.endsWith(".jpeg")) {
+                JOptionPane.showMessageDialog(this, "Please select a valid image file (.png, .jpg, or .jpeg).", "Invalid Image Type", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            pendingPhotoFile = chosen;
+            updateAvatarDisplay(chosen.getAbsolutePath(), nameField.getText());
+        }
+    }
+
     // ================= EDIT FIELDS =================
 
     private void setFieldsEditable(boolean editable) {
-
+        // Editable fields
         nameField.setEditable(editable);
         emailField.setEditable(editable);
         phoneField.setEditable(editable);
-        departmentField.setEditable(editable);
-        designationField.setEditable(editable);
 
+        // Protected institutional fields: always non-editable
         idField.setEditable(false);
+        departmentField.setEditable(false);
+        designationField.setEditable(false);
 
-        Color fieldColor = editable
+        Color editableBg = editable
                 ? new Color(250, 252, 255)
                 : BACKGROUND;
 
-        nameField.setBackground(fieldColor);
-        idField.setBackground(fieldColor);
-        emailField.setBackground(fieldColor);
-        phoneField.setBackground(fieldColor);
-        departmentField.setBackground(fieldColor);
-        designationField.setBackground(fieldColor);
+        nameField.setBackground(editableBg);
+        emailField.setBackground(editableBg);
+        phoneField.setBackground(editableBg);
+
+        idField.setBackground(BACKGROUND);
+        departmentField.setBackground(BACKGROUND);
+        designationField.setBackground(BACKGROUND);
     }
 
     // ================= SAVE ORIGINAL VALUES =================
@@ -564,38 +595,159 @@ public class LecturerProfile extends JFrame {
         phoneField.setText(savedPhone);
         departmentField.setText(savedDepartment);
         designationField.setText(savedDesignation);
+        pendingPhotoFile = null;
+        updateAvatarDisplay(currentPhotoPath, savedName);
     }
 
     // ================= SAVE PROFILE =================
 
     private void saveProfile() {
-
-        if (nameField.getText().trim().isEmpty()
-                || emailField.getText().trim().isEmpty()) {
-
+        if (lecturerId == null || lecturerId.trim().isEmpty()) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Full Name and Email Address are required.",
-                    "Validation Error",
-                    JOptionPane.WARNING_MESSAGE
+                    "Cannot update profile: No active lecturer session identified.",
+                    "Session Error",
+                    JOptionPane.ERROR_MESSAGE
             );
-
             return;
         }
 
-        saveOriginalValues();
-        setFieldsEditable(false);
+        String rawName = nameField.getText().trim();
+        if (rawName.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Full Name is required.",
+                    "Validation Error",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            nameField.requestFocus();
+            return;
+        }
 
-        editButton.setVisible(true);
-        saveButton.setVisible(false);
-        cancelButton.setVisible(false);
+        String rawEmail = emailField.getText().trim();
+        if (rawEmail.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Email Address is required.",
+                    "Validation Error",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            emailField.requestFocus();
+            return;
+        }
 
-        JOptionPane.showMessageDialog(
-                this,
-                "Profile updated for this session.",
-                "Success",
-                JOptionPane.INFORMATION_MESSAGE
-        );
+        if (!EMAIL_PATTERN.matcher(rawEmail).matches()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Please enter a valid email address (e.g. lecturer@university.edu).",
+                    "Validation Error",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            emailField.requestFocus();
+            return;
+        }
+
+        String rawPhone = phoneField.getText().trim();
+        if (!rawPhone.isEmpty() && !PHONE_PATTERN.matcher(rawPhone).matches()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Please enter a valid phone number format (e.g. 0710000002).",
+                    "Validation Error",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            phoneField.requestFocus();
+            return;
+        }
+
+        // Handle profile photo copying if a new photo was selected
+        String newPhotoPath = currentPhotoPath;
+        if (pendingPhotoFile != null) {
+            try {
+                File uploadDir = new File("uploads/profile_pictures");
+                if (!uploadDir.exists()) {
+                    uploadDir.mkdirs();
+                }
+                String ext = "png";
+                String fn = pendingPhotoFile.getName();
+                int dotIdx = fn.lastIndexOf('.');
+                if (dotIdx > 0 && dotIdx < fn.length() - 1) {
+                    ext = fn.substring(dotIdx + 1).toLowerCase();
+                }
+                File dest = new File(uploadDir, lecturerId + "_" + System.currentTimeMillis() + "." + ext);
+                Files.copy(pendingPhotoFile.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                newPhotoPath = dest.getPath();
+            } catch (IOException ioEx) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Failed to save profile photo: " + ioEx.getMessage(),
+                        "File Storage Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                return;
+            }
+        }
+
+        // Split name into first and last name for users table
+        String firstName = rawName;
+        String lastName = "";
+        int spaceIdx = rawName.indexOf(' ');
+        if (spaceIdx > 0) {
+            firstName = rawName.substring(0, spaceIdx).trim();
+            lastName = rawName.substring(spaceIdx + 1).trim();
+        }
+
+        String updateSql = "UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, profile_picture = ? WHERE user_id = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(updateSql)) {
+
+            ps.setString(1, firstName);
+            ps.setString(2, lastName);
+            ps.setString(3, rawEmail);
+            ps.setString(4, rawPhone.isEmpty() ? null : rawPhone);
+            ps.setString(5, newPhotoPath);
+            ps.setString(6, lecturerId);
+
+            int affected = ps.executeUpdate();
+
+            if (affected > 0) {
+                currentPhotoPath = newPhotoPath;
+                pendingPhotoFile = null;
+
+                saveOriginalValues();
+                setFieldsEditable(false);
+                changePhotoButton.setVisible(false);
+
+                editButton.setVisible(true);
+                saveButton.setVisible(false);
+                cancelButton.setVisible(false);
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Profile updated successfully in MySQL database.",
+                        "Save Profile",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+
+                // Refresh profile data from MySQL
+                loadProfileFromDatabase();
+            } else {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "No profile changes were saved. Lecturer record may not exist in users table.",
+                        "Save Failed",
+                        JOptionPane.WARNING_MESSAGE
+                );
+            }
+
+        } catch (SQLException ex) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Database error while saving profile to MySQL: " + ex.getMessage(),
+                    "MySQL Database Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+        }
     }
 
     // ================= BUTTON STYLE =================
@@ -603,7 +755,7 @@ public class LecturerProfile extends JFrame {
     private void styleButton(JButton button) {
 
         button.setFont(new Font("Arial", Font.BOLD, 12));
-        button.setBackground(NAVY);
+        button.setBackground(LecturerTheme.SECONDARY_BLUE);
         button.setForeground(WHITE);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
@@ -614,18 +766,6 @@ public class LecturerProfile extends JFrame {
 
         button.setCursor(
                 Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-        );
-    }
-
-    // ================= OTHER PAGES =================
-
-    private void showComingSoon(String page) {
-
-        JOptionPane.showMessageDialog(
-                this,
-                page + " page will be added next.",
-                page,
-                JOptionPane.INFORMATION_MESSAGE
         );
     }
 
@@ -641,6 +781,7 @@ public class LecturerProfile extends JFrame {
         );
 
         if (answer == JOptionPane.YES_OPTION) {
+            LecturerDashboard.setActiveLecturerId(null);
             dispose();
 
             JOptionPane.showMessageDialog(
@@ -653,9 +794,12 @@ public class LecturerProfile extends JFrame {
     // ================= MAIN METHOD =================
 
     public static void main(String[] args) {
-
-        SwingUtilities.invokeLater(
-                () -> new LecturerProfile().setVisible(true)
-        );
+        String testId = (args != null && args.length > 0) ? args[0] : null;
+        SwingUtilities.invokeLater(() -> {
+            LecturerProfile profile = (testId != null)
+                    ? new LecturerProfile(testId)
+                    : new LecturerProfile();
+            profile.setVisible(true);
+        });
     }
 }
