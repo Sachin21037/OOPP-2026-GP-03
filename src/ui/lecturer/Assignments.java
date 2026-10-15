@@ -1,5 +1,7 @@
 package ui;
 
+import database.DBConnection;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
@@ -11,31 +13,39 @@ import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * Lecturer Assignment UI for Faculty Academic Management System (FAMS).
- * Follows the existing FAMS Lecturer UI design system, styling, and navigation.
- * UI-only stage: no direct database queries or SQL connections.
+ * Connected to MySQL database 'fams' using database.DBConnection.
+ * Restricts assignments and course access to courses assigned to the logged-in lecturer.
  */
 public class Assignments extends JFrame {
 
     // Theme colours matching existing Lecturer pages
-    private static final Color NAVY = new Color(31, 66, 99);
-    private static final Color BACKGROUND = new Color(244, 247, 251);
-    private static final Color WHITE = Color.WHITE;
-    private static final Color TEXT = new Color(35, 48, 65);
-    private static final Color MUTED = new Color(100, 116, 139);
-    private static final Color TEAL = new Color(43, 169, 155);
-    private static final Color PURPLE = new Color(132, 78, 190);
-    private static final Color BORDER = new Color(220, 227, 235);
-    private static final Color RED = new Color(190, 55, 55);
-    private static final Color ACTIVE_BG = new Color(232, 240, 248);
+    private static final Color NAVY = LecturerTheme.PRIMARY_NAVY;
+    private static final Color BACKGROUND = LecturerTheme.MAIN_BG;
+    private static final Color WHITE = LecturerTheme.CARD_BG;
+    private static final Color TEXT = LecturerTheme.TEXT_PRIMARY;
+    private static final Color MUTED = LecturerTheme.TEXT_SECONDARY;
+    private static final Color TEAL = new Color(13, 148, 136);
+    private static final Color PURPLE = new Color(124, 58, 237);
+    private static final Color BORDER = LecturerTheme.BORDER_COLOR;
+    private static final Color RED = LecturerTheme.DANGER_RED;
+    private static final Color ACTIVE_BG = LecturerTheme.LIGHT_BLUE;
 
     private static final Font BODY = new Font("Arial", Font.PLAIN, 13);
 
@@ -47,7 +57,7 @@ public class Assignments extends JFrame {
     private DefaultTableModel tableModel;
     private TableRowSorter<DefaultTableModel> tableSorter;
 
-    private JComboBox<String> courseDropdown;
+    private JComboBox<Object> courseDropdown;
     private JComboBox<String> semesterDropdown;
     private JComboBox<String> statusFilterDropdown;
     private JTextField searchField;
@@ -58,9 +68,113 @@ public class Assignments extends JFrame {
     private JLabel closedValue;
     private JLabel recordCountLabel;
     private JLabel emptyNoticeLabel;
+    private JLabel subtitleLabel;
 
-    // Counter for generated assignment IDs during in-memory UI interactions
-    private int nextAssignmentCounter = 1;
+    // In-memory model representing actual database records
+    private final List<CourseOfferingItem> assignedCourses = new ArrayList<>();
+    private final List<AssignmentRecord> loadedRecords = new ArrayList<>();
+
+    /**
+     * Helper model for course offerings assigned to the lecturer.
+     */
+    private static class CourseOfferingItem {
+        final String offeringId;
+        final String courseCode;
+        final String courseName;
+        final String academicYear;
+        final String semester;
+
+        CourseOfferingItem(String offeringId, String courseCode, String courseName, String academicYear, String semester) {
+            this.offeringId = offeringId != null ? offeringId : "";
+            this.courseCode = courseCode != null ? courseCode : "";
+            this.courseName = courseName != null ? courseName : "";
+            this.academicYear = academicYear != null ? academicYear : "";
+            this.semester = semester != null ? semester : "";
+        }
+
+        @Override
+        public String toString() {
+            return courseCode + " - " + courseName;
+        }
+    }
+
+    /**
+     * Helper model for assignment records retrieved from MySQL.
+     */
+    private static class AssignmentRecord {
+        final String assignmentId;
+        final String title;
+        final String offeringId;
+        final String courseCode;
+        final String courseName;
+        final String academicYear;
+        final String semester;
+        final String description;
+        final String assignedDate;
+        final String dueDate;
+        final double maxMarks;
+        final double weight;
+        final String status;
+        final String createdBy;
+
+        AssignmentRecord(String assignmentId, String title, String offeringId,
+                         String courseCode, String courseName, String academicYear,
+                         String semester, String dueDate, double maxMarks,
+                         double weight, String createdBy) {
+            this.assignmentId = assignmentId != null ? assignmentId : "";
+            this.title = title != null ? title : "";
+            this.offeringId = offeringId != null ? offeringId : "";
+            this.courseCode = courseCode != null ? courseCode : "";
+            this.courseName = courseName != null ? courseName : "";
+            this.academicYear = academicYear != null ? academicYear : "";
+            this.semester = semester != null ? semester : "";
+            this.description = "Course Continuous Assessment (" + String.format(Locale.US, "%.0f%% weight", weight) + ")";
+            this.assignedDate = "-";
+            this.dueDate = dueDate != null ? dueDate : "-";
+            this.maxMarks = maxMarks;
+            this.weight = weight;
+            this.status = computeStatus(dueDate);
+            this.createdBy = createdBy != null ? createdBy : "";
+        }
+
+        private static String computeStatus(String dueDateStr) {
+            if (dueDateStr == null || dueDateStr.trim().isEmpty() || "-".equals(dueDateStr.trim())) {
+                return "Active";
+            }
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                sdf.setLenient(false);
+                Date due = sdf.parse(dueDateStr.trim());
+                Date today = sdf.parse(sdf.format(new Date()));
+
+                long diff = due.getTime() - today.getTime();
+                long days = diff / (24 * 60 * 60 * 1000);
+
+                if (days < 0) {
+                    return "Closed";
+                } else if (days <= 3) {
+                    return "Due";
+                } else {
+                    return "Active";
+                }
+            } catch (Exception ignored) {
+                return "Active";
+            }
+        }
+
+        Object[] toTableRow() {
+            return new Object[]{
+                    assignmentId,
+                    title,
+                    courseCode + " - " + courseName,
+                    description,
+                    assignedDate,
+                    dueDate,
+                    String.format(Locale.US, "%.0f", maxMarks),
+                    status
+            };
+        }
+    }
 
     /**
      * Default constructor: resolves active lecturer ID dynamically.
@@ -92,8 +206,8 @@ public class Assignments extends JFrame {
         add(createSidebar(), BorderLayout.WEST);
         add(createMainContent(), BorderLayout.CENTER);
 
-        // Initial summary and empty-state check (0 initial records)
-        updateSummary();
+        // Load courses and real assignments from MySQL
+        loadDatabaseData();
     }
 
     private static String resolveActiveLecturerId() {
@@ -105,159 +219,26 @@ public class Assignments extends JFrame {
         if (sysProp != null && !sysProp.trim().isEmpty()) {
             return sysProp.trim();
         }
+        // Fallback: query MySQL for first lecturer with assigned courses
+        try (Connection conn = DBConnection.getConnection();
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery("SELECT lecturer_id FROM course_lecturers LIMIT 1")) {
+            if (rs.next()) {
+                return rs.getString("lecturer_id");
+            }
+        } catch (SQLException ignored) {
+        }
         return null;
     }
 
     // ================= HEADER =================
 
     private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(NAVY);
-        header.setPreferredSize(new Dimension(0, 72));
-        header.setBorder(new EmptyBorder(0, 26, 0, 26));
-
-        JLabel title = new JLabel("FACULTY ACADEMIC MANAGEMENT SYSTEM");
-        title.setForeground(WHITE);
-        title.setFont(new Font("Arial", Font.BOLD, 19));
-
-        JLabel role = new JLabel("LECTURER");
-        role.setForeground(WHITE);
-        role.setFont(new Font("Arial", Font.BOLD, 13));
-
-        header.add(title, BorderLayout.WEST);
-        header.add(role, BorderLayout.EAST);
-
-        return header;
+        return LecturerTheme.createHeader(lecturerId, this);
     }
-
-    // ================= SIDEBAR =================
 
     private JPanel createSidebar() {
-        JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setBackground(WHITE);
-        sidebar.setPreferredSize(new Dimension(205, 0));
-        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, BORDER));
-
-        JPanel menu = new JPanel();
-        menu.setBackground(WHITE);
-        menu.setLayout(new BoxLayout(menu, BoxLayout.Y_AXIS));
-        menu.setBorder(new EmptyBorder(25, 14, 12, 14));
-
-        JLabel menuTitle = new JLabel("LECTURER MENU");
-        menuTitle.setFont(new Font("Arial", Font.BOLD, 11));
-        menuTitle.setForeground(MUTED);
-        menuTitle.setBorder(new EmptyBorder(0, 9, 18, 0));
-        menuTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        menu.add(menuTitle);
-
-        menu.add(createMenuButton("Dashboard", false, () -> {
-            new LecturerDashboard().setVisible(true);
-            dispose();
-        }));
-
-        menu.add(createMenuButton("My Courses", false, () -> {
-            new MyCourses().setVisible(true);
-            dispose();
-        }));
-
-        menu.add(createMenuButton("Students", false, () -> {
-            new Student().setVisible(true);
-            dispose();
-        }));
-
-        menu.add(createMenuButton("Attendance", false, () -> {
-            new Attendance().setVisible(true);
-            dispose();
-        }));
-
-        menu.add(createMenuButton("Marks / Grades", false, () -> {
-            new MarksGrades().setVisible(true);
-            dispose();
-        }));
-
-        // Assignments is active on this page
-        menu.add(createMenuButton("Assignments", true, () -> {
-            // Already on Assignments page
-        }));
-
-        menu.add(createMenuButton("Profile", false, () -> {
-            new LecturerProfile().setVisible(true);
-            dispose();
-        }));
-
-        sidebar.add(menu, BorderLayout.NORTH);
-
-        JPanel bottom = new JPanel(new BorderLayout());
-        bottom.setBackground(WHITE);
-        bottom.setBorder(new EmptyBorder(10, 14, 22, 14));
-
-        JButton logout = new JButton("Logout");
-        logout.setFont(new Font("Arial", Font.BOLD, 13));
-        logout.setForeground(RED);
-        logout.setBackground(WHITE);
-        logout.setHorizontalAlignment(SwingConstants.LEFT);
-        logout.setBorder(new EmptyBorder(10, 10, 10, 10));
-        logout.setFocusPainted(false);
-        logout.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-        logout.addActionListener(e -> {
-            int answer = JOptionPane.showConfirmDialog(
-                    this,
-                    "Are you sure you want to logout?",
-                    "Confirm Logout",
-                    JOptionPane.YES_NO_OPTION
-            );
-
-            if (answer == JOptionPane.YES_OPTION) {
-                LecturerDashboard.setActiveLecturerId(null);
-                dispose();
-                JOptionPane.showMessageDialog(null, "You have been logged out.");
-            }
-        });
-
-        bottom.add(logout, BorderLayout.SOUTH);
-        sidebar.add(bottom, BorderLayout.SOUTH);
-
-        return sidebar;
-    }
-
-    private JButton createMenuButton(String text, boolean active, Runnable action) {
-        JButton button = new JButton(text);
-        button.setFont(active ? new Font("Arial", Font.BOLD, 13) : BODY);
-        button.setForeground(active ? NAVY : TEXT);
-        button.setBackground(active ? ACTIVE_BG : WHITE);
-        button.setHorizontalAlignment(SwingConstants.LEFT);
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 43));
-        button.setPreferredSize(new Dimension(175, 43));
-
-        button.setBorder(BorderFactory.createCompoundBorder(
-                active ? BorderFactory.createMatteBorder(0, 4, 0, 0, NAVY)
-                        : BorderFactory.createEmptyBorder(0, 4, 0, 0),
-                new EmptyBorder(0, 13, 0, 8)
-        ));
-
-        button.setFocusPainted(false);
-        button.setAlignmentX(Component.LEFT_ALIGNMENT);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-        button.addActionListener(e -> action.run());
-
-        button.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                if (!active) {
-                    button.setBackground(new Color(245, 248, 252));
-                }
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                button.setBackground(active ? ACTIVE_BG : WHITE);
-            }
-        });
-
-        return button;
+        return LecturerTheme.createSidebar("Assignments", lecturerId, this);
     }
 
     // ================= MAIN CONTENT =================
@@ -279,7 +260,7 @@ public class Assignments extends JFrame {
         pageTitle.setFont(new Font("Arial", Font.BOLD, 29));
         pageTitle.setForeground(TEXT);
 
-        JLabel subtitleLabel = new JLabel("Create, manage, and review course assignments and submission deadlines.");
+        subtitleLabel = new JLabel("Create, manage, and review course assignments and submission deadlines.");
         subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         subtitleLabel.setForeground(MUTED);
         subtitleLabel.setBorder(new EmptyBorder(5, 1, 0, 0));
@@ -335,7 +316,17 @@ public class Assignments extends JFrame {
     }
 
     private JPanel createSummaryCard(String title, JLabel value, Color accent, String caption) {
-        JPanel card = new JPanel(new BorderLayout(0, 8));
+        JPanel card = new JPanel(new BorderLayout(0, 8)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(accent);
+                g2.fillRoundRect(0, 0, getWidth(), 4, 4, 4);
+                g2.dispose();
+            }
+        };
         card.setBackground(WHITE);
         card.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER),
@@ -347,7 +338,7 @@ public class Assignments extends JFrame {
         titleLabel.setForeground(MUTED);
 
         value.setFont(new Font("Arial", Font.BOLD, 28));
-        value.setForeground(accent);
+        value.setForeground(TEXT);
 
         JLabel captionLabel = new JLabel(caption);
         captionLabel.setFont(new Font("Arial", Font.PLAIN, 10));
@@ -403,18 +394,12 @@ public class Assignments extends JFrame {
         JPanel leftFilters = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         leftFilters.setBackground(WHITE);
 
-        courseDropdown = new JComboBox<>(new String[]{"All Courses"});
+        courseDropdown = new JComboBox<>();
         courseDropdown.setFont(new Font("Arial", Font.PLAIN, 12));
         courseDropdown.setPreferredSize(new Dimension(190, 34));
         courseDropdown.setBackground(WHITE);
 
-        semesterDropdown = new JComboBox<>(new String[]{
-                "All Semesters",
-                "Year 1 - Semester 1",
-                "Year 1 - Semester 2",
-                "Year 2 - Semester 1",
-                "Year 2 - Semester 2"
-        });
+        semesterDropdown = new JComboBox<>(new String[]{"All Semesters"});
         semesterDropdown.setFont(new Font("Arial", Font.PLAIN, 12));
         semesterDropdown.setPreferredSize(new Dimension(150, 34));
         semesterDropdown.setBackground(WHITE);
@@ -557,13 +542,14 @@ public class Assignments extends JFrame {
         tablePanel.add(tableCenter, BorderLayout.CENTER);
 
         // Action Buttons Toolbar at Bottom of Table Card
-        JPanel bottomActions = new JPanel(new BorderLayout(10, 0));
+        JPanel bottomActions = new JPanel(new BorderLayout(16, 0));
         bottomActions.setBackground(WHITE);
-        bottomActions.setBorder(new EmptyBorder(4, 0, 0, 0));
+        bottomActions.setBorder(new EmptyBorder(12, 0, 4, 0));
 
-        JLabel hintLabel = new JLabel("Double-click an assignment row or click 'View Assignment' to inspect details.");
+        JLabel hintLabel = new JLabel("<html>Double-click an assignment row or click 'View Assignment' to inspect details.</html>");
         hintLabel.setFont(new Font("Arial", Font.PLAIN, 11));
         hintLabel.setForeground(MUTED);
+        hintLabel.setVerticalAlignment(SwingConstants.CENTER);
 
         JPanel buttonGroup = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         buttonGroup.setBackground(WHITE);
@@ -580,12 +566,16 @@ public class Assignments extends JFrame {
         buttonGroup.add(deleteButton);
         buttonGroup.add(refreshButton);
 
-        bottomActions.add(hintLabel, BorderLayout.WEST);
+        bottomActions.add(hintLabel, BorderLayout.CENTER);
         bottomActions.add(buttonGroup, BorderLayout.EAST);
 
         tablePanel.add(bottomActions, BorderLayout.SOUTH);
 
         // ================= EVENT LISTENERS =================
+
+        courseDropdown.addActionListener(e -> applyFilters());
+        semesterDropdown.addActionListener(e -> applyFilters());
+        statusFilterDropdown.addActionListener(e -> applyFilters());
 
         // Live Search listener
         searchField.getDocument().addDocumentListener(new DocumentListener() {
@@ -605,9 +595,6 @@ public class Assignments extends JFrame {
             }
         });
 
-        courseDropdown.addActionListener(e -> applyFilters());
-        semesterDropdown.addActionListener(e -> applyFilters());
-        statusFilterDropdown.addActionListener(e -> applyFilters());
         filterButton.addActionListener(e -> applyFilters());
 
         resetButton.addActionListener(e -> {
@@ -615,8 +602,7 @@ public class Assignments extends JFrame {
             if (courseDropdown.getItemCount() > 0) courseDropdown.setSelectedIndex(0);
             if (semesterDropdown.getItemCount() > 0) semesterDropdown.setSelectedIndex(0);
             if (statusFilterDropdown.getItemCount() > 0) statusFilterDropdown.setSelectedIndex(0);
-            if (tableSorter != null) tableSorter.setRowFilter(null);
-            updateSummary();
+            applyFilters();
         });
 
         addButton.addActionListener(e -> openAddEditDialog(false));
@@ -625,15 +611,10 @@ public class Assignments extends JFrame {
         deleteButton.addActionListener(e -> deleteSelectedAssignment());
 
         refreshButton.addActionListener(e -> {
-            searchField.setText("");
-            if (courseDropdown.getItemCount() > 0) courseDropdown.setSelectedIndex(0);
-            if (semesterDropdown.getItemCount() > 0) semesterDropdown.setSelectedIndex(0);
-            if (statusFilterDropdown.getItemCount() > 0) statusFilterDropdown.setSelectedIndex(0);
-            if (tableSorter != null) tableSorter.setRowFilter(null);
-            updateSummary();
+            loadDatabaseData();
             JOptionPane.showMessageDialog(
                     this,
-                    "Assignments view refreshed (UI Stage).",
+                    "Assignments refreshed from MySQL database.",
                     "Refresh",
                     JOptionPane.INFORMATION_MESSAGE
             );
@@ -687,8 +668,8 @@ public class Assignments extends JFrame {
     private JButton createActionButton(String text, boolean primary, int width) {
         JButton button = new JButton(text);
         button.setFont(new Font("Arial", Font.BOLD, 12));
-        button.setForeground(primary ? WHITE : NAVY);
-        button.setBackground(primary ? NAVY : WHITE);
+        button.setForeground(primary ? WHITE : TEXT);
+        button.setBackground(primary ? LecturerTheme.SECONDARY_BLUE : WHITE);
         button.setFocusPainted(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         button.setPreferredSize(new Dimension(width, 34));
@@ -704,7 +685,7 @@ public class Assignments extends JFrame {
             @Override
             public void mouseEntered(MouseEvent e) {
                 if (primary) {
-                    button.setBackground(new Color(24, 52, 79));
+                    button.setBackground(new Color(26, 68, 190));
                 } else {
                     button.setBackground(new Color(245, 248, 252));
                 }
@@ -712,51 +693,224 @@ public class Assignments extends JFrame {
 
             @Override
             public void mouseExited(MouseEvent e) {
-                button.setBackground(primary ? NAVY : WHITE);
+                button.setBackground(primary ? LecturerTheme.SECONDARY_BLUE : WHITE);
             }
         });
 
         return button;
     }
 
+    // ================= MYSQL DATABASE INTEGRATION =================
+
+    /**
+     * Loads courses, semesters, and assignments data from MySQL for the logged-in lecturer.
+     */
+    private void loadDatabaseData() {
+        if (this.lecturerId == null || this.lecturerId.trim().isEmpty()) {
+            this.lecturerId = resolveActiveLecturerId();
+        }
+
+        if (this.lecturerId == null || this.lecturerId.trim().isEmpty()) {
+            if (subtitleLabel != null) {
+                subtitleLabel.setText("No active lecturer ID. Open from Lecturer Dashboard or provide an active lecturer ID.");
+            }
+            if (emptyNoticeLabel != null) {
+                emptyNoticeLabel.setText("No active lecturer session found. Please log in.");
+                emptyNoticeLabel.setVisible(true);
+            }
+            if (recordCountLabel != null) {
+                recordCountLabel.setText("NO LECTURER ID");
+            }
+            return;
+        }
+
+        populateCoursesAndSemesters();
+        loadAssignmentsFromDatabase();
+    }
+
+    /**
+     * Queries MySQL for course offerings assigned to the logged-in lecturer.
+     */
+    private void populateCoursesAndSemesters() {
+        assignedCourses.clear();
+        courseDropdown.removeAllItems();
+        semesterDropdown.removeAllItems();
+
+        courseDropdown.addItem("All Courses");
+        semesterDropdown.addItem("All Semesters");
+
+        String sql =
+                "SELECT DISTINCT co.offering_id, c.course_code, c.course_name, co.academic_year, co.semester " +
+                "FROM course_lecturers cl " +
+                "JOIN course_offerings co ON cl.offering_id = co.offering_id " +
+                "JOIN courses c ON co.course_id = c.course_id " +
+                "WHERE cl.lecturer_id = ? " +
+                "ORDER BY c.course_code";
+
+        Set<String> distinctSemesters = new HashSet<>();
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, lecturerId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String offId = rs.getString("offering_id");
+                    String code = rs.getString("course_code");
+                    String name = rs.getString("course_name");
+                    String year = rs.getString("academic_year");
+                    String sem = rs.getString("semester");
+
+                    CourseOfferingItem item = new CourseOfferingItem(offId, code, name, year, sem);
+                    assignedCourses.add(item);
+                    courseDropdown.addItem(item);
+
+                    if (sem != null && !sem.trim().isEmpty()) {
+                        distinctSemesters.add(sem.trim());
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[Assignments] Error populating assigned courses from MySQL: " + e.getMessage());
+            showDbError("Failed to load assigned courses from MySQL database.", e);
+        }
+
+        List<String> sortedSemesters = new ArrayList<>(distinctSemesters);
+        Collections.sort(sortedSemesters);
+        for (String s : sortedSemesters) {
+            semesterDropdown.addItem(s);
+        }
+
+        if (assignedCourses.isEmpty()) {
+            if (subtitleLabel != null) {
+                subtitleLabel.setText("No courses assigned to lecturer " + lecturerId + " in MySQL database.");
+            }
+        } else {
+            if (subtitleLabel != null) {
+                subtitleLabel.setText("Displaying course assignments for assigned offerings (Lecturer: " + lecturerId + ").");
+            }
+        }
+    }
+
+    /**
+     * Queries actual assignments from MySQL assessments table restricted to lecturer's course offerings.
+     */
+    private boolean loadAssignmentsFromDatabase() {
+        loadedRecords.clear();
+
+        if (this.lecturerId == null || this.lecturerId.trim().isEmpty()) {
+            updateSummary(new ArrayList<>());
+            return false;
+        }
+
+        String sql =
+                "SELECT a.assessment_id, a.assessment_name, a.offering_id, " +
+                "       c.course_code, c.course_name, co.academic_year, co.semester, " +
+                "       a.max_marks, a.weight_percentage, a.assessment_date, a.created_by " +
+                "FROM assessments a " +
+                "JOIN course_offerings co ON a.offering_id = co.offering_id " +
+                "JOIN courses c ON co.course_id = c.course_id " +
+                "JOIN course_lecturers cl ON co.offering_id = cl.offering_id " +
+                "WHERE cl.lecturer_id = ? AND a.assessment_type = 'ASSIGNMENT' " +
+                "ORDER BY a.assessment_date DESC, a.assessment_id DESC";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, lecturerId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String aid = rs.getString("assessment_id");
+                    String aname = rs.getString("assessment_name");
+                    String offId = rs.getString("offering_id");
+                    String code = rs.getString("course_code");
+                    String name = rs.getString("course_name");
+                    String year = rs.getString("academic_year");
+                    String sem = rs.getString("semester");
+                    double max = rs.getDouble("max_marks");
+                    if (rs.wasNull()) max = 100.0;
+                    double weight = rs.getDouble("weight_percentage");
+                    java.sql.Date d = rs.getDate("assessment_date");
+                    String dStr = d != null ? d.toString() : "-";
+                    String creator = rs.getString("created_by");
+
+                    loadedRecords.add(new AssignmentRecord(
+                            aid, aname, offId, code, name, year, sem, dStr, max, weight, creator
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[Assignments] Error querying assignments from MySQL: " + e.getMessage());
+            showDbError("Failed to load assignments from MySQL database.", e);
+            return false;
+        }
+
+        applyFilters();
+        return true;
+    }
+
     // ================= FILTERS & SUMMARY =================
 
     private void applyFilters() {
-        if (tableSorter == null) return;
+        if (tableModel == null) return;
+        tableModel.setRowCount(0);
 
-        String query = searchField != null ? searchField.getText().trim() : "";
-        String statusFilter = statusFilterDropdown != null ? (String) statusFilterDropdown.getSelectedItem() : "All Statuses";
-
-        List<RowFilter<Object, Object>> filters = new java.util.ArrayList<>();
-
-        if (!query.isEmpty()) {
-            filters.add(RowFilter.regexFilter("(?i)" + java.util.regex.Pattern.quote(query)));
+        Object selectedCourseObj = courseDropdown != null ? courseDropdown.getSelectedItem() : null;
+        String filterOfferingId = null;
+        if (selectedCourseObj instanceof CourseOfferingItem) {
+            filterOfferingId = ((CourseOfferingItem) selectedCourseObj).offeringId;
         }
 
-        if (statusFilter != null && !statusFilter.equals("All Statuses")) {
-            filters.add(RowFilter.regexFilter("(?i)^" + java.util.regex.Pattern.quote(statusFilter) + "$", 7));
+        String selectedSemester = semesterDropdown != null ? (String) semesterDropdown.getSelectedItem() : null;
+        boolean filterSemester = selectedSemester != null && !selectedSemester.equals("All Semesters");
+
+        String selectedStatus = statusFilterDropdown != null ? (String) statusFilterDropdown.getSelectedItem() : null;
+        boolean filterStatus = selectedStatus != null && !selectedStatus.equals("All Statuses");
+
+        String query = searchField != null ? searchField.getText().trim().toLowerCase(Locale.ROOT) : "";
+
+        List<AssignmentRecord> filteredList = new ArrayList<>();
+
+        for (AssignmentRecord r : loadedRecords) {
+            boolean matchesCourse = (filterOfferingId == null) || r.offeringId.equalsIgnoreCase(filterOfferingId);
+            boolean matchesSemester = true;
+            if (filterSemester) {
+                matchesSemester = selectedSemester.equalsIgnoreCase(r.semester);
+            }
+            boolean matchesStatus = true;
+            if (filterStatus) {
+                matchesStatus = selectedStatus.equalsIgnoreCase(r.status);
+            }
+            boolean matchesSearch = query.isEmpty()
+                    || r.assignmentId.toLowerCase(Locale.ROOT).contains(query)
+                    || r.title.toLowerCase(Locale.ROOT).contains(query)
+                    || r.courseCode.toLowerCase(Locale.ROOT).contains(query);
+
+            if (matchesCourse && matchesSemester && matchesStatus && matchesSearch) {
+                filteredList.add(r);
+                tableModel.addRow(r.toTableRow());
+            }
         }
 
-        if (filters.isEmpty()) {
-            tableSorter.setRowFilter(null);
-        } else {
-            tableSorter.setRowFilter(RowFilter.andFilter(filters));
-        }
-
-        updateSummary();
+        updateSummary(filteredList);
     }
 
-    private void updateSummary() {
-        int totalRows = tableModel != null ? tableModel.getRowCount() : 0;
-        int viewRows = assignmentTable != null ? assignmentTable.getRowCount() : 0;
+    private void updateSummary(List<AssignmentRecord> currentList) {
+        int count = currentList != null ? currentList.size() : 0;
 
         if (recordCountLabel != null) {
-            recordCountLabel.setText(viewRows + " RECORDS");
+            recordCountLabel.setText(count + " RECORDS");
         }
 
-        if (totalRows == 0) {
+        if (count == 0) {
             if (emptyNoticeLabel != null) {
-                emptyNoticeLabel.setText("No assignments available. Select a course or add a new assignment.");
+                if (loadedRecords.isEmpty()) {
+                    emptyNoticeLabel.setText("No assignments available. Select a course or add a new assignment.");
+                } else {
+                    emptyNoticeLabel.setText("No assignments match your filter or search query.");
+                }
                 emptyNoticeLabel.setVisible(true);
             }
             if (totalAssignmentsValue != null) totalAssignmentsValue.setText("-");
@@ -767,40 +921,44 @@ public class Assignments extends JFrame {
         }
 
         if (emptyNoticeLabel != null) {
-            if (viewRows == 0) {
-                emptyNoticeLabel.setText("No assignments match your filter or search query.");
-                emptyNoticeLabel.setVisible(true);
-            } else {
-                emptyNoticeLabel.setVisible(false);
-            }
+            emptyNoticeLabel.setVisible(false);
         }
 
         int activeCount = 0;
         int dueCount = 0;
         int closedCount = 0;
 
-        for (int i = 0; i < totalRows; i++) {
-            Object statusObj = tableModel.getValueAt(i, 7);
-            if (statusObj != null) {
-                String s = statusObj.toString().trim();
-                if ("Active".equalsIgnoreCase(s) || "Upcoming".equalsIgnoreCase(s)) {
-                    activeCount++;
-                } else if ("Due".equalsIgnoreCase(s)) {
-                    dueCount++;
-                } else if ("Closed".equalsIgnoreCase(s)) {
-                    closedCount++;
-                }
+        for (AssignmentRecord r : currentList) {
+            if ("Active".equalsIgnoreCase(r.status) || "Upcoming".equalsIgnoreCase(r.status)) {
+                activeCount++;
+            } else if ("Due".equalsIgnoreCase(r.status)) {
+                dueCount++;
+            } else if ("Closed".equalsIgnoreCase(r.status)) {
+                closedCount++;
             }
         }
 
-        if (totalAssignmentsValue != null) totalAssignmentsValue.setText(String.valueOf(totalRows));
+        if (totalAssignmentsValue != null) totalAssignmentsValue.setText(String.valueOf(count));
         if (upcomingValue != null) upcomingValue.setText(String.valueOf(activeCount));
         if (dueSoonValue != null) dueSoonValue.setText(String.valueOf(dueCount));
         if (closedValue != null) closedValue.setText(String.valueOf(closedCount));
     }
 
+    private CourseOfferingItem findCourseOffering(String offeringId) {
+        if (offeringId == null) return null;
+        for (CourseOfferingItem item : assignedCourses) {
+            if (item.offeringId.equalsIgnoreCase(offeringId)) {
+                return item;
+            }
+        }
+        return null;
+    }
+
     // ================= ACTIONS & DIALOGS =================
 
+    /**
+     * Views detailed assignment info and real submission statistics from MySQL.
+     */
     private void viewSelectedAssignment() {
         int selectedRow = assignmentTable.getSelectedRow();
         if (selectedRow < 0) {
@@ -814,38 +972,77 @@ public class Assignments extends JFrame {
         }
 
         int modelRow = assignmentTable.convertRowIndexToModel(selectedRow);
-        String id = String.valueOf(tableModel.getValueAt(modelRow, 0));
-        String title = String.valueOf(tableModel.getValueAt(modelRow, 1));
-        String course = String.valueOf(tableModel.getValueAt(modelRow, 2));
-        String desc = String.valueOf(tableModel.getValueAt(modelRow, 3));
-        String assignedDate = String.valueOf(tableModel.getValueAt(modelRow, 4));
-        String dueDate = String.valueOf(tableModel.getValueAt(modelRow, 5));
-        String maxMarks = String.valueOf(tableModel.getValueAt(modelRow, 6));
-        String status = String.valueOf(tableModel.getValueAt(modelRow, 7));
+        String aid = String.valueOf(tableModel.getValueAt(modelRow, 0));
+
+        AssignmentRecord target = null;
+        for (AssignmentRecord r : loadedRecords) {
+            if (r.assignmentId.equalsIgnoreCase(aid)) {
+                target = r;
+                break;
+            }
+        }
+
+        if (target == null) return;
+
+        // Query submission statistics from marks table
+        int marksCount = 0;
+        double avgMark = 0.0;
+        int totalEnrolled = 0;
+
+        String marksSql = "SELECT COUNT(*) as cnt, AVG(marks) as avg_m FROM marks WHERE assessment_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(marksSql)) {
+            ps.setString(1, aid);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    marksCount = rs.getInt("cnt");
+                    avgMark = rs.getDouble("avg_m");
+                }
+            }
+        } catch (SQLException ignored) {
+        }
+
+        String enrollSql = "SELECT COUNT(*) FROM enrollments WHERE offering_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(enrollSql)) {
+            ps.setString(1, target.offeringId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    totalEnrolled = rs.getInt(1);
+                }
+            }
+        } catch (SQLException ignored) {
+        }
 
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
         JPanel grid = new JPanel(new GridLayout(0, 2, 8, 6));
         grid.add(new JLabel("Assignment ID:"));
-        grid.add(new JLabel("<html><b>" + id + "</b></html>"));
+        grid.add(new JLabel("<html><b>" + target.assignmentId + "</b></html>"));
         grid.add(new JLabel("Assignment Title:"));
-        grid.add(new JLabel("<html><b>" + title + "</b></html>"));
+        grid.add(new JLabel("<html><b>" + target.title + "</b></html>"));
         grid.add(new JLabel("Course:"));
-        grid.add(new JLabel(course));
-        grid.add(new JLabel("Assigned Date:"));
-        grid.add(new JLabel(assignedDate));
+        grid.add(new JLabel(target.courseCode + " - " + target.courseName));
+        grid.add(new JLabel("Academic Term:"));
+        grid.add(new JLabel(target.academicYear + " " + target.semester));
         grid.add(new JLabel("Due Date:"));
-        grid.add(new JLabel(dueDate));
+        grid.add(new JLabel(target.dueDate));
         grid.add(new JLabel("Maximum Marks:"));
-        grid.add(new JLabel(maxMarks));
+        grid.add(new JLabel(String.format(Locale.US, "%.0f", target.maxMarks)));
+        grid.add(new JLabel("Weight in CA:"));
+        grid.add(new JLabel(String.format(Locale.US, "%.1f%%", target.weight)));
         grid.add(new JLabel("Status:"));
-        grid.add(new JLabel("<html><font color='#1F4263'><b>" + status + "</b></font></html>"));
+        grid.add(new JLabel("<html><font color='#1F4263'><b>" + target.status + "</b></font></html>"));
+        grid.add(new JLabel("Student Submissions:"));
+        grid.add(new JLabel(marksCount + " of " + totalEnrolled + " enrolled students marked"));
+        grid.add(new JLabel("Class Average Score:"));
+        grid.add(new JLabel(marksCount > 0 ? String.format(Locale.US, "%.1f / %.0f", avgMark, target.maxMarks) : "No marks entered yet"));
+        grid.add(new JLabel("Created By Lecturer:"));
+        grid.add(new JLabel(target.createdBy));
 
-        JTextArea descArea = new JTextArea(desc != null && !desc.isEmpty() ? desc : "No description provided.");
+        JTextArea descArea = new JTextArea("Assessment Component: " + target.title + "\nWeight in continuous assessment: " + target.weight + "%");
         descArea.setEditable(false);
-        descArea.setLineWrap(true);
-        descArea.setWrapStyleWord(true);
         descArea.setFont(new Font("Arial", Font.PLAIN, 12));
         descArea.setBackground(new Color(245, 248, 252));
         descArea.setBorder(BorderFactory.createCompoundBorder(
@@ -854,19 +1051,32 @@ public class Assignments extends JFrame {
         ));
 
         panel.add(grid, BorderLayout.NORTH);
-        panel.add(new JLabel("Description:"), BorderLayout.CENTER);
+        panel.add(new JLabel("Assignment Details (from MySQL):"), BorderLayout.CENTER);
         panel.add(new JScrollPane(descArea), BorderLayout.SOUTH);
 
         JOptionPane.showMessageDialog(
                 this,
                 panel,
-                "Assignment Details - " + id,
+                "Assignment Details - " + target.assignmentId,
                 JOptionPane.PLAIN_MESSAGE
         );
     }
 
+    /**
+     * Opens Add or Edit dialog and persists changes into MySQL assessments table.
+     */
     private void openAddEditDialog(boolean isEdit) {
-        int selectedModelRow = -1;
+        if (assignedCourses.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "No assigned courses found for this lecturer.",
+                    isEdit ? "Edit Assignment" : "Add Assignment",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        AssignmentRecord editRecord = null;
         if (isEdit) {
             int selectedRow = assignmentTable.getSelectedRow();
             if (selectedRow < 0) {
@@ -878,39 +1088,38 @@ public class Assignments extends JFrame {
                 );
                 return;
             }
-            selectedModelRow = assignmentTable.convertRowIndexToModel(selectedRow);
+            int modelRow = assignmentTable.convertRowIndexToModel(selectedRow);
+            String selectedId = String.valueOf(tableModel.getValueAt(modelRow, 0));
+            for (AssignmentRecord r : loadedRecords) {
+                if (r.assignmentId.equalsIgnoreCase(selectedId)) {
+                    editRecord = r;
+                    break;
+                }
+            }
+            if (editRecord == null) return;
         }
 
-        String initialId = isEdit ? String.valueOf(tableModel.getValueAt(selectedModelRow, 0)) : String.format(Locale.US, "ASN%03d", nextAssignmentCounter);
-        String initialTitle = isEdit ? String.valueOf(tableModel.getValueAt(selectedModelRow, 1)) : "";
-        String initialCourse = isEdit ? String.valueOf(tableModel.getValueAt(selectedModelRow, 2)) : "";
-        String initialDesc = isEdit ? String.valueOf(tableModel.getValueAt(selectedModelRow, 3)) : "";
-        String initialAssignedDate = isEdit ? String.valueOf(tableModel.getValueAt(selectedModelRow, 4)) : new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-        String initialDueDate = isEdit ? String.valueOf(tableModel.getValueAt(selectedModelRow, 5)) : "";
-        String initialMaxMarks = isEdit ? String.valueOf(tableModel.getValueAt(selectedModelRow, 6)) : "100";
-        String initialStatus = isEdit ? String.valueOf(tableModel.getValueAt(selectedModelRow, 7)) : "Active";
+        JComboBox<CourseOfferingItem> courseSelect = new JComboBox<>(assignedCourses.toArray(new CourseOfferingItem[0]));
+        if (isEdit && editRecord != null) {
+            CourseOfferingItem item = findCourseOffering(editRecord.offeringId);
+            if (item != null) {
+                courseSelect.setSelectedItem(item);
+            }
+            courseSelect.setEnabled(false);
+        } else {
+            Object sel = courseDropdown.getSelectedItem();
+            if (sel instanceof CourseOfferingItem) {
+                courseSelect.setSelectedItem(sel);
+            }
+        }
 
-        JTextField titleField = new JTextField(initialTitle, 20);
-        JTextField courseField = new JTextField(initialCourse, 20);
-        courseField.setToolTipText("Enter course code or name (e.g., CS101)");
-
-        JTextArea descArea = new JTextArea(initialDesc, 3, 20);
-        descArea.setLineWrap(true);
-        descArea.setWrapStyleWord(true);
-        descArea.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER),
-                new EmptyBorder(4, 4, 4, 4)
-        ));
-
-        JTextField assignedDateField = new JTextField(initialAssignedDate, 10);
-        assignedDateField.setToolTipText("Format: YYYY-MM-DD");
-
-        JTextField dueDateField = new JTextField(initialDueDate, 10);
+        JTextField titleField = new JTextField(isEdit && editRecord != null ? editRecord.title : "", 20);
+        JTextField dueDateField = new JTextField(isEdit && editRecord != null && !"-".equals(editRecord.dueDate) ? editRecord.dueDate : new SimpleDateFormat("yyyy-MM-dd").format(new Date()), 10);
         dueDateField.setToolTipText("Format: YYYY-MM-DD");
 
-        JTextField maxMarksField = new JTextField(initialMaxMarks, 6);
-        JComboBox<String> statusBox = new JComboBox<>(new String[]{"Active", "Upcoming", "Due", "Closed"});
-        statusBox.setSelectedItem(initialStatus);
+        JTextField maxMarksField = new JTextField(isEdit && editRecord != null ? String.format(Locale.US, "%.0f", editRecord.maxMarks) : "100", 6);
+        JTextField weightField = new JTextField(isEdit && editRecord != null ? String.format(Locale.US, "%.1f", editRecord.weight) : "10.0", 6);
+        weightField.setToolTipText("Continuous assessment weight percentage (0 - 100)");
 
         JPanel form = new JPanel(new GridBagLayout());
         form.setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -921,24 +1130,18 @@ public class Assignments extends JFrame {
 
         int row = 0;
 
-        gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel("Assignment ID:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; form.add(new JLabel("<html><b>" + initialId + "</b></html>"), gbc);
+        if (isEdit && editRecord != null) {
+            gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel("Assignment ID:"), gbc);
+            gbc.gridx = 1; gbc.gridy = row; form.add(new JLabel("<html><b>" + editRecord.assignmentId + "</b></html>"), gbc);
+            row++;
+        }
+
+        gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel("Course Offering *:"), gbc);
+        gbc.gridx = 1; gbc.gridy = row; form.add(courseSelect, gbc);
         row++;
 
         gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel("Assignment Title *:"), gbc);
         gbc.gridx = 1; gbc.gridy = row; form.add(titleField, gbc);
-        row++;
-
-        gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel("Course *:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; form.add(courseField, gbc);
-        row++;
-
-        gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel("Description:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; form.add(new JScrollPane(descArea), gbc);
-        row++;
-
-        gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel("Assigned Date (YYYY-MM-DD):"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; form.add(assignedDateField, gbc);
         row++;
 
         gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel("Due Date (YYYY-MM-DD) *:"), gbc);
@@ -949,8 +1152,8 @@ public class Assignments extends JFrame {
         gbc.gridx = 1; gbc.gridy = row; form.add(maxMarksField, gbc);
         row++;
 
-        gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel("Status:"), gbc);
-        gbc.gridx = 1; gbc.gridy = row; form.add(statusBox, gbc);
+        gbc.gridx = 0; gbc.gridy = row; form.add(new JLabel("Weight Percentage (0-100%):"), gbc);
+        gbc.gridx = 1; gbc.gridy = row; form.add(weightField, gbc);
 
         int result = JOptionPane.showConfirmDialog(
                 this,
@@ -961,32 +1164,27 @@ public class Assignments extends JFrame {
         );
 
         if (result == JOptionPane.OK_OPTION) {
+            CourseOfferingItem selectedOffering = (CourseOfferingItem) courseSelect.getSelectedItem();
             String title = titleField.getText().trim();
-            String course = courseField.getText().trim();
-            String desc = descArea.getText().trim();
-            String assignedDate = assignedDateField.getText().trim();
-            String dueDate = dueDateField.getText().trim();
+            String dueDateStr = dueDateField.getText().trim();
             String maxMarksStr = maxMarksField.getText().trim();
-            String status = (String) statusBox.getSelectedItem();
+            String weightStr = weightField.getText().trim();
 
-            // 1. Validation: Title must not be empty
+            if (selectedOffering == null) {
+                JOptionPane.showMessageDialog(this, "Course must be selected.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             if (title.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Assignment title must not be empty.", "Validation Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            // 2. Validation: Course must be selected / entered
-            if (course.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Course must be specified.", "Validation Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            // 3. Validation: Maximum marks must be a positive number
             double maxMarks;
             try {
                 maxMarks = Double.parseDouble(maxMarksStr);
                 if (maxMarks <= 0) {
-                    JOptionPane.showMessageDialog(this, "Maximum marks must be a positive number greater than 0.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Maximum marks must be greater than 0.", "Validation Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
             } catch (NumberFormatException ex) {
@@ -994,48 +1192,118 @@ public class Assignments extends JFrame {
                 return;
             }
 
-            // 4. Validation: Due date must not be earlier than assigned date
+            double weight;
+            try {
+                weight = Double.parseDouble(weightStr);
+                if (weight < 0 || weight > 100) {
+                    JOptionPane.showMessageDialog(this, "Weight percentage must be between 0 and 100.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Weight percentage must be a valid numeric value.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
             sdf.setLenient(false);
-            if (!assignedDate.isEmpty() && !dueDate.isEmpty()) {
+            java.sql.Date sqlDueDate = null;
+            if (!dueDateStr.isEmpty()) {
                 try {
-                    Date dAssigned = sdf.parse(assignedDate);
-                    Date dDue = sdf.parse(dueDate);
-                    if (dDue.before(dAssigned)) {
-                        JOptionPane.showMessageDialog(this, "Due date must not be earlier than the assigned date.", "Validation Error", JOptionPane.ERROR_MESSAGE);
-                        return;
-                    }
+                    Date d = sdf.parse(dueDateStr);
+                    sqlDueDate = new java.sql.Date(d.getTime());
                 } catch (ParseException ex) {
-                    JOptionPane.showMessageDialog(this, "Dates must follow the format YYYY-MM-DD (e.g. 2026-03-15).", "Validation Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Due date must follow format YYYY-MM-DD (e.g. 2026-03-25).", "Validation Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
             }
 
-            if (isEdit) {
-                tableModel.setValueAt(title, selectedModelRow, 1);
-                tableModel.setValueAt(course, selectedModelRow, 2);
-                tableModel.setValueAt(desc, selectedModelRow, 3);
-                tableModel.setValueAt(assignedDate, selectedModelRow, 4);
-                tableModel.setValueAt(dueDate, selectedModelRow, 5);
-                tableModel.setValueAt(String.format(Locale.US, "%.0f", maxMarks), selectedModelRow, 6);
-                tableModel.setValueAt(status, selectedModelRow, 7);
-                JOptionPane.showMessageDialog(this, "Assignment '" + initialId + "' updated successfully (UI Stage).", "Assignment Updated", JOptionPane.INFORMATION_MESSAGE);
+            // Persist to MySQL database
+            if (isEdit && editRecord != null) {
+                updateAssignmentInMySQL(editRecord.assignmentId, title, maxMarks, weight, sqlDueDate);
             } else {
-                tableModel.addRow(new Object[]{
-                        initialId,
-                        title,
-                        course,
-                        desc,
-                        assignedDate,
-                        dueDate,
-                        String.format(Locale.US, "%.0f", maxMarks),
-                        status
-                });
-                nextAssignmentCounter++;
-                JOptionPane.showMessageDialog(this, "Assignment '" + initialId + "' added successfully (UI Stage).", "Assignment Added", JOptionPane.INFORMATION_MESSAGE);
+                insertAssignmentInMySQL(selectedOffering.offeringId, title, maxMarks, weight, sqlDueDate);
+            }
+        }
+    }
+
+    private void insertAssignmentInMySQL(String offeringId, String title, double maxMarks, double weight, java.sql.Date dueDate) {
+        String insertSql =
+                "INSERT INTO assessments (assessment_id, offering_id, assessment_name, assessment_type, weight_percentage, max_marks, assessment_date, created_by) " +
+                "VALUES (?, ?, ?, 'ASSIGNMENT', ?, ?, ?, ?)";
+
+        try (Connection conn = DBConnection.getConnection()) {
+            String nextId = getNextAssessmentId(conn);
+
+            try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                ps.setString(1, nextId);
+                ps.setString(2, offeringId);
+                ps.setString(3, title);
+                ps.setDouble(4, weight);
+                ps.setDouble(5, maxMarks);
+                if (dueDate != null) {
+                    ps.setDate(6, dueDate);
+                } else {
+                    ps.setNull(6, java.sql.Types.DATE);
+                }
+                ps.setString(7, lecturerId);
+
+                ps.executeUpdate();
             }
 
-            updateSummary();
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Assignment '" + nextId + "' added successfully to MySQL database.",
+                    "Add Assignment",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+
+            loadAssignmentsFromDatabase();
+
+        } catch (SQLException e) {
+            System.err.println("[Assignments] Error inserting assignment: " + e.getMessage());
+            showDbError("Failed to add assignment to MySQL database.", e);
+        }
+    }
+
+    private void updateAssignmentInMySQL(String assignmentId, String title, double maxMarks, double weight, java.sql.Date dueDate) {
+        String updateSql =
+                "UPDATE assessments SET assessment_name = ?, weight_percentage = ?, max_marks = ?, assessment_date = ? " +
+                "WHERE assessment_id = ? AND offering_id IN (SELECT offering_id FROM course_lecturers WHERE lecturer_id = ?)";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(updateSql)) {
+
+            ps.setString(1, title);
+            ps.setDouble(2, weight);
+            ps.setDouble(3, maxMarks);
+            if (dueDate != null) {
+                ps.setDate(4, dueDate);
+            } else {
+                ps.setNull(4, java.sql.Types.DATE);
+            }
+            ps.setString(5, assignmentId);
+            ps.setString(6, lecturerId);
+
+            int updated = ps.executeUpdate();
+            if (updated > 0) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Assignment '" + assignmentId + "' updated successfully in MySQL database.",
+                        "Edit Assignment",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+                loadAssignmentsFromDatabase();
+            } else {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Update failed: you may not have permission to modify this assignment.",
+                        "Permission Denied",
+                        JOptionPane.WARNING_MESSAGE
+                );
+            }
+        } catch (SQLException e) {
+            System.err.println("[Assignments] Error updating assignment: " + e.getMessage());
+            showDbError("Failed to update assignment in MySQL database.", e);
         }
     }
 
@@ -1052,27 +1320,91 @@ public class Assignments extends JFrame {
         }
 
         int modelRow = assignmentTable.convertRowIndexToModel(selectedRow);
-        String id = String.valueOf(tableModel.getValueAt(modelRow, 0));
+        String aid = String.valueOf(tableModel.getValueAt(modelRow, 0));
         String title = String.valueOf(tableModel.getValueAt(modelRow, 1));
 
         int confirm = JOptionPane.showConfirmDialog(
                 this,
-                "Are you sure you want to delete assignment:\n" + id + " - " + title + "?",
+                "Are you sure you want to delete assignment:\n" + aid + " - " + title + "?",
                 "Confirm Delete Assignment",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE
         );
 
-        if (confirm == JOptionPane.YES_OPTION) {
-            tableModel.removeRow(modelRow);
-            updateSummary();
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Assignment '" + id + "' deleted successfully (UI Stage).",
-                    "Deleted",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
         }
+
+        // Check foreign key constraint: student marks in 'marks' table
+        try (Connection conn = DBConnection.getConnection()) {
+            String checkMarksSql = "SELECT COUNT(*) FROM marks WHERE assessment_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(checkMarksSql)) {
+                ps.setString(1, aid);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        int count = rs.getInt(1);
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "Cannot delete assignment '" + aid + "' because " + count + " student mark record(s) already exist for it in MySQL database.\n" +
+                                "To maintain academic records integrity, assignments with submitted marks cannot be deleted.",
+                                "Deletion Blocked",
+                                JOptionPane.WARNING_MESSAGE
+                        );
+                        return;
+                    }
+                }
+            }
+
+            // Safe parameterized delete
+            String deleteSql = "DELETE FROM assessments WHERE assessment_id = ? AND offering_id IN (SELECT offering_id FROM course_lecturers WHERE lecturer_id = ?)";
+            try (PreparedStatement ps = conn.prepareStatement(deleteSql)) {
+                ps.setString(1, aid);
+                ps.setString(2, lecturerId);
+                int rows = ps.executeUpdate();
+
+                if (rows > 0) {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Assignment '" + aid + "' deleted successfully from MySQL database.",
+                            "Delete Assignment",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
+                    loadAssignmentsFromDatabase();
+                } else {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Deletion failed: assignment not found or access restricted.",
+                            "Delete Error",
+                            JOptionPane.WARNING_MESSAGE
+                    );
+                }
+            }
+
+        } catch (SQLException e) {
+            System.err.println("[Assignments] Error deleting assignment: " + e.getMessage());
+            showDbError("Failed to delete assignment from MySQL database.", e);
+        }
+    }
+
+    private static String getNextAssessmentId(Connection conn) throws SQLException {
+        String sql = "SELECT COALESCE(MAX(CAST(SUBSTRING(assessment_id, 4) AS UNSIGNED)), 0) + 1 FROM assessments";
+        try (Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            if (rs.next()) {
+                long nextNum = rs.getLong(1);
+                return String.format(Locale.US, "ASM%03d", nextNum);
+            }
+        }
+        return "ASM001";
+    }
+
+    private void showDbError(String message, SQLException ex) {
+        JOptionPane.showMessageDialog(
+                this,
+                message + "\n\nError: " + ex.getMessage(),
+                "MySQL Database Error",
+                JOptionPane.ERROR_MESSAGE
+        );
     }
 
     // ================= MAIN METHOD FOR TESTING =================
