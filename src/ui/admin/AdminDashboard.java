@@ -46,6 +46,7 @@ public class AdminDashboard extends JFrame {
     private JPanel cardsContainer;
     private StudentManagementPanel studentPanel;
     private LecturerManagementPanel lecturerPanel;
+    private TechnicalOfficerManagementPanel officerPanel;
     private String activeNavName = "Dashboard";
 
     // Header labels for dynamic breadcrumbs & titles
@@ -123,6 +124,10 @@ public class AdminDashboard extends JFrame {
         // Card 3: Lecturer Management Panel
         lecturerPanel = new LecturerManagementPanel(() -> loadDashboardDataAsync());
         cardsContainer.add(lecturerPanel, "LECTURERS");
+
+        // Card 4: Technical Officer Management Panel
+        officerPanel = new TechnicalOfficerManagementPanel(() -> loadDashboardDataAsync());
+        cardsContainer.add(officerPanel, "OFFICERS");
 
         workspacePanel.add(cardsContainer, BorderLayout.CENTER);
 
@@ -203,6 +208,8 @@ public class AdminDashboard extends JFrame {
         navPanel.add(createNavItem("Student Management", "students", false));
         navPanel.add(Box.createVerticalStrut(4));
         navPanel.add(createNavItem("Lecturer Management", "lecturers", false));
+        navPanel.add(Box.createVerticalStrut(4));
+        navPanel.add(createNavItem("Technical Officer Management", "officers", false));
         navPanel.add(Box.createVerticalStrut(4));
         navPanel.add(createNavItem("User Management", "users", false));
         navPanel.add(Box.createVerticalStrut(4));
@@ -401,6 +408,15 @@ public class AdminDashboard extends JFrame {
             if (lecturerPanel != null) {
                 lecturerPanel.loadLecturersAsync();
             }
+        } else if ("Technical Officer Management".equalsIgnoreCase(name) || "Technical Officers".equalsIgnoreCase(name) || "Officer Management".equalsIgnoreCase(name)) {
+            activeNavName = "Technical Officer Management";
+            cardLayout.show(cardsContainer, "OFFICERS");
+            if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / Technical Officer Management");
+            if (headerTitle != null) headerTitle.setText("Technical Officer Management");
+            if (headerSubtitle != null) headerSubtitle.setText("Manage technical staff profiles, laboratory assignments, and system access.");
+            if (officerPanel != null) {
+                officerPanel.loadOfficersAsync();
+            }
         } else if ("User Management".equalsIgnoreCase(name) || "Manage Users".equalsIgnoreCase(name)) {
             // Default User Management entry point routes cleanly to Student Management
             activeNavName = "User Management";
@@ -430,6 +446,11 @@ public class AdminDashboard extends JFrame {
 
         if ("Lecturer Management".equalsIgnoreCase(name) || "Lecturers".equalsIgnoreCase(name)) {
             showView("Lecturer Management");
+            return;
+        }
+
+        if ("Technical Officer Management".equalsIgnoreCase(name) || "Technical Officers".equalsIgnoreCase(name) || "Officer Management".equalsIgnoreCase(name)) {
+            showView("Technical Officer Management");
             return;
         }
 
@@ -548,6 +569,16 @@ public class AdminDashboard extends JFrame {
                 g2.drawArc(x + 1, y + 10, 16, 8, 0, 180);
                 g2.drawLine(x + 9, y + 13, x + 9, y + 16);
                 g2.drawLine(x + 5, y + 16, x + 13, y + 16);
+                break;
+            case "officers":
+            case "technical_officers":
+                // Technical officer cog/gear icon
+                g2.drawOval(x + 4, y + 4, 10, 10);
+                g2.drawOval(x + 7, y + 7, 4, 4);
+                g2.drawLine(x + 9, y + 1, x + 9, y + 4);
+                g2.drawLine(x + 9, y + 14, x + 9, y + 17);
+                g2.drawLine(x + 1, y + 9, x + 4, y + 9);
+                g2.drawLine(x + 14, y + 9, x + 17, y + 9);
                 break;
             case "users":
                 g2.drawOval(x + 3, y + 1, 6, 6);
@@ -826,7 +857,16 @@ public class AdminDashboard extends JFrame {
         });
         row.add(lecturerCard);
 
-        row.add(createStatCard("Technical Officers", "officers", WARNING_COLOR, new Color(254, 243, 199), lblOfficersCount, lblOfficersSub));
+        JPanel officerCard = createStatCard("Technical Officers", "officers", WARNING_COLOR, new Color(254, 243, 199), lblOfficersCount, lblOfficersSub);
+        officerCard.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        officerCard.setToolTipText("Click to view and manage technical officers");
+        officerCard.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showView("Technical Officer Management");
+            }
+        });
+        row.add(officerCard);
         row.add(createStatCard("Total Courses", "courses", SUCCESS_COLOR, new Color(220, 252, 231), lblCoursesCount, lblCoursesSub));
         row.add(createStatCard("Total Notices", "notices", new Color(14, 165, 233), new Color(224, 242, 254), lblNoticesCount, lblNoticesSub));
 
