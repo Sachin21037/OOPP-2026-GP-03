@@ -206,7 +206,10 @@ public class Attendance extends JFrame {
             dispose();
         }));
 
-        menu.add(createMenuButton("Assignments", false, () -> showComingSoon("Assignments")));
+        menu.add(createMenuButton("Assignments", false, () -> {
+            new Assignments().setVisible(true);
+            dispose();
+        }));
 
         menu.add(createMenuButton("Profile", false, () -> {
             new LecturerProfile().setVisible(true);

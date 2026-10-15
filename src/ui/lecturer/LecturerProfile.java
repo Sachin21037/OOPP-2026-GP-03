@@ -144,7 +144,8 @@ public class LecturerProfile extends JFrame {
         }));
 
         menu.add(createMenuButton("Assignments", false, () -> {
-            showComingSoon("Assignments");
+            new Assignments().setVisible(true);
+            dispose();
         }));
 
         // Profile is highlighted because this is the Profile page
