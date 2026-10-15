@@ -247,8 +247,10 @@ public class Student extends JFrame {
         ));
 
         menu.add(createMenuButton(
-                "Assignments", false,
-                () -> showComingSoon("Assignments")
+                "Assignments", false, () -> {
+                    new Assignments().setVisible(true);
+                    dispose();
+                }
         ));
 
         menu.add(createMenuButton(
