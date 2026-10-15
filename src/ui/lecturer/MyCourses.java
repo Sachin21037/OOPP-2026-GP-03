@@ -1,5 +1,6 @@
-
 package ui;
+
+import database.DBConnection;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -7,6 +8,12 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public class MyCourses extends JFrame {
@@ -36,19 +43,60 @@ public class MyCourses extends JFrame {
 
     private JLabel totalCoursesValue;
     private JLabel totalStudentsValue;
+    private JLabel subtitleLabel;
+    private JLabel countLabel;
 
-    // Sample data - replace with database data later
-    private final Object[][] courseData = {
-            {"ICT2132", "Object Oriented Programming", 28,
-                    "Semester 1"},
-            {"ICT2142", "E-Business", 20, "Semester 1"},
-            {"ICT2123", "Database Management", 22,
-                    "Semester 1"},
-            {"ICT2152", "Web Development", 16,
-                    "Semester 2"}
-    };
+    // Lecturer ID for identifying the active lecturer
+    private String lecturerId;
 
+    // Loaded courses from the database
+    private final List<CourseItem> loadedCourses = new ArrayList<>();
+
+    /**
+     * Inner helper class to hold course details retrieved from database.
+     */
+    private static class CourseItem {
+        final String courseCode;
+        final String courseName;
+        final int studentCount;
+        final String semester;
+        final String academicYear;
+        final int credits;
+        final String batch;
+
+        CourseItem(String courseCode, String courseName, int studentCount,
+                   String semester, String academicYear, int credits, String batch) {
+            this.courseCode = courseCode != null ? courseCode : "";
+            this.courseName = courseName != null ? courseName : "";
+            this.studentCount = studentCount;
+            this.semester = semester != null ? semester : "";
+            this.academicYear = academicYear != null ? academicYear : "";
+            this.credits = credits;
+            this.batch = batch != null ? batch : "";
+        }
+
+        Object[] toTableRow() {
+            return new Object[]{courseCode, courseName, studentCount, semester};
+        }
+    }
+
+    /**
+     * Default constructor: uses active lecturer ID from LecturerDashboard or JVM property.
+     */
     public MyCourses() {
+        this(resolveActiveLecturerId());
+    }
+
+    /**
+     * Overloaded constructor allowing an explicit lecturer ID.
+     *
+     * @param lecturerId the lecturer ID (e.g. "LEC001")
+     */
+    public MyCourses(String lecturerId) {
+        this.lecturerId = (lecturerId != null && !lecturerId.trim().isEmpty())
+                ? lecturerId.trim()
+                : null;
+
         setTitle(
                 "Faculty Academic Management System - My Courses"
         );
@@ -62,6 +110,18 @@ public class MyCourses extends JFrame {
         add(createHeader(), BorderLayout.NORTH);
         add(createSidebar(), BorderLayout.WEST);
         add(createMainContent(), BorderLayout.CENTER);
+    }
+
+    private static String resolveActiveLecturerId() {
+        String active = LecturerDashboard.getActiveLecturerId();
+        if (active != null && !active.trim().isEmpty()) {
+            return active.trim();
+        }
+        String sysProp = System.getProperty("fams.lecturer.id");
+        if (sysProp != null && !sysProp.trim().isEmpty()) {
+            return sysProp.trim();
+        }
+        return null;
     }
 
     private JPanel createHeader() {
@@ -191,6 +251,7 @@ public class MyCourses extends JFrame {
             );
 
             if (answer == JOptionPane.YES_OPTION) {
+                LecturerDashboard.setActiveLecturerId(null);
                 dispose();
                 JOptionPane.showMessageDialog(
                         null, "You have been logged out."
@@ -296,19 +357,19 @@ public class MyCourses extends JFrame {
         title.setFont(new Font("Arial", Font.BOLD, 29));
         title.setForeground(TEXT);
 
-        JLabel subtitle = new JLabel(
+        subtitleLabel = new JLabel(
                 "View and manage the courses assigned to you."
         );
-        subtitle.setFont(
+        subtitleLabel.setFont(
                 new Font("Arial", Font.PLAIN, 14)
         );
-        subtitle.setForeground(MUTED);
-        subtitle.setBorder(
+        subtitleLabel.setForeground(MUTED);
+        subtitleLabel.setBorder(
                 new EmptyBorder(5, 1, 0, 0)
         );
 
         headingText.add(title);
-        headingText.add(subtitle);
+        headingText.add(subtitleLabel);
 
         pageHeading.add(headingText, BorderLayout.WEST);
 
@@ -337,8 +398,8 @@ public class MyCourses extends JFrame {
         );
         summary.setBackground(BACKGROUND);
 
-        totalCoursesValue = new JLabel("4");
-        totalStudentsValue = new JLabel("86");
+        totalCoursesValue = new JLabel("-");
+        totalStudentsValue = new JLabel("-");
 
         summary.add(createSummaryCard(
                 "TOTAL COURSES",
@@ -380,7 +441,7 @@ public class MyCourses extends JFrame {
         );
         tableTitle.setForeground(TEXT);
 
-        JLabel countLabel = new JLabel("COURSES");
+        countLabel = new JLabel("COURSES");
         countLabel.setFont(
                 new Font("Arial", Font.BOLD, 10)
         );
@@ -672,11 +733,105 @@ public class MyCourses extends JFrame {
         return button;
     }
 
+    private String formatSemester(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String trimmed = raw.trim();
+        if (trimmed.equalsIgnoreCase("SEMESTER 1")) {
+            return "Semester 1";
+        } else if (trimmed.equalsIgnoreCase("SEMESTER 2")) {
+            return "Semester 2";
+        }
+        return trimmed;
+    }
+
+    /**
+     * Loads actual courses assigned to the active lecturer from the MySQL database.
+     * Reuses DBConnection.getConnection() safely.
+     */
     private void loadCourses() {
+        loadedCourses.clear();
         tableModel.setRowCount(0);
 
-        for (Object[] course : courseData) {
-            tableModel.addRow(course);
+        // Resolve lecturer ID
+        if (this.lecturerId == null || this.lecturerId.trim().isEmpty()) {
+            this.lecturerId = resolveActiveLecturerId();
+        }
+
+        // If no lecturer ID is available
+        if (this.lecturerId == null || this.lecturerId.trim().isEmpty()) {
+            if (subtitleLabel != null) {
+                subtitleLabel.setText("No active lecturer ID. Open from Lecturer Dashboard or provide an active lecturer ID.");
+            }
+            if (countLabel != null) {
+                countLabel.setText("NO LECTURER ID");
+            }
+            updateSummary();
+            return;
+        }
+
+        String sql =
+                "SELECT c.course_code, c.course_name, co.semester, co.academic_year, co.batch, c.credits, " +
+                "       COUNT(DISTINCT e.student_id) AS student_count " +
+                "FROM course_lecturers cl " +
+                "JOIN course_offerings co ON cl.offering_id = co.offering_id " +
+                "JOIN courses c ON co.course_id = c.course_id " +
+                "LEFT JOIN enrollments e ON co.offering_id = e.offering_id " +
+                "WHERE cl.lecturer_id = ? " +
+                "GROUP BY c.course_code, c.course_name, co.semester, co.academic_year, co.batch, c.credits, co.offering_id " +
+                "ORDER BY co.semester, c.course_code";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, lecturerId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String code = rs.getString("course_code");
+                    String name = rs.getString("course_name");
+                    String rawSemester = rs.getString("semester");
+                    String formattedSemester = formatSemester(rawSemester);
+                    String academicYear = rs.getString("academic_year");
+                    String batch = rs.getString("batch");
+                    int credits = rs.getInt("credits");
+                    int students = rs.getInt("student_count");
+
+                    loadedCourses.add(new CourseItem(
+                            code, name, students, formattedSemester, academicYear, credits, batch
+                    ));
+                }
+            }
+
+            if (loadedCourses.isEmpty()) {
+                if (subtitleLabel != null) {
+                    subtitleLabel.setText("No courses currently assigned to lecturer " + lecturerId + ".");
+                }
+                if (countLabel != null) {
+                    countLabel.setText("0 COURSES");
+                }
+            } else {
+                if (subtitleLabel != null) {
+                    subtitleLabel.setText("View and manage the courses assigned to you (" + lecturerId + ").");
+                }
+                if (countLabel != null) {
+                    countLabel.setText(loadedCourses.size() + " COURSES");
+                }
+            }
+
+            for (CourseItem course : loadedCourses) {
+                tableModel.addRow(course.toTableRow());
+            }
+
+        } catch (SQLException e) {
+            System.err.println("[MyCourses] Database error while loading courses: " + e.getMessage());
+            if (subtitleLabel != null) {
+                subtitleLabel.setText("Database error loading courses: " + e.getMessage());
+            }
+            if (countLabel != null) {
+                countLabel.setText("DB ERROR");
+            }
         }
 
         updateSummary();
@@ -696,14 +851,10 @@ public class MyCourses extends JFrame {
 
         tableModel.setRowCount(0);
 
-        for (Object[] course : courseData) {
-            String code = course[0].toString()
-                    .toLowerCase(Locale.ROOT);
-
-            String name = course[1].toString()
-                    .toLowerCase(Locale.ROOT);
-
-            String courseSemester = course[3].toString();
+        for (CourseItem course : loadedCourses) {
+            String code = course.courseCode.toLowerCase(Locale.ROOT);
+            String name = course.courseName.toLowerCase(Locale.ROOT);
+            String courseSemester = course.semester;
 
             boolean matchesText =
                     code.contains(query)
@@ -712,11 +863,15 @@ public class MyCourses extends JFrame {
             boolean matchesSemester =
                     semester == null
                             || semester.equals("All Semesters")
-                            || semester.equals(courseSemester);
+                            || semester.equalsIgnoreCase(courseSemester);
 
             if (matchesText && matchesSemester) {
-                tableModel.addRow(course);
+                tableModel.addRow(course.toTableRow());
             }
+        }
+
+        if (countLabel != null && lecturerId != null) {
+            countLabel.setText(tableModel.getRowCount() + " COURSES");
         }
 
         updateSummary();
@@ -729,12 +884,22 @@ public class MyCourses extends JFrame {
             return;
         }
 
+        if (lecturerId == null || lecturerId.trim().isEmpty()) {
+            totalCoursesValue.setText("-");
+            totalStudentsValue.setText("-");
+            return;
+        }
+
         int students = 0;
 
         for (int i = 0; i < tableModel.getRowCount(); i++) {
-            students += Integer.parseInt(
-                    tableModel.getValueAt(i, 2).toString()
-            );
+            Object val = tableModel.getValueAt(i, 2);
+            if (val != null) {
+                try {
+                    students += Integer.parseInt(val.toString().trim());
+                } catch (NumberFormatException ignored) {
+                }
+            }
         }
 
         totalCoursesValue.setText(
@@ -744,6 +909,16 @@ public class MyCourses extends JFrame {
         totalStudentsValue.setText(
                 String.valueOf(students)
         );
+    }
+
+    private CourseItem findCourseByCode(String code) {
+        if (code == null) return null;
+        for (CourseItem item : loadedCourses) {
+            if (item.courseCode.equalsIgnoreCase(code)) {
+                return item;
+            }
+        }
+        return null;
     }
 
     private void viewSelectedCourse() {
@@ -774,12 +949,28 @@ public class MyCourses extends JFrame {
         String semester =
                 tableModel.getValueAt(modelRow, 3).toString();
 
+        CourseItem item = findCourseByCode(courseCode);
+        StringBuilder details = new StringBuilder();
+        details.append("Course Code: ").append(courseCode)
+                .append("\nCourse Name: ").append(courseName)
+                .append("\nStudents: ").append(students)
+                .append("\nSemester: ").append(semester);
+
+        if (item != null) {
+            if (!item.academicYear.isEmpty()) {
+                details.append("\nAcademic Year: ").append(item.academicYear);
+            }
+            if (item.credits > 0) {
+                details.append("\nCredits: ").append(item.credits);
+            }
+            if (!item.batch.isEmpty()) {
+                details.append("\nBatch: ").append(item.batch);
+            }
+        }
+
         JOptionPane.showMessageDialog(
                 this,
-                "Course Code: " + courseCode
-                        + "\nCourse Name: " + courseName
-                        + "\nStudents: " + students
-                        + "\nSemester: " + semester,
+                details.toString(),
                 "Course Details",
                 JOptionPane.INFORMATION_MESSAGE
         );
@@ -795,8 +986,12 @@ public class MyCourses extends JFrame {
     }
 
     public static void main(String[] args) {
+        String testId = args.length > 0 ? args[0] : null;
+        if (testId != null) {
+            LecturerDashboard.setActiveLecturerId(testId);
+        }
         SwingUtilities.invokeLater(
-                () -> new MyCourses().setVisible(true)
+                () -> new MyCourses(testId).setVisible(true)
         );
     }
 }
