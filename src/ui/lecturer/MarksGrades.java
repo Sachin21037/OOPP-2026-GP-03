@@ -35,16 +35,16 @@ import java.util.Set;
 public class MarksGrades extends JFrame {
 
     // Theme colours matching existing Lecturer pages
-    private static final Color NAVY = new Color(31, 66, 99);
-    private static final Color BACKGROUND = new Color(244, 247, 251);
-    private static final Color WHITE = Color.WHITE;
-    private static final Color TEXT = new Color(35, 48, 65);
-    private static final Color MUTED = new Color(100, 116, 139);
-    private static final Color TEAL = new Color(43, 169, 155);
-    private static final Color PURPLE = new Color(132, 78, 190);
-    private static final Color BORDER = new Color(220, 227, 235);
-    private static final Color RED = new Color(190, 55, 55);
-    private static final Color ACTIVE_BG = new Color(232, 240, 248);
+    private static final Color NAVY = LecturerTheme.PRIMARY_NAVY;
+    private static final Color BACKGROUND = LecturerTheme.MAIN_BG;
+    private static final Color WHITE = LecturerTheme.CARD_BG;
+    private static final Color TEXT = LecturerTheme.TEXT_PRIMARY;
+    private static final Color MUTED = LecturerTheme.TEXT_SECONDARY;
+    private static final Color TEAL = new Color(13, 148, 136);
+    private static final Color PURPLE = new Color(124, 58, 237);
+    private static final Color BORDER = LecturerTheme.BORDER_COLOR;
+    private static final Color RED = LecturerTheme.DANGER_RED;
+    private static final Color ACTIVE_BG = LecturerTheme.LIGHT_BLUE;
 
     private static final Font BODY = new Font("Arial", Font.PLAIN, 13);
 
@@ -203,153 +203,11 @@ public class MarksGrades extends JFrame {
     // ================= HEADER =================
 
     private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(NAVY);
-        header.setPreferredSize(new Dimension(0, 72));
-        header.setBorder(new EmptyBorder(0, 26, 0, 26));
-
-        JLabel title = new JLabel("FACULTY ACADEMIC MANAGEMENT SYSTEM");
-        title.setForeground(WHITE);
-        title.setFont(new Font("Arial", Font.BOLD, 19));
-
-        JLabel role = new JLabel("LECTURER");
-        role.setForeground(WHITE);
-        role.setFont(new Font("Arial", Font.BOLD, 13));
-
-        header.add(title, BorderLayout.WEST);
-        header.add(role, BorderLayout.EAST);
-
-        return header;
+        return LecturerTheme.createHeader(lecturerId, this);
     }
-
-    // ================= SIDEBAR =================
 
     private JPanel createSidebar() {
-        JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setBackground(WHITE);
-        sidebar.setPreferredSize(new Dimension(205, 0));
-        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, BORDER));
-
-        JPanel menu = new JPanel();
-        menu.setBackground(WHITE);
-        menu.setLayout(new BoxLayout(menu, BoxLayout.Y_AXIS));
-        menu.setBorder(new EmptyBorder(25, 14, 12, 14));
-
-        JLabel menuTitle = new JLabel("LECTURER MENU");
-        menuTitle.setFont(new Font("Arial", Font.BOLD, 11));
-        menuTitle.setForeground(MUTED);
-        menuTitle.setBorder(new EmptyBorder(0, 9, 18, 0));
-        menuTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        menu.add(menuTitle);
-
-        menu.add(createMenuButton("Dashboard", false, () -> {
-            new LecturerDashboard().setVisible(true);
-            dispose();
-        }));
-
-        menu.add(createMenuButton("My Courses", false, () -> {
-            new MyCourses().setVisible(true);
-            dispose();
-        }));
-
-        menu.add(createMenuButton("Students", false, () -> {
-            new Student().setVisible(true);
-            dispose();
-        }));
-
-        menu.add(createMenuButton("Attendance", false, () -> {
-            new Attendance().setVisible(true);
-            dispose();
-        }));
-
-        // Marks / Grades is active on this page
-        menu.add(createMenuButton("Marks / Grades", true, () -> {
-            // Already on Marks / Grades page
-        }));
-
-        menu.add(createMenuButton("Assignments", false, () -> {
-            new Assignments().setVisible(true);
-            dispose();
-        }));
-
-        menu.add(createMenuButton("Profile", false, () -> {
-            new LecturerProfile().setVisible(true);
-            dispose();
-        }));
-
-        sidebar.add(menu, BorderLayout.NORTH);
-
-        JPanel bottom = new JPanel(new BorderLayout());
-        bottom.setBackground(WHITE);
-        bottom.setBorder(new EmptyBorder(10, 14, 22, 14));
-
-        JButton logout = new JButton("Logout");
-        logout.setFont(new Font("Arial", Font.BOLD, 13));
-        logout.setForeground(RED);
-        logout.setBackground(WHITE);
-        logout.setHorizontalAlignment(SwingConstants.LEFT);
-        logout.setBorder(new EmptyBorder(10, 10, 10, 10));
-        logout.setFocusPainted(false);
-        logout.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-        logout.addActionListener(e -> {
-            int answer = JOptionPane.showConfirmDialog(
-                    this,
-                    "Are you sure you want to logout?",
-                    "Confirm Logout",
-                    JOptionPane.YES_NO_OPTION
-            );
-
-            if (answer == JOptionPane.YES_OPTION) {
-                LecturerDashboard.setActiveLecturerId(null);
-                dispose();
-                JOptionPane.showMessageDialog(null, "You have been logged out.");
-            }
-        });
-
-        bottom.add(logout, BorderLayout.SOUTH);
-        sidebar.add(bottom, BorderLayout.SOUTH);
-
-        return sidebar;
-    }
-
-    private JButton createMenuButton(String text, boolean active, Runnable action) {
-        JButton button = new JButton(text);
-        button.setFont(active ? new Font("Arial", Font.BOLD, 13) : BODY);
-        button.setForeground(active ? NAVY : TEXT);
-        button.setBackground(active ? ACTIVE_BG : WHITE);
-        button.setHorizontalAlignment(SwingConstants.LEFT);
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 43));
-        button.setPreferredSize(new Dimension(175, 43));
-
-        button.setBorder(BorderFactory.createCompoundBorder(
-                active ? BorderFactory.createMatteBorder(0, 4, 0, 0, NAVY)
-                        : BorderFactory.createEmptyBorder(0, 4, 0, 0),
-                new EmptyBorder(0, 13, 0, 8)
-        ));
-
-        button.setFocusPainted(false);
-        button.setAlignmentX(Component.LEFT_ALIGNMENT);
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
-        button.addActionListener(e -> action.run());
-
-        button.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                if (!active) {
-                    button.setBackground(new Color(245, 248, 252));
-                }
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                button.setBackground(active ? ACTIVE_BG : WHITE);
-            }
-        });
-
-        return button;
+        return LecturerTheme.createSidebar("Marks / Grades", lecturerId, this);
     }
 
     // ================= MAIN CONTENT =================
@@ -427,7 +285,17 @@ public class MarksGrades extends JFrame {
     }
 
     private JPanel createSummaryCard(String title, JLabel value, Color accent, String caption) {
-        JPanel card = new JPanel(new BorderLayout(0, 8));
+        JPanel card = new JPanel(new BorderLayout(0, 8)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(accent);
+                g2.fillRoundRect(0, 0, getWidth(), 4, 4, 4);
+                g2.dispose();
+            }
+        };
         card.setBackground(WHITE);
         card.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER),
@@ -439,7 +307,7 @@ public class MarksGrades extends JFrame {
         titleLabel.setForeground(MUTED);
 
         value.setFont(new Font("Arial", Font.BOLD, 28));
-        value.setForeground(accent);
+        value.setForeground(TEXT);
 
         JLabel captionLabel = new JLabel(caption);
         captionLabel.setFont(new Font("Arial", Font.PLAIN, 10));
@@ -630,13 +498,14 @@ public class MarksGrades extends JFrame {
         tablePanel.add(tableCenter, BorderLayout.CENTER);
 
         // Action Buttons Toolbar at Bottom of Table Card
-        JPanel bottomActions = new JPanel(new BorderLayout(10, 0));
+        JPanel bottomActions = new JPanel(new BorderLayout(16, 0));
         bottomActions.setBackground(WHITE);
-        bottomActions.setBorder(new EmptyBorder(4, 0, 0, 0));
+        bottomActions.setBorder(new EmptyBorder(12, 0, 4, 0));
 
-        JLabel hintLabel = new JLabel("Double-click a student row or click 'View Marks' to inspect assessment breakdown.");
+        JLabel hintLabel = new JLabel("<html>Double-click a student row or click 'View Marks' to inspect assessment breakdown.</html>");
         hintLabel.setFont(new Font("Arial", Font.PLAIN, 11));
         hintLabel.setForeground(MUTED);
+        hintLabel.setVerticalAlignment(SwingConstants.CENTER);
 
         JPanel buttonGroup = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         buttonGroup.setBackground(WHITE);
@@ -655,7 +524,7 @@ public class MarksGrades extends JFrame {
         buttonGroup.add(cancelButton);
         buttonGroup.add(refreshButton);
 
-        bottomActions.add(hintLabel, BorderLayout.WEST);
+        bottomActions.add(hintLabel, BorderLayout.CENTER);
         bottomActions.add(buttonGroup, BorderLayout.EAST);
 
         tablePanel.add(bottomActions, BorderLayout.SOUTH);
@@ -797,8 +666,8 @@ public class MarksGrades extends JFrame {
     private JButton createActionButton(String text, boolean primary, int width) {
         JButton button = new JButton(text);
         button.setFont(new Font("Arial", Font.BOLD, 12));
-        button.setForeground(primary ? WHITE : NAVY);
-        button.setBackground(primary ? NAVY : WHITE);
+        button.setForeground(primary ? WHITE : TEXT);
+        button.setBackground(primary ? LecturerTheme.SECONDARY_BLUE : WHITE);
         button.setFocusPainted(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         button.setPreferredSize(new Dimension(width, 34));
@@ -814,7 +683,7 @@ public class MarksGrades extends JFrame {
             @Override
             public void mouseEntered(MouseEvent e) {
                 if (primary) {
-                    button.setBackground(new Color(24, 52, 79));
+                    button.setBackground(new Color(26, 68, 190));
                 } else {
                     button.setBackground(new Color(245, 248, 252));
                 }
@@ -822,7 +691,7 @@ public class MarksGrades extends JFrame {
 
             @Override
             public void mouseExited(MouseEvent e) {
-                button.setBackground(primary ? NAVY : WHITE);
+                button.setBackground(primary ? LecturerTheme.SECONDARY_BLUE : WHITE);
             }
         });
 
