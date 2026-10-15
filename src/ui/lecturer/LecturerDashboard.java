@@ -1,9 +1,16 @@
-
 package ui;
+
+import database.DBConnection;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class LecturerDashboard extends JFrame {
 
@@ -20,7 +27,59 @@ public class LecturerDashboard extends JFrame {
     private static final Font BODY =
             new Font("Arial", Font.PLAIN, 13);
 
+    // Static active lecturer ID to support session persistence across pages
+    private static String activeLecturerId = null;
+
+    // Instance lecturer ID for this dashboard
+    private final String lecturerId;
+    private String lecturerDisplayName = "Lecturer";
+    private String myCoursesValue = "-";
+    private String studentsValue = "-";
+    private String assignmentsValue = "-";
+    private String pendingMarksValue = "-";
+    private String coursesCaption = "Assigned courses";
+    private String studentsCaption = "Across your courses";
+    private String assignmentsCaption = "Created this semester";
+    private String pendingMarksCaption = "Need your attention";
+    private String welcomeSubtitle = "Manage your courses, students, attendance and academic activities.";
+    private final List<ActivityItem> activityItems = new ArrayList<>();
+
+    private static class ActivityItem {
+        final String text;
+        final String category;
+        final Color accent;
+
+        ActivityItem(String text, String category, Color accent) {
+            this.text = text;
+            this.category = category;
+            this.accent = accent;
+        }
+    }
+
+    /**
+     * Default constructor: uses currently active lecturer ID or JVM property.
+     */
     public LecturerDashboard() {
+        this(resolveActiveLecturerId());
+    }
+
+    /**
+     * Overloaded constructor accepting an explicit lecturer ID.
+     *
+     * @param lecturerId the lecturer ID from the database (e.g., "LEC001")
+     */
+    public LecturerDashboard(String lecturerId) {
+        this.lecturerId = (lecturerId != null && !lecturerId.trim().isEmpty())
+                ? lecturerId.trim()
+                : null;
+
+        if (this.lecturerId != null) {
+            activeLecturerId = this.lecturerId;
+        }
+
+        // Fetch live database metrics before building UI
+        loadDashboardData();
+
         setTitle("Faculty Academic Management System - Lecturer");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1180, 760);
@@ -32,6 +91,257 @@ public class LecturerDashboard extends JFrame {
         add(createHeader(), BorderLayout.NORTH);
         add(createSidebar(), BorderLayout.WEST);
         add(createDashboardContent(), BorderLayout.CENTER);
+    }
+
+    public static void setActiveLecturerId(String id) {
+        activeLecturerId = (id != null && !id.trim().isEmpty()) ? id.trim() : null;
+    }
+
+    public static String getActiveLecturerId() {
+        return activeLecturerId;
+    }
+
+    private static String resolveActiveLecturerId() {
+        if (activeLecturerId != null && !activeLecturerId.trim().isEmpty()) {
+            return activeLecturerId.trim();
+        }
+        String sysProp = System.getProperty("fams.lecturer.id");
+        if (sysProp != null && !sysProp.trim().isEmpty()) {
+            return sysProp.trim();
+        }
+        return null;
+    }
+
+    /**
+     * Loads live data and statistics from the MySQL 'fams' database.
+     * Handles exceptions safely without crashing the UI.
+     */
+    private void loadDashboardData() {
+        if (lecturerId == null) {
+            coursesCaption = "Assigned courses (No lecturer ID set)";
+            studentsCaption = "Across courses (No lecturer ID set)";
+            assignmentsCaption = "Assignments (No lecturer ID set)";
+            pendingMarksCaption = "Pending marks (No lecturer ID set)";
+            welcomeSubtitle = "Manage your courses, students, attendance and academic activities. (Pass a lecturer ID to view personal data)";
+            loadPublicNotices();
+            return;
+        }
+
+        try (Connection conn = DBConnection.getConnection()) {
+            // 1. Fetch Lecturer Name and Designation
+            String nameQuery = "SELECT u.first_name, u.last_name, l.designation " +
+                    "FROM lecturers l " +
+                    "JOIN users u ON l.lecturer_id = u.user_id " +
+                    "WHERE l.lecturer_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(nameQuery)) {
+                ps.setString(1, lecturerId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        String first = rs.getString("first_name");
+                        String last = rs.getString("last_name");
+                        String fullName = ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
+                        if (!fullName.isEmpty()) {
+                            lecturerDisplayName = fullName;
+                        }
+                    } else {
+                        welcomeSubtitle = "Lecturer ID '" + lecturerId + "' not found in database.";
+                    }
+                }
+            }
+
+            // 2. Count Assigned Courses (offerings assigned to this lecturer)
+            String coursesQuery = "SELECT COUNT(DISTINCT cl.offering_id) " +
+                    "FROM course_lecturers cl " +
+                    "WHERE cl.lecturer_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(coursesQuery)) {
+                ps.setString(1, lecturerId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        myCoursesValue = String.valueOf(rs.getInt(1));
+                    }
+                }
+            }
+
+            // 3. Count Distinct Students Enrolled in Lecturer's Course Offerings
+            String studentsQuery = "SELECT COUNT(DISTINCT e.student_id) " +
+                    "FROM course_lecturers cl " +
+                    "JOIN enrollments e ON cl.offering_id = e.offering_id " +
+                    "WHERE cl.lecturer_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(studentsQuery)) {
+                ps.setString(1, lecturerId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        studentsValue = String.valueOf(rs.getInt(1));
+                    }
+                }
+            }
+
+            // 4. Count Assignments Created for Lecturer's Offerings
+            String assignmentsQuery = "SELECT COUNT(*) " +
+                    "FROM assessments a " +
+                    "JOIN course_lecturers cl ON a.offering_id = cl.offering_id " +
+                    "WHERE cl.lecturer_id = ? AND a.assessment_type = 'ASSIGNMENT'";
+            try (PreparedStatement ps = conn.prepareStatement(assignmentsQuery)) {
+                ps.setString(1, lecturerId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        assignmentsValue = String.valueOf(rs.getInt(1));
+                    }
+                }
+            }
+
+            // 5. Count Pending Marks (enrolled students who do not have a mark recorded in marks table)
+            String pendingMarksQuery = "SELECT COUNT(*) " +
+                    "FROM assessments a " +
+                    "JOIN course_lecturers cl ON a.offering_id = cl.offering_id " +
+                    "JOIN enrollments e ON a.offering_id = e.offering_id " +
+                    "LEFT JOIN marks m ON a.assessment_id = m.assessment_id AND e.student_id = m.student_id " +
+                    "WHERE cl.lecturer_id = ? AND m.mark_id IS NULL";
+            try (PreparedStatement ps = conn.prepareStatement(pendingMarksQuery)) {
+                ps.setString(1, lecturerId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        pendingMarksValue = String.valueOf(rs.getInt(1));
+                    }
+                }
+            }
+
+            // 6. Load Recent Lecturer Activities
+            loadLecturerActivities(conn);
+
+        } catch (SQLException e) {
+            System.err.println("[LecturerDashboard] Database error while loading statistics: " + e.getMessage());
+            coursesCaption = "Assigned courses (DB Error)";
+            studentsCaption = "Across courses (DB Error)";
+            assignmentsCaption = "Assignments (DB Error)";
+            pendingMarksCaption = "Pending marks (DB Error)";
+            welcomeSubtitle = "Database connection error: " + e.getMessage();
+            if (activityItems.isEmpty()) {
+                activityItems.add(new ActivityItem("Database connection unavailable", "DATABASE", RED));
+            }
+        }
+    }
+
+    private void loadLecturerActivities(Connection conn) {
+        // Attendance sessions for lecturer's offerings
+        String attSql = "SELECT s.session_type, s.session_number, c.course_code " +
+                "FROM attendance_sessions s " +
+                "JOIN course_lecturers cl ON s.offering_id = cl.offering_id " +
+                "JOIN course_offerings co ON s.offering_id = co.offering_id " +
+                "JOIN courses c ON co.course_id = c.course_id " +
+                "WHERE cl.lecturer_id = ? " +
+                "ORDER BY s.session_date DESC LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(attSql)) {
+            ps.setString(1, lecturerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    activityItems.add(new ActivityItem(
+                            "Attendance session " + rs.getInt("session_number") + " updated for " + rs.getString("course_code"),
+                            "ATTENDANCE",
+                            TEAL
+                    ));
+                }
+            }
+        } catch (SQLException ignored) {
+        }
+
+        // Recent assignment/assessment created
+        String asmSql = "SELECT a.assessment_name, c.course_code " +
+                "FROM assessments a " +
+                "JOIN course_offerings co ON a.offering_id = co.offering_id " +
+                "JOIN courses c ON co.course_id = c.course_id " +
+                "WHERE a.created_by = ? " +
+                "ORDER BY a.assessment_id DESC LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(asmSql)) {
+            ps.setString(1, lecturerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    activityItems.add(new ActivityItem(
+                            "Created " + rs.getString("assessment_name") + " (" + rs.getString("course_code") + ")",
+                            "ASSIGNMENT",
+                            NAVY
+                    ));
+                }
+            }
+        } catch (SQLException ignored) {
+        }
+
+        // Marks submitted by lecturer
+        String marksSql = "SELECT a.assessment_name, c.course_code " +
+                "FROM marks m " +
+                "JOIN assessments a ON m.assessment_id = a.assessment_id " +
+                "JOIN course_offerings co ON a.offering_id = co.offering_id " +
+                "JOIN courses c ON co.course_id = c.course_id " +
+                "WHERE m.entered_by = ? " +
+                "GROUP BY a.assessment_name, c.course_code " +
+                "ORDER BY MAX(m.entered_at) DESC LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(marksSql)) {
+            ps.setString(1, lecturerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    activityItems.add(new ActivityItem(
+                            "Marks submitted for " + rs.getString("assessment_name") + " (" + rs.getString("course_code") + ")",
+                            "MARKS",
+                            PURPLE
+                    ));
+                }
+            }
+        } catch (SQLException ignored) {
+        }
+
+        // Course material uploaded
+        String matSql = "SELECT cm.title, c.course_code " +
+                "FROM course_materials cm " +
+                "JOIN course_offerings co ON cm.offering_id = co.offering_id " +
+                "JOIN courses c ON co.course_id = c.course_id " +
+                "WHERE cm.lecturer_id = ? " +
+                "ORDER BY cm.uploaded_at DESC LIMIT 1";
+        try (PreparedStatement ps = conn.prepareStatement(matSql)) {
+            ps.setString(1, lecturerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    activityItems.add(new ActivityItem(
+                            "Course material: " + rs.getString("title") + " (" + rs.getString("course_code") + ")",
+                            "MATERIALS",
+                            new Color(190, 125, 45)
+                    ));
+                }
+            }
+        } catch (SQLException ignored) {
+        }
+
+        if (activityItems.isEmpty()) {
+            activityItems.add(new ActivityItem(
+                    "No recent activities recorded for lecturer " + lecturerId,
+                    "INFO",
+                    MUTED
+            ));
+        }
+    }
+
+    private void loadPublicNotices() {
+        try (Connection conn = DBConnection.getConnection()) {
+            String noticeSql = "SELECT title FROM notices WHERE status = 'ACTIVE' ORDER BY notice_date DESC LIMIT 3";
+            try (PreparedStatement ps = conn.prepareStatement(noticeSql);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    activityItems.add(new ActivityItem(
+                            rs.getString("title"),
+                            "NOTICE",
+                            NAVY
+                    ));
+                }
+            }
+        } catch (SQLException ignored) {
+        }
+
+        if (activityItems.isEmpty()) {
+            activityItems.add(new ActivityItem(
+                    "No active lecturer session. Provide a lecturer ID (e.g. LEC001) to view activities.",
+                    "INFO",
+                    MUTED
+            ));
+        }
     }
 
     private JPanel createHeader() {
@@ -147,6 +457,7 @@ public class LecturerDashboard extends JFrame {
             );
 
             if (answer == JOptionPane.YES_OPTION) {
+                activeLecturerId = null;
                 dispose();
                 JOptionPane.showMessageDialog(
                         null, "You have been logged out."
@@ -244,15 +555,11 @@ public class LecturerDashboard extends JFrame {
                 new BoxLayout(welcome, BoxLayout.Y_AXIS)
         );
 
-        JLabel heading = new JLabel("Welcome, Lecturer");
+        JLabel heading = new JLabel("Welcome, " + lecturerDisplayName);
         heading.setFont(new Font("Arial", Font.BOLD, 29));
         heading.setForeground(TEXT);
 
-        JLabel subtitle = new JLabel(
-                "Manage your courses, students, attendance "
-                        + "and academic activities."
-        );
-
+        JLabel subtitle = new JLabel(welcomeSubtitle);
         subtitle.setFont(new Font("Arial", Font.PLAIN, 14));
         subtitle.setForeground(MUTED);
         subtitle.setBorder(
@@ -275,24 +582,24 @@ public class LecturerDashboard extends JFrame {
         stats.setBackground(BACKGROUND);
 
         stats.add(createStatCard(
-                "MY COURSES", "4", NAVY,
-                "Assigned courses"
+                "MY COURSES", myCoursesValue, NAVY,
+                coursesCaption
         ));
 
         stats.add(createStatCard(
-                "STUDENTS", "86", TEAL,
-                "Across your courses"
+                "STUDENTS", studentsValue, TEAL,
+                studentsCaption
         ));
 
         stats.add(createStatCard(
-                "ASSIGNMENTS", "12",
+                "ASSIGNMENTS", assignmentsValue,
                 new Color(48, 77, 111),
-                "Created this semester"
+                assignmentsCaption
         ));
 
         stats.add(createStatCard(
-                "PENDING MARKS", "8", PURPLE,
-                "Need your attention"
+                "PENDING MARKS", pendingMarksValue, PURPLE,
+                pendingMarksCaption
         ));
 
         main.add(stats, BorderLayout.NORTH);
@@ -339,25 +646,13 @@ public class LecturerDashboard extends JFrame {
                 new BoxLayout(activityList, BoxLayout.Y_AXIS)
         );
 
-        activityList.add(createActivity(
-                "Attendance updated for ICT2132",
-                "ATTENDANCE", TEAL
-        ));
-
-        activityList.add(createActivity(
-                "New assignment created",
-                "ASSIGNMENT", NAVY
-        ));
-
-        activityList.add(createActivity(
-                "Marks submitted for Programming",
-                "MARKS", PURPLE
-        ));
-
-        activityList.add(createActivity(
-                "Course materials updated",
-                "MATERIALS", new Color(190, 125, 45)
-        ));
+        for (ActivityItem item : activityItems) {
+            activityList.add(createActivity(
+                    item.text,
+                    item.category,
+                    item.accent
+            ));
+        }
 
         activity.add(activityList, BorderLayout.CENTER);
 
@@ -487,9 +782,17 @@ public class LecturerDashboard extends JFrame {
         );
     }
 
+    /*public static void main(String[] args) {
+        // Allows testing from command line or IntelliJ Run Configurations:
+        // Pass lecturer ID as first argument (e.g., LEC001) or set -Dfams.lecturer.id=LEC001
+        String lecturerArg = args.length > 0 ? args[0] : null;
+        SwingUtilities.invokeLater(
+                () -> new LecturerDashboard(lecturerArg).setVisible(true)
+        );
+    }*/
     public static void main(String[] args) {
         SwingUtilities.invokeLater(
-                () -> new LecturerDashboard().setVisible(true)
+                () -> new LecturerDashboard("LEC001").setVisible(true)
         );
     }
 }
