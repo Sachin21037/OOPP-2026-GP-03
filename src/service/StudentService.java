@@ -39,4 +39,12 @@ public class StudentService {
     public boolean updateProfilePicture(String userId, String picturePath) {
         return studentDAO.updateProfilePicture(userId, picturePath);
     }
+
+    public List<Medical> getStudentMedicals(String studentId) {
+        return studentDAO.getStudentMedicals(studentId);
+    }
+
+    public boolean submitMedical(Medical medical) {
+        return studentDAO.submitMedical(medical);
+    }
 }

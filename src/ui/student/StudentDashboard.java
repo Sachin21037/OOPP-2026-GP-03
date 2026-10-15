@@ -144,6 +144,7 @@ public class StudentDashboard extends JFrame {
         addMenuButton(menuPanel, "Attendance");
         addMenuButton(menuPanel, "Assignments");
         addMenuButton(menuPanel, "Course Materials");
+        addMenuButton(menuPanel, "Medical Submissions");
         addMenuButton(menuPanel, "My Profile");
 
         sidebar.add(menuPanel, BorderLayout.NORTH);
@@ -230,6 +231,7 @@ public class StudentDashboard extends JFrame {
         dynamicViewsPanel.add(buildAttendancePanel(), "Attendance");
         dynamicViewsPanel.add(buildAssignmentsPanel(), "Assignments");
         dynamicViewsPanel.add(buildCourseMaterialsPanel(), "Course Materials");
+        dynamicViewsPanel.add(buildMedicalPanel(), "Medical Submissions");
         dynamicViewsPanel.add(buildProfilePanel(), "My Profile");
 
         contentPanel.add(dynamicViewsPanel, BorderLayout.CENTER);
@@ -595,7 +597,383 @@ public class StudentDashboard extends JFrame {
     }
 
     // ==========================================
-    // 7. MY PROFILE VIEW (WITH PHOTO UPLOAD)
+    // 7. MEDICAL SUBMISSIONS VIEW
+    // ==========================================
+    private JPanel buildMedicalPanel() {
+        JPanel panel = new JPanel(new BorderLayout(0, 15));
+        panel.setBackground(lightBackground);
+        panel.setBorder(new EmptyBorder(0, 25, 20, 25));
+
+        // Top bar
+        JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setBackground(lightBackground);
+
+        JPanel titles = new JPanel();
+        titles.setLayout(new BoxLayout(titles, BoxLayout.Y_AXIS));
+        titles.setBackground(lightBackground);
+
+        JLabel sectionTitle = new JLabel("Medical Certificate Submissions");
+        sectionTitle.setFont(new Font("Arial", Font.BOLD, 18));
+        sectionTitle.setForeground(textColor);
+
+        JLabel sectionSub = new JLabel("Submit and track medical certificates for missed lectures, examinations, and laboratory sessions.");
+        sectionSub.setFont(new Font("Arial", Font.PLAIN, 12));
+        sectionSub.setForeground(new Color(110, 120, 130));
+
+        titles.add(sectionTitle);
+        titles.add(Box.createVerticalStrut(3));
+        titles.add(sectionSub);
+
+        JButton submitNewBtn = new JButton("+ Submit Medical Certificate");
+        submitNewBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        submitNewBtn.setForeground(Color.WHITE);
+        submitNewBtn.setBackground(darkBlue);
+        submitNewBtn.setFocusPainted(false);
+        submitNewBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        submitNewBtn.setPreferredSize(new Dimension(225, 38));
+
+        submitNewBtn.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                submitNewBtn.setBackground(new Color(38, 85, 128));
+            }
+            public void mouseExited(MouseEvent e) {
+                submitNewBtn.setBackground(darkBlue);
+            }
+        });
+
+        topBar.add(titles, BorderLayout.WEST);
+        topBar.add(submitNewBtn, BorderLayout.EAST);
+        panel.add(topBar, BorderLayout.NORTH);
+
+        // Center content: Summary badges + Table
+        JPanel centerContent = new JPanel(new BorderLayout(0, 12));
+        centerContent.setBackground(lightBackground);
+
+        // KPI summary bar
+        JPanel summaryBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+        summaryBar.setBackground(Color.WHITE);
+        summaryBar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(225, 228, 232)),
+                new EmptyBorder(4, 10, 4, 10)
+        ));
+
+        JLabel totalLabel = new JLabel("Total Submissions: 0");
+        totalLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        totalLabel.setForeground(textColor);
+
+        JLabel approvedLabel = new JLabel("Approved: 0");
+        approvedLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        approvedLabel.setForeground(new Color(20, 165, 145));
+
+        JLabel pendingLabel = new JLabel("Pending Verification: 0");
+        pendingLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        pendingLabel.setForeground(new Color(217, 119, 6));
+
+        JLabel notApprovedLabel = new JLabel("Not Approved: 0");
+        notApprovedLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        notApprovedLabel.setForeground(new Color(220, 38, 38));
+
+        summaryBar.add(totalLabel);
+        summaryBar.add(new JSeparator(SwingConstants.VERTICAL));
+        summaryBar.add(approvedLabel);
+        summaryBar.add(new JSeparator(SwingConstants.VERTICAL));
+        summaryBar.add(pendingLabel);
+        summaryBar.add(new JSeparator(SwingConstants.VERTICAL));
+        summaryBar.add(notApprovedLabel);
+
+        centerContent.add(summaryBar, BorderLayout.NORTH);
+
+        // Table
+        String[] columns = {"Medical ID", "Course", "Date of Absence", "Reason / Medical Condition", "Supporting Document", "Status", "Review Remarks"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        // Reload helper
+        Runnable reloadMedicals = () -> {
+            model.setRowCount(0);
+            List<Medical> list = studentDAO.getStudentMedicals(currentStudent.getUserId());
+            int total = list.size();
+            int approved = 0;
+            int pending = 0;
+            int notApproved = 0;
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            for (Medical m : list) {
+                if ("APPROVED".equalsIgnoreCase(m.getApprovalStatus())) {
+                    approved++;
+                } else if ("PENDING".equalsIgnoreCase(m.getApprovalStatus())) {
+                    pending++;
+                } else {
+                    notApproved++;
+                }
+
+                String docName = (m.getDocumentPath() != null && !m.getDocumentPath().isEmpty())
+                        ? new File(m.getDocumentPath()).getName()
+                        : "No attachment";
+
+                model.addRow(new Object[]{
+                        m.getMedicalId(),
+                        m.getCourseCode() + " - " + m.getCourseName(),
+                        m.getMedicalDate() != null ? sdf.format(m.getMedicalDate()) : "N/A",
+                        m.getReason(),
+                        docName,
+                        m.getApprovalStatus(),
+                        m.getRemarks() != null ? m.getRemarks() : "Under evaluation"
+                });
+            }
+
+            totalLabel.setText("Total Submissions: " + total);
+            approvedLabel.setText("Approved: " + approved);
+            pendingLabel.setText("Pending Verification: " + pending);
+            notApprovedLabel.setText("Not Approved: " + notApproved);
+        };
+
+        reloadMedicals.run();
+
+        JTable table = createStandardTable(model);
+
+        // Custom status color renderer
+        table.getColumnModel().getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+                JLabel lbl = (JLabel) super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, col);
+                lbl.setHorizontalAlignment(SwingConstants.CENTER);
+                lbl.setFont(new Font("Arial", Font.BOLD, 12));
+                String st = (value != null) ? value.toString() : "";
+                if ("APPROVED".equalsIgnoreCase(st)) {
+                    lbl.setForeground(new Color(20, 165, 145));
+                } else if ("PENDING".equalsIgnoreCase(st)) {
+                    lbl.setForeground(new Color(217, 119, 6));
+                } else {
+                    lbl.setForeground(new Color(220, 38, 38));
+                }
+                return lbl;
+            }
+        });
+
+        centerContent.add(new JScrollPane(table), BorderLayout.CENTER);
+        panel.add(centerContent, BorderLayout.CENTER);
+
+        // Action listener for submission modal
+        submitNewBtn.addActionListener(e -> openMedicalSubmissionDialog(reloadMedicals));
+
+        return panel;
+    }
+
+    private void openMedicalSubmissionDialog(Runnable onSuccess) {
+        JDialog dialog = new JDialog(this, "Submit Medical Certificate", true);
+        dialog.setSize(540, 510);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new BorderLayout());
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(darkBlue);
+        header.setBorder(new EmptyBorder(16, 22, 16, 22));
+
+        JLabel title = new JLabel("New Medical Certificate Submission");
+        title.setFont(new Font("Arial", Font.BOLD, 15));
+        title.setForeground(Color.WHITE);
+        header.add(title, BorderLayout.WEST);
+
+        JPanel body = new JPanel();
+        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+        body.setBackground(Color.WHITE);
+        body.setBorder(new EmptyBorder(20, 25, 20, 25));
+
+        // 1. Course Selection
+        JLabel courseLbl = new JLabel("Enrolled Course Offering *");
+        courseLbl.setFont(new Font("Arial", Font.BOLD, 12));
+        courseLbl.setForeground(textColor);
+
+        List<Course> courses = studentDAO.getEnrolledCourses(currentStudent.getUserId());
+        JComboBox<CourseItem> courseCombo = new JComboBox<>();
+        courseCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        courseCombo.setPreferredSize(new Dimension(470, 36));
+        for (Course c : courses) {
+            courseCombo.addItem(new CourseItem(c.getOfferingId(), c.getCourseCode() + " - " + c.getCourseName()));
+        }
+
+        // 2. Date of Absence
+        JLabel dateLbl = new JLabel("Date of Absence / Medical Date (YYYY-MM-DD) *");
+        dateLbl.setFont(new Font("Arial", Font.BOLD, 12));
+        dateLbl.setForeground(textColor);
+
+        JTextField dateField = new JTextField(new SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date()));
+        dateField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        dateField.setPreferredSize(new Dimension(470, 36));
+
+        // 3. Reason
+        JLabel reasonLbl = new JLabel("Reason / Medical Diagnosis *");
+        reasonLbl.setFont(new Font("Arial", Font.BOLD, 12));
+        reasonLbl.setForeground(textColor);
+
+        JTextArea reasonArea = new JTextArea(3, 20);
+        reasonArea.setFont(new Font("Arial", Font.PLAIN, 12));
+        reasonArea.setLineWrap(true);
+        reasonArea.setWrapStyleWord(true);
+        JScrollPane reasonScroll = new JScrollPane(reasonArea);
+        reasonScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 75));
+        reasonScroll.setPreferredSize(new Dimension(470, 75));
+
+        // 4. File Attachment
+        JLabel attachLbl = new JLabel("Medical Certificate Document (PDF, JPG, PNG) *");
+        attachLbl.setFont(new Font("Arial", Font.BOLD, 12));
+        attachLbl.setForeground(textColor);
+
+        JPanel fileRow = new JPanel(new BorderLayout(10, 0));
+        fileRow.setBackground(Color.WHITE);
+        fileRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+
+        JTextField fileField = new JTextField("No document chosen");
+        fileField.setEditable(false);
+        fileField.setFont(new Font("Arial", Font.PLAIN, 12));
+
+        JButton chooseBtn = new JButton("Browse Document...");
+        chooseBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        chooseBtn.setFocusPainted(false);
+        chooseBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        final File[] chosenFile = new File[1];
+        chooseBtn.addActionListener(e -> {
+            JFileChooser fc = new JFileChooser();
+            fc.setDialogTitle("Select Medical Certificate (PDF, JPG, PNG)");
+            fc.setAcceptAllFileFilterUsed(false);
+            FileNameExtensionFilter filter = new FileNameExtensionFilter("Documents & Images (*.pdf, *.jpg, *.jpeg, *.png)", "pdf", "jpg", "jpeg", "png");
+            fc.addChoosableFileFilter(filter);
+
+            int res = fc.showOpenDialog(dialog);
+            if (res == JFileChooser.APPROVE_OPTION) {
+                chosenFile[0] = fc.getSelectedFile();
+                fileField.setText(chosenFile[0].getName());
+            }
+        });
+
+        fileRow.add(fileField, BorderLayout.CENTER);
+        fileRow.add(chooseBtn, BorderLayout.EAST);
+
+        body.add(courseLbl);
+        body.add(Box.createVerticalStrut(5));
+        body.add(courseCombo);
+        body.add(Box.createVerticalStrut(12));
+        body.add(dateLbl);
+        body.add(Box.createVerticalStrut(5));
+        body.add(dateField);
+        body.add(Box.createVerticalStrut(12));
+        body.add(reasonLbl);
+        body.add(Box.createVerticalStrut(5));
+        body.add(reasonScroll);
+        body.add(Box.createVerticalStrut(12));
+        body.add(attachLbl);
+        body.add(Box.createVerticalStrut(5));
+        body.add(fileRow);
+
+        // Footer buttons
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 12));
+        footer.setBackground(new Color(245, 247, 250));
+
+        JButton cancelBtn = new JButton("Cancel");
+        cancelBtn.setFont(new Font("Arial", Font.PLAIN, 12));
+        cancelBtn.setFocusPainted(false);
+        cancelBtn.addActionListener(e -> dialog.dispose());
+
+        JButton submitBtn = new JButton("Submit Medical Certificate");
+        submitBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        submitBtn.setForeground(Color.WHITE);
+        submitBtn.setBackground(darkBlue);
+        submitBtn.setFocusPainted(false);
+        submitBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        submitBtn.addActionListener(e -> {
+            CourseItem selectedCourse = (CourseItem) courseCombo.getSelectedItem();
+            if (selectedCourse == null) {
+                JOptionPane.showMessageDialog(dialog, "Please select an enrolled course.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            String dateStr = dateField.getText().trim();
+            java.sql.Date sqlDate;
+            try {
+                java.util.Date parsed = new SimpleDateFormat("yyyy-MM-dd").parse(dateStr);
+                sqlDate = new java.sql.Date(parsed.getTime());
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Invalid date format! Please enter YYYY-MM-DD.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            String reason = reasonArea.getText().trim();
+            if (reason.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Please provide the reason / medical diagnosis.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            if (chosenFile[0] == null) {
+                JOptionPane.showMessageDialog(dialog, "Please attach a medical certificate file (PDF, JPG, PNG).", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            String docPath = null;
+            try {
+                File dir = new File("uploads/medicals");
+                if (!dir.exists()) dir.mkdirs();
+
+                String origName = chosenFile[0].getName().toLowerCase();
+                String ext = origName.contains(".") ? origName.substring(origName.lastIndexOf('.')) : ".pdf";
+                String targetName = currentStudent.getUserId() + "_" + System.currentTimeMillis() + ext;
+                File targetFile = new File(dir, targetName);
+                Files.copy(chosenFile[0].toPath(), targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                docPath = targetFile.getPath().replace("\\", "/");
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Failed to copy attached document: " + ex.getMessage(), "File Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            Medical m = new Medical();
+            m.setStudentId(currentStudent.getUserId());
+            m.setOfferingId(selectedCourse.offeringId);
+            m.setMedicalDate(sqlDate);
+            m.setReason(reason);
+            m.setDocumentPath(docPath);
+            m.setRemarks("Submitted by student. Awaiting Technical Officer verification.");
+
+            boolean ok = studentDAO.submitMedical(m);
+            if (ok) {
+                JOptionPane.showMessageDialog(dialog, "Medical certificate submitted successfully!\nReference ID: " + m.getMedicalId(), "Submission Successful", JOptionPane.INFORMATION_MESSAGE);
+                dialog.dispose();
+                if (onSuccess != null) {
+                    onSuccess.run();
+                }
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Database error: could not save medical certificate record.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        footer.add(cancelBtn);
+        footer.add(submitBtn);
+
+        dialog.add(header, BorderLayout.NORTH);
+        dialog.add(body, BorderLayout.CENTER);
+        dialog.add(footer, BorderLayout.SOUTH);
+        dialog.setVisible(true);
+    }
+
+    private static class CourseItem {
+        final String offeringId;
+        final String displayName;
+
+        CourseItem(String offeringId, String displayName) {
+            this.offeringId = offeringId;
+            this.displayName = displayName;
+        }
+
+        @Override
+        public String toString() {
+            return displayName;
+        }
+    }
+
+    // ==========================================
+    // 8. MY PROFILE VIEW (WITH PHOTO UPLOAD)
     // ==========================================
     private JPanel buildProfilePanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 15));

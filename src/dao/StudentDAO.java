@@ -406,4 +406,81 @@ public class StudentDAO {
             return false;
         }
     }
+
+    /**
+     * Retrieves all medical certificate submissions for a student.
+     */
+    public List<Medical> getStudentMedicals(String studentId) {
+        List<Medical> list = new ArrayList<>();
+        String sql = "SELECT m.*, c.course_code, c.course_name " +
+                     "FROM medicals m " +
+                     "JOIN course_offerings co ON m.offering_id = co.offering_id " +
+                     "JOIN courses c ON co.course_id = c.course_id " +
+                     "WHERE m.student_id = ? " +
+                     "ORDER BY m.medical_date DESC, m.medical_id DESC";
+
+        try {
+            Connection conn = DBConnection.getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, studentId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        Medical med = new Medical();
+                        med.setMedicalId(rs.getString("medical_id"));
+                        med.setStudentId(rs.getString("student_id"));
+                        med.setOfferingId(rs.getString("offering_id"));
+                        med.setCourseCode(rs.getString("course_code"));
+                        med.setCourseName(rs.getString("course_name"));
+                        med.setMedicalDate(rs.getDate("medical_date"));
+                        med.setReason(rs.getString("reason"));
+                        med.setDocumentPath(rs.getString("document_path"));
+                        med.setApprovalStatus(rs.getString("approval_status"));
+                        med.setApprovedBy(rs.getString("approved_by"));
+                        med.setRemarks(rs.getString("remarks"));
+                        list.add(med);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching medical submissions: " + e.getMessage());
+        }
+        return list;
+    }
+
+    /**
+     * Submits a new medical certificate record.
+     */
+    public boolean submitMedical(Medical medical) {
+        String nextIdQuery = "SELECT MAX(CAST(SUBSTRING(medical_id, 4) AS UNSIGNED)) FROM medicals";
+        String insertSql = "INSERT INTO medicals (medical_id, student_id, offering_id, medical_date, reason, document_path, approval_status, remarks) " +
+                           "VALUES (?, ?, ?, ?, ?, ?, 'PENDING', ?)";
+
+        try {
+            Connection conn = DBConnection.getConnection();
+
+            int nextNum = 1;
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(nextIdQuery)) {
+                if (rs.next()) {
+                    nextNum = rs.getInt(1) + 1;
+                }
+            }
+            String newMedicalId = String.format("MED%03d", nextNum);
+            medical.setMedicalId(newMedicalId);
+
+            try (PreparedStatement stmt = conn.prepareStatement(insertSql)) {
+                stmt.setString(1, newMedicalId);
+                stmt.setString(2, medical.getStudentId());
+                stmt.setString(3, medical.getOfferingId());
+                stmt.setDate(4, medical.getMedicalDate());
+                stmt.setString(5, medical.getReason());
+                stmt.setString(6, medical.getDocumentPath());
+                stmt.setString(7, medical.getRemarks() != null ? medical.getRemarks() : "Submitted for academic verification");
+                return stmt.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error submitting medical certificate: " + e.getMessage());
+            return false;
+        }
+    }
 }
