@@ -47,6 +47,7 @@ public class AdminDashboard extends JFrame {
     private StudentManagementPanel studentPanel;
     private LecturerManagementPanel lecturerPanel;
     private TechnicalOfficerManagementPanel officerPanel;
+    private UserManagementPanel userPanel;
     private String activeNavName = "Dashboard";
 
     // Header labels for dynamic breadcrumbs & titles
@@ -128,6 +129,10 @@ public class AdminDashboard extends JFrame {
         // Card 4: Technical Officer Management Panel
         officerPanel = new TechnicalOfficerManagementPanel(() -> loadDashboardDataAsync());
         cardsContainer.add(officerPanel, "OFFICERS");
+
+        // Card 5: User Management Panel
+        userPanel = new UserManagementPanel(() -> loadDashboardDataAsync());
+        cardsContainer.add(userPanel, "USERS");
 
         workspacePanel.add(cardsContainer, BorderLayout.CENTER);
 
@@ -417,11 +422,15 @@ public class AdminDashboard extends JFrame {
             if (officerPanel != null) {
                 officerPanel.loadOfficersAsync();
             }
-        } else if ("User Management".equalsIgnoreCase(name) || "Manage Users".equalsIgnoreCase(name)) {
-            // Default User Management entry point routes cleanly to Student Management
+        } else if ("User Management".equalsIgnoreCase(name) || "Manage Users".equalsIgnoreCase(name) || "Users".equalsIgnoreCase(name)) {
             activeNavName = "User Management";
-            showView("Student Management");
-            return;
+            cardLayout.show(cardsContainer, "USERS");
+            if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / User Management");
+            if (headerTitle != null) headerTitle.setText("USER MANAGEMENT");
+            if (headerSubtitle != null) headerSubtitle.setText("Manage System Login Accounts");
+            if (userPanel != null) {
+                userPanel.loadUsersAsync();
+            }
         } else {
             activeNavName = "Dashboard";
             cardLayout.show(cardsContainer, "DASHBOARD");
@@ -454,7 +463,7 @@ public class AdminDashboard extends JFrame {
             return;
         }
 
-        if ("User Management".equalsIgnoreCase(name) || "Manage Users".equalsIgnoreCase(name)) {
+        if ("User Management".equalsIgnoreCase(name) || "Manage Users".equalsIgnoreCase(name) || "Users".equalsIgnoreCase(name)) {
             showView("User Management");
             return;
         }
