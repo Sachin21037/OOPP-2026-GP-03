@@ -24,11 +24,14 @@ public class StudentDashboard extends JFrame {
     // Dashboard colors (as specified by user)
     Color darkBlue = new Color(27, 67, 103);
     Color lightBackground = new Color(245, 247, 250);
-    Color sidebarColor = Color.WHITE;
+    Color sidebarColor = new Color(27, 67, 103); // Blue navigation bar
     Color textColor = new Color(35, 45, 55);
 
-    // Active button highlight color
-    Color activeNavColor = new Color(228, 238, 248);
+    // Navigation bar colors
+    Color navTextColor = new Color(220, 235, 248);
+    Color navHoverColor = new Color(38, 85, 128);
+    Color navActiveColor = new Color(18, 48, 76);
+    Color navAccentColor = new Color(180, 240, 220);
 
     private JPanel contentPanel;
     private CardLayout contentCardLayout;
@@ -104,20 +107,21 @@ public class StudentDashboard extends JFrame {
         header.add(systemTitle, BorderLayout.WEST);
         header.add(headerRight, BorderLayout.EAST);
 
-        // Left sidebar
+        // Left sidebar (Blue navigation bar)
         JPanel sidebar = new JPanel();
         sidebar.setBackground(sidebarColor);
-        sidebar.setPreferredSize(new Dimension(190, 585));
+        sidebar.setPreferredSize(new Dimension(195, 585));
         sidebar.setLayout(new BorderLayout());
+        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, new Color(20, 50, 80)));
 
         JPanel menuPanel = new JPanel();
-        menuPanel.setBackground(Color.WHITE);
+        menuPanel.setBackground(sidebarColor);
         menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
 
         JLabel menuTitle = new JLabel("  STUDENT MENU");
         menuTitle.setFont(new Font("Arial", Font.BOLD, 12));
-        menuTitle.setForeground(new Color(110, 120, 130));
-        menuTitle.setBorder(BorderFactory.createEmptyBorder(20, 10, 15, 0));
+        menuTitle.setForeground(new Color(170, 215, 245));
+        menuTitle.setBorder(BorderFactory.createEmptyBorder(20, 15, 15, 0));
 
         menuPanel.add(menuTitle);
 
@@ -133,16 +137,26 @@ public class StudentDashboard extends JFrame {
         sidebar.add(menuPanel, BorderLayout.NORTH);
 
         // Logout
-        JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        logoutPanel.setBackground(Color.WHITE);
+        JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
+        logoutPanel.setBackground(sidebarColor);
 
         JButton logoutButton = new JButton("Logout");
-        logoutButton.setFont(new Font("Arial", Font.PLAIN, 13));
-        logoutButton.setForeground(new Color(210, 60, 60));
-        logoutButton.setBackground(Color.WHITE);
+        logoutButton.setFont(new Font("Arial", Font.BOLD, 13));
+        logoutButton.setForeground(new Color(255, 130, 130));
+        logoutButton.setBackground(sidebarColor);
         logoutButton.setBorderPainted(false);
         logoutButton.setFocusPainted(false);
         logoutButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        logoutButton.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                logoutButton.setForeground(new Color(255, 175, 175));
+            }
+
+            public void mouseExited(MouseEvent e) {
+                logoutButton.setForeground(new Color(255, 130, 130));
+            }
+        });
 
         logoutButton.addActionListener(e -> {
             int confirm = JOptionPane.showConfirmDialog(
@@ -630,9 +644,9 @@ public class StudentDashboard extends JFrame {
         JButton button = new JButton(text);
         button.setHorizontalAlignment(SwingConstants.LEFT);
         button.setFont(new Font("Arial", Font.PLAIN, 13));
-        button.setForeground(textColor);
-        button.setBackground(Color.WHITE);
-        button.setBorder(BorderFactory.createEmptyBorder(12, 15, 12, 10));
+        button.setForeground(navTextColor);
+        button.setBackground(sidebarColor);
+        button.setBorder(BorderFactory.createEmptyBorder(12, 18, 12, 10));
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
@@ -641,21 +655,21 @@ public class StudentDashboard extends JFrame {
         // Hover effect
         button.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
-                if (!button.getBackground().equals(activeNavColor)) {
-                    button.setBackground(new Color(235, 242, 248));
+                if (!button.getBackground().equals(navActiveColor)) {
+                    button.setBackground(navHoverColor);
                 }
             }
 
             public void mouseExited(MouseEvent e) {
-                if (!button.getBackground().equals(activeNavColor)) {
-                    button.setBackground(Color.WHITE);
+                if (!button.getBackground().equals(navActiveColor)) {
+                    button.setBackground(sidebarColor);
                 }
             }
         });
 
         // Button action - switch views seamlessly and support popup frame
         button.addActionListener(e -> {
-            String selected = button.getText();
+            String selected = button.getText().trim();
             highlightMenuButton(selected);
             contentCardLayout.show(dynamicViewsPanel, selected);
         });
@@ -666,14 +680,19 @@ public class StudentDashboard extends JFrame {
 
     private void highlightMenuButton(String selectedText) {
         for (JButton b : menuButtons) {
-            if (b.getText().equals(selectedText)) {
-                b.setBackground(activeNavColor);
+            if (b.getText().trim().equals(selectedText)) {
+                b.setBackground(navActiveColor);
                 b.setFont(new Font("Arial", Font.BOLD, 13));
-                b.setForeground(darkBlue);
+                b.setForeground(Color.WHITE);
+                b.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 4, 0, 0, navAccentColor),
+                        BorderFactory.createEmptyBorder(12, 14, 12, 10)
+                ));
             } else {
-                b.setBackground(Color.WHITE);
+                b.setBackground(sidebarColor);
                 b.setFont(new Font("Arial", Font.PLAIN, 13));
-                b.setForeground(textColor);
+                b.setForeground(navTextColor);
+                b.setBorder(BorderFactory.createEmptyBorder(12, 18, 12, 10));
             }
         }
     }
