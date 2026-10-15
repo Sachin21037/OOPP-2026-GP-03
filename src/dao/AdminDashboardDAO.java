@@ -26,7 +26,7 @@ public class AdminDashboardDAO {
     public AdminDashboardStats getDashboardStatistics() {
         AdminDashboardStats stats = new AdminDashboardStats();
 
-        try (Connection conn = DBConnection.getConnection()) {
+        try (Connection conn = DBConnection.getNewConnection()) {
             stats.setDbConnected(true);
 
             // 1. Total Students (from undergraduates table, fallback to users table)
@@ -95,6 +95,8 @@ public class AdminDashboardDAO {
 
     /**
      * Retrieves recent notices published in the system.
+     * Uses a dedicated connection to safely read rows into RecentActivityItem objects
+     * without interfering with concurrent queries.
      *
      * @param limit maximum records to retrieve
      * @return List of RecentActivityItem
@@ -104,7 +106,7 @@ public class AdminDashboardDAO {
         String sql = "SELECT notice_id, title, description, notice_date, status " +
                      "FROM notices ORDER BY notice_date DESC LIMIT ?";
 
-        try (Connection conn = DBConnection.getConnection();
+        try (Connection conn = DBConnection.getNewConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, Math.max(1, limit));
@@ -129,6 +131,7 @@ public class AdminDashboardDAO {
 
     /**
      * Retrieves recent user registrations from the users table.
+     * Uses a dedicated connection to safely read rows into RecentActivityItem objects.
      *
      * @param limit maximum records to retrieve
      * @return List of RecentActivityItem
@@ -138,7 +141,7 @@ public class AdminDashboardDAO {
         String sql = "SELECT user_id, first_name, last_name, role, created_at, status " +
                      "FROM users ORDER BY created_at DESC LIMIT ?";
 
-        try (Connection conn = DBConnection.getConnection();
+        try (Connection conn = DBConnection.getNewConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, Math.max(1, limit));

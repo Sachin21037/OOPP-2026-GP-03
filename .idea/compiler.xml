@@ -2,7 +2,7 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel>
-      <module name="OOPP-2026-GP-03" target="" />
+      <module name="OOPP-2026-GP-03" target="21" />
     </bytecodeTargetLevel>
   </component>
 </project>

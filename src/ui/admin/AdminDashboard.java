@@ -41,6 +41,26 @@ public class AdminDashboard extends JFrame {
     private JLabel lblCoursesSub;
     private JLabel lblNoticesSub;
 
+    // Central Card Workspace
+    private CardLayout cardLayout;
+    private JPanel cardsContainer;
+    private StudentManagementPanel studentPanel;
+    private String activeNavName = "Dashboard";
+
+    // Header labels for dynamic breadcrumbs & titles
+    private JLabel headerBreadcrumb;
+    private JLabel headerTitle;
+    private JLabel headerSubtitle;
+
+    // Navigation tracking
+    private static class NavItemEntry {
+        String name;
+        JPanel panel;
+        JLabel label;
+        JComponent iconComp;
+    }
+    private final java.util.List<NavItemEntry> navItemEntries = new java.util.ArrayList<>();
+
     // Containers for dynamic database content
     private JPanel recentActivityContainer;
     private JPanel systemOverviewContainer;
@@ -75,7 +95,7 @@ public class AdminDashboard extends JFrame {
         sidebar.setPreferredSize(new Dimension(250, 800));
         rootPanel.add(sidebar, BorderLayout.WEST);
 
-        // 2. Right Workspace (Header + Scrollable Main Content)
+        // 2. Right Workspace (Header + Dynamic CardLayout Center)
         JPanel workspacePanel = new JPanel(new BorderLayout());
         workspacePanel.setBackground(MAIN_BG);
 
@@ -83,12 +103,23 @@ public class AdminDashboard extends JFrame {
         header.setPreferredSize(new Dimension(1000, 88));
         workspacePanel.add(header, BorderLayout.NORTH);
 
+        cardLayout = new CardLayout();
+        cardsContainer = new JPanel(cardLayout);
+        cardsContainer.setOpaque(false);
+
+        // Card 1: Dashboard Overview
         JPanel contentPanel = createMainContent();
         JScrollPane scrollPane = new JScrollPane(contentPanel);
         scrollPane.setBorder(null);
         scrollPane.getVerticalScrollBar().setUnitIncrement(14);
         scrollPane.getViewport().setBackground(MAIN_BG);
-        workspacePanel.add(scrollPane, BorderLayout.CENTER);
+        cardsContainer.add(scrollPane, "DASHBOARD");
+
+        // Card 2: Student Management Panel
+        studentPanel = new StudentManagementPanel(() -> loadDashboardDataAsync());
+        cardsContainer.add(studentPanel, "STUDENTS");
+
+        workspacePanel.add(cardsContainer, BorderLayout.CENTER);
 
         rootPanel.add(workspacePanel, BorderLayout.CENTER);
         setContentPane(rootPanel);
@@ -163,6 +194,8 @@ public class AdminDashboard extends JFrame {
         navPanel.add(navLabel);
 
         navPanel.add(createNavItem("Dashboard", "dashboard", true));
+        navPanel.add(Box.createVerticalStrut(4));
+        navPanel.add(createNavItem("Student Management", "students", false));
         navPanel.add(Box.createVerticalStrut(4));
         navPanel.add(createNavItem("User Management", "users", false));
         navPanel.add(Box.createVerticalStrut(4));
@@ -243,7 +276,7 @@ public class AdminDashboard extends JFrame {
         return sidebar;
     }
 
-    private JPanel createNavItem(String name, String type, boolean active) {
+    private JPanel createNavItem(String name, String type, boolean initialActive) {
         final boolean[] isHovered = {false};
         JPanel item = new JPanel(new BorderLayout(10, 0)) {
             @Override
@@ -251,7 +284,8 @@ public class AdminDashboard extends JFrame {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (active) {
+                boolean isActive = isNavActive(name);
+                if (isActive) {
                     g2.setColor(SECONDARY_BLUE);
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                 } else if (isHovered[0]) {
@@ -275,7 +309,8 @@ public class AdminDashboard extends JFrame {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(active ? Color.WHITE : (isHovered[0] ? Color.WHITE : new Color(148, 163, 184)));
+                boolean isActive = isNavActive(name);
+                g2.setColor(isActive ? Color.WHITE : (isHovered[0] ? Color.WHITE : new Color(148, 163, 184)));
                 drawNavIcon(g2, type, 0, 0);
                 g2.dispose();
             }
@@ -283,8 +318,9 @@ public class AdminDashboard extends JFrame {
         iconComp.setPreferredSize(new Dimension(18, 18));
 
         JLabel label = new JLabel(name);
-        label.setFont(getModernFont(active ? Font.BOLD : Font.PLAIN, 13));
-        label.setForeground(active ? Color.WHITE : new Color(203, 213, 225));
+        boolean isActive = isNavActive(name);
+        label.setFont(getModernFont(isActive ? Font.BOLD : Font.PLAIN, 13));
+        label.setForeground(isActive ? Color.WHITE : new Color(203, 213, 225));
 
         item.add(iconComp, BorderLayout.WEST);
         item.add(label, BorderLayout.CENTER);
@@ -293,7 +329,7 @@ public class AdminDashboard extends JFrame {
         item.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                if (!active) {
+                if (!isNavActive(name)) {
                     isHovered[0] = true;
                     label.setForeground(Color.WHITE);
                     item.repaint();
@@ -302,7 +338,7 @@ public class AdminDashboard extends JFrame {
 
             @Override
             public void mouseExited(MouseEvent e) {
-                if (!active) {
+                if (!isNavActive(name)) {
                     isHovered[0] = false;
                     label.setForeground(new Color(203, 213, 225));
                     item.repaint();
@@ -315,12 +351,59 @@ public class AdminDashboard extends JFrame {
             }
         });
 
+        NavItemEntry entry = new NavItemEntry();
+        entry.name = name;
+        entry.panel = item;
+        entry.label = label;
+        entry.iconComp = iconComp;
+        navItemEntries.add(entry);
+
         return item;
+    }
+
+    private boolean isNavActive(String navName) {
+        if (activeNavName == null) return false;
+        return activeNavName.equalsIgnoreCase(navName);
+    }
+
+    private void updateNavSelection() {
+        for (NavItemEntry entry : navItemEntries) {
+            boolean active = isNavActive(entry.name);
+            entry.label.setFont(getModernFont(active ? Font.BOLD : Font.PLAIN, 13));
+            entry.label.setForeground(active ? Color.WHITE : new Color(203, 213, 225));
+            entry.panel.repaint();
+        }
+    }
+
+    public void showView(String name) {
+        if ("Student Management".equalsIgnoreCase(name) || "User Management".equalsIgnoreCase(name) || "Manage Users".equalsIgnoreCase(name)) {
+            activeNavName = "Student Management";
+            cardLayout.show(cardsContainer, "STUDENTS");
+            if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / Student Management");
+            if (headerTitle != null) headerTitle.setText("Student Management");
+            if (headerSubtitle != null) headerSubtitle.setText("Manage undergraduate records, academic status, and system access.");
+            if (studentPanel != null) {
+                studentPanel.loadStudentsAsync();
+            }
+        } else {
+            activeNavName = "Dashboard";
+            cardLayout.show(cardsContainer, "DASHBOARD");
+            if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / Dashboard");
+            if (headerTitle != null) headerTitle.setText("Dashboard");
+            if (headerSubtitle != null) headerSubtitle.setText("Welcome to your FAMS administration workspace.");
+            loadDashboardDataAsync();
+        }
+        updateNavSelection();
     }
 
     private void handleNavigationClick(String name) {
         if ("Dashboard".equalsIgnoreCase(name)) {
-            // Already on Dashboard
+            showView("Dashboard");
+            return;
+        }
+
+        if ("Student Management".equalsIgnoreCase(name) || "User Management".equalsIgnoreCase(name) || "Manage Users".equalsIgnoreCase(name)) {
+            showView("Student Management");
             return;
         }
 
@@ -418,6 +501,16 @@ public class AdminDashboard extends JFrame {
                 g2.drawRoundRect(x + 1, y + 10, 6, 6, 2, 2);
                 g2.drawRoundRect(x + 10, y + 10, 6, 6, 2, 2);
                 break;
+            case "students":
+                // Mortarboard cap
+                g2.drawPolygon(
+                        new int[]{x + 9, x + 16, x + 9, x + 2},
+                        new int[]{y + 3, y + 7, y + 11, y + 7},
+                        4
+                );
+                g2.drawArc(x + 4, y + 7, 10, 7, 0, -180);
+                g2.drawLine(x + 15, y + 7, x + 15, y + 14);
+                break;
             case "users":
                 g2.drawOval(x + 3, y + 1, 6, 6);
                 g2.drawArc(x + 1, y + 9, 10, 8, 0, 180);
@@ -464,23 +557,31 @@ public class AdminDashboard extends JFrame {
         titlePanel.setOpaque(false);
         titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
 
-        JLabel breadcrumb = new JLabel("Home / Dashboard");
-        breadcrumb.setFont(getModernFont(Font.PLAIN, 11));
-        breadcrumb.setForeground(TEXT_SECONDARY);
+        headerBreadcrumb = new JLabel("Home / Dashboard");
+        headerBreadcrumb.setFont(getModernFont(Font.PLAIN, 11));
+        headerBreadcrumb.setForeground(TEXT_SECONDARY);
+        headerBreadcrumb.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        headerBreadcrumb.setToolTipText("Click to go to Dashboard");
+        headerBreadcrumb.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showView("Dashboard");
+            }
+        });
 
-        JLabel title = new JLabel("Dashboard");
-        title.setFont(getModernFont(Font.BOLD, 20));
-        title.setForeground(TEXT_PRIMARY);
+        headerTitle = new JLabel("Dashboard");
+        headerTitle.setFont(getModernFont(Font.BOLD, 20));
+        headerTitle.setForeground(TEXT_PRIMARY);
 
-        JLabel subtitle = new JLabel("Welcome to your FAMS administration workspace.");
-        subtitle.setFont(getModernFont(Font.PLAIN, 12));
-        subtitle.setForeground(TEXT_SECONDARY);
+        headerSubtitle = new JLabel("Welcome to your FAMS administration workspace.");
+        headerSubtitle.setFont(getModernFont(Font.PLAIN, 12));
+        headerSubtitle.setForeground(TEXT_SECONDARY);
 
-        titlePanel.add(breadcrumb);
+        titlePanel.add(headerBreadcrumb);
         titlePanel.add(Box.createVerticalStrut(3));
-        titlePanel.add(title);
+        titlePanel.add(headerTitle);
         titlePanel.add(Box.createVerticalStrut(3));
-        titlePanel.add(subtitle);
+        titlePanel.add(headerSubtitle);
 
         header.add(titlePanel, BorderLayout.WEST);
 
@@ -665,7 +766,16 @@ public class AdminDashboard extends JFrame {
         lblCoursesSub   = new JLabel("Loading...");
         lblNoticesSub   = new JLabel("Loading...");
 
-        row.add(createStatCard("Total Students", "students", SECONDARY_BLUE, LIGHT_BLUE, lblStudentsCount, lblStudentsSub));
+        JPanel studentCard = createStatCard("Total Students", "students", SECONDARY_BLUE, LIGHT_BLUE, lblStudentsCount, lblStudentsSub);
+        studentCard.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        studentCard.setToolTipText("Click to view and manage students");
+        studentCard.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showView("Student Management");
+            }
+        });
+        row.add(studentCard);
         row.add(createStatCard("Total Lecturers", "lecturers", new Color(79, 70, 229), new Color(238, 242, 255), lblLecturersCount, lblLecturersSub));
         row.add(createStatCard("Technical Officers", "officers", WARNING_COLOR, new Color(254, 243, 199), lblOfficersCount, lblOfficersSub));
         row.add(createStatCard("Total Courses", "courses", SUCCESS_COLOR, new Color(220, 252, 231), lblCoursesCount, lblCoursesSub));
