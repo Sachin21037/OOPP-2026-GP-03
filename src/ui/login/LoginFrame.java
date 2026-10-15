@@ -6,6 +6,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import ui.admin.AdminDashboard;
 import ui.admin.NoticeViewerFrame;
+import ui.admin.TimetableViewerFrame;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
@@ -582,15 +583,14 @@ public class LoginFrame extends JFrame {
                             dispose();
                         } else {
                             String roleName = formatRoleName(role);
-                            Object[] options = {"View Academic Notices", "OK"};
+                            Object[] options = {"View Academic Timetable", "View Notices", "Close"};
                             int choice = JOptionPane.showOptionDialog(
                                     this,
-                                    "<html><body style='font-family: sans-serif; width: 300px;'>" +
+                                    "<html><body style='font-family: sans-serif; width: 320px;'>" +
                                     "<h4 style='color: #10284A; margin-bottom: 6px;'>Welcome, " + displayName + "!</h4>" +
                                     "<p style='color: #4A5568; line-height: 1.4;'>" +
                                     "You have successfully authenticated as <b>" + roleName + "</b>.<br><br>" +
-                                    "The full " + roleName + " portal is currently scheduled for upcoming phases.<br>" +
-                                    "You can view published faculty academic notices now." +
+                                    "You can view your published academic timetable schedules and faculty notices below." +
                                     "</p></body></html>",
                                     "Login Successful - " + roleName,
                                     JOptionPane.DEFAULT_OPTION,
@@ -600,6 +600,11 @@ public class LoginFrame extends JFrame {
                                     options[0]
                             );
                             if (choice == 0) {
+                                SwingUtilities.invokeLater(() -> {
+                                    TimetableViewerFrame viewer = new TimetableViewerFrame(role, displayName);
+                                    viewer.setVisible(true);
+                                });
+                            } else if (choice == 1) {
                                 SwingUtilities.invokeLater(() -> {
                                     NoticeViewerFrame viewer = new NoticeViewerFrame(role, displayName);
                                     viewer.setVisible(true);

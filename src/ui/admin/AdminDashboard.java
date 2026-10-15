@@ -50,6 +50,7 @@ public class AdminDashboard extends JFrame {
     private UserManagementPanel userPanel;
     private CourseManagementPanel coursePanel;
     private NoticeManagementPanel noticePanel;
+    private TimetableManagementPanel timetablePanel;
     private String activeNavName = "Dashboard";
 
     // Header labels for dynamic breadcrumbs & titles
@@ -143,6 +144,10 @@ public class AdminDashboard extends JFrame {
         // Card 7: Notice Management Panel
         noticePanel = new NoticeManagementPanel(() -> loadDashboardDataAsync());
         cardsContainer.add(noticePanel, "NOTICES");
+
+        // Card 8: Timetable Management Panel
+        timetablePanel = new TimetableManagementPanel(() -> loadDashboardDataAsync());
+        cardsContainer.add(timetablePanel, "TIMETABLE");
 
         workspacePanel.add(cardsContainer, BorderLayout.CENTER);
 
@@ -459,6 +464,15 @@ public class AdminDashboard extends JFrame {
             if (noticePanel != null) {
                 noticePanel.loadNoticesAsync();
             }
+        } else if ("Timetable Management".equalsIgnoreCase(name) || "Timetable".equalsIgnoreCase(name) || "Schedule".equalsIgnoreCase(name)) {
+            activeNavName = "Timetable Management";
+            cardLayout.show(cardsContainer, "TIMETABLE");
+            if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / Timetable Management");
+            if (headerTitle != null) headerTitle.setText("TIMETABLE MANAGEMENT");
+            if (headerSubtitle != null) headerSubtitle.setText("Manage Faculty Academic Schedules & Venues");
+            if (timetablePanel != null) {
+                timetablePanel.loadTimetablesAsync();
+            }
         } else {
             activeNavName = "Dashboard";
             cardLayout.show(cardsContainer, "DASHBOARD");
@@ -503,6 +517,11 @@ public class AdminDashboard extends JFrame {
 
         if ("Notice Management".equalsIgnoreCase(name) || "Notices".equalsIgnoreCase(name) || "View Notices".equalsIgnoreCase(name)) {
             showView("Notice Management");
+            return;
+        }
+
+        if ("Timetable Management".equalsIgnoreCase(name) || "Timetable".equalsIgnoreCase(name) || "Schedule".equalsIgnoreCase(name)) {
+            showView("Timetable Management");
             return;
         }
 
