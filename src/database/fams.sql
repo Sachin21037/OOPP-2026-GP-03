@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 14, 2026 at 04:42 PM
+-- Generation Time: Oct 12, 2026 at 02:27 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -1501,6 +1501,98 @@ INSERT INTO `users` (`user_id`, `username`, `password`, `role`, `first_name`, `l
 ('TO002', 'to002', 'TO@123', 'TECHNICAL_OFFICER', 'Nimali', 'Perera', 'nimali.to@uor.lk', '0710000008', 'Matara', NULL, 'ACTIVE', '2026-10-07 14:51:10'),
 ('TO003', 'to003', 'TO@123', 'TECHNICAL_OFFICER', 'Sahan', 'Fernando', 'sahan.to@uor.lk', '0710000009', 'Galle', NULL, 'ACTIVE', '2026-10-07 14:51:10'),
 ('TO004', 'to004', 'TO@123', 'TECHNICAL_OFFICER', 'Dilani', 'Silva', 'dilani.to@uor.lk', '0710000010', 'Matara', NULL, 'ACTIVE', '2026-10-07 14:51:10');
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `vw_lecturer_courses`
+-- (See below for the actual view)
+--
+CREATE TABLE `vw_lecturer_courses` (
+`lecturer_id` varchar(10)
+,`first_name` varchar(50)
+,`last_name` varchar(50)
+,`course_id` varchar(10)
+,`course_code` varchar(20)
+,`course_name` varchar(150)
+,`credits` int(11)
+,`offering_id` varchar(10)
+,`academic_year` varchar(20)
+,`semester` enum('SEMESTER 1','SEMESTER 2')
+,`batch` varchar(20)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `vw_student_attendance`
+-- (See below for the actual view)
+--
+CREATE TABLE `vw_student_attendance` (
+`student_id` varchar(10)
+,`first_name` varchar(50)
+,`last_name` varchar(50)
+,`offering_id` varchar(10)
+,`course_code` varchar(20)
+,`course_name` varchar(150)
+,`total_sessions` bigint(21)
+,`attended_sessions` decimal(22,0)
+,`attendance_percentage` decimal(28,2)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in structure for view `vw_student_results`
+-- (See below for the actual view)
+--
+CREATE TABLE `vw_student_results` (
+`result_id` varchar(10)
+,`student_id` varchar(10)
+,`first_name` varchar(50)
+,`last_name` varchar(50)
+,`offering_id` varchar(10)
+,`course_code` varchar(20)
+,`course_name` varchar(150)
+,`credits` int(11)
+,`ca_mark` decimal(5,2)
+,`final_exam_mark` decimal(5,2)
+,`final_mark` decimal(5,2)
+,`grade` varchar(5)
+,`grade_point` decimal(3,2)
+,`attendance_percentage` decimal(5,2)
+,`ca_eligible` tinyint(1)
+,`final_eligible` tinyint(1)
+,`sgpa` decimal(4,2)
+,`cgpa` decimal(4,2)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `vw_lecturer_courses`
+--
+DROP TABLE IF EXISTS `vw_lecturer_courses`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_lecturer_courses`  AS SELECT `cl`.`lecturer_id` AS `lecturer_id`, `u`.`first_name` AS `first_name`, `u`.`last_name` AS `last_name`, `co`.`course_id` AS `course_id`, `co`.`course_code` AS `course_code`, `co`.`course_name` AS `course_name`, `co`.`credits` AS `credits`, `offe`.`offering_id` AS `offering_id`, `offe`.`academic_year` AS `academic_year`, `offe`.`semester` AS `semester`, `offe`.`batch` AS `batch` FROM ((((`course_lecturers` `cl` join `lecturers` `l` on(`cl`.`lecturer_id` = `l`.`lecturer_id`)) join `users` `u` on(`l`.`lecturer_id` = `u`.`user_id`)) join `course_offerings` `offe` on(`cl`.`offering_id` = `offe`.`offering_id`)) join `courses` `co` on(`offe`.`course_id` = `co`.`course_id`)) ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `vw_student_attendance`
+--
+DROP TABLE IF EXISTS `vw_student_attendance`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_student_attendance`  AS SELECT `a`.`student_id` AS `student_id`, `u`.`first_name` AS `first_name`, `u`.`last_name` AS `last_name`, `offe`.`offering_id` AS `offering_id`, `co`.`course_code` AS `course_code`, `co`.`course_name` AS `course_name`, count(`a`.`attendance_id`) AS `total_sessions`, sum(case when `a`.`status` in ('PRESENT','MEDICAL') then 1 else 0 end) AS `attended_sessions`, round(sum(case when `a`.`status` in ('PRESENT','MEDICAL') then 1 else 0 end) * 100.0 / count(`a`.`attendance_id`),2) AS `attendance_percentage` FROM ((((`attendance` `a` join `users` `u` on(`a`.`student_id` = `u`.`user_id`)) join `attendance_sessions` `s` on(`a`.`session_id` = `s`.`session_id`)) join `course_offerings` `offe` on(`s`.`offering_id` = `offe`.`offering_id`)) join `courses` `co` on(`offe`.`course_id` = `co`.`course_id`)) GROUP BY `a`.`student_id`, `u`.`first_name`, `u`.`last_name`, `offe`.`offering_id`, `co`.`course_code`, `co`.`course_name` ;
+
+-- --------------------------------------------------------
+
+--
+-- Structure for view `vw_student_results`
+--
+DROP TABLE IF EXISTS `vw_student_results`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `vw_student_results`  AS SELECT `r`.`result_id` AS `result_id`, `r`.`student_id` AS `student_id`, `u`.`first_name` AS `first_name`, `u`.`last_name` AS `last_name`, `offe`.`offering_id` AS `offering_id`, `co`.`course_code` AS `course_code`, `co`.`course_name` AS `course_name`, `co`.`credits` AS `credits`, `r`.`ca_mark` AS `ca_mark`, `r`.`final_exam_mark` AS `final_exam_mark`, `r`.`final_mark` AS `final_mark`, `r`.`grade` AS `grade`, `r`.`grade_point` AS `grade_point`, `r`.`attendance_percentage` AS `attendance_percentage`, `r`.`ca_eligible` AS `ca_eligible`, `r`.`final_eligible` AS `final_eligible`, `r`.`sgpa` AS `sgpa`, `r`.`cgpa` AS `cgpa` FROM ((((`results` `r` join `undergraduates` `ug` on(`r`.`student_id` = `ug`.`student_id`)) join `users` `u` on(`ug`.`student_id` = `u`.`user_id`)) join `course_offerings` `offe` on(`r`.`offering_id` = `offe`.`offering_id`)) join `courses` `co` on(`offe`.`course_id` = `co`.`course_id`)) ;
 
 --
 -- Indexes for dumped tables
