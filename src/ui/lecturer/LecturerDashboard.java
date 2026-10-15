@@ -410,8 +410,10 @@ public class LecturerDashboard extends JFrame {
         ));
 
         menu.add(createMenuButton(
-                "Attendance", false,
-                () -> showComingSoon("Attendance")
+                "Attendance", false, () -> {
+                    new Attendance().setVisible(true);
+                    dispose();
+                }
         ));
 
         menu.add(createMenuButton(
