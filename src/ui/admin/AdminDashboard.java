@@ -45,6 +45,7 @@ public class AdminDashboard extends JFrame {
     private CardLayout cardLayout;
     private JPanel cardsContainer;
     private StudentManagementPanel studentPanel;
+    private LecturerManagementPanel lecturerPanel;
     private String activeNavName = "Dashboard";
 
     // Header labels for dynamic breadcrumbs & titles
@@ -118,6 +119,10 @@ public class AdminDashboard extends JFrame {
         // Card 2: Student Management Panel
         studentPanel = new StudentManagementPanel(() -> loadDashboardDataAsync());
         cardsContainer.add(studentPanel, "STUDENTS");
+
+        // Card 3: Lecturer Management Panel
+        lecturerPanel = new LecturerManagementPanel(() -> loadDashboardDataAsync());
+        cardsContainer.add(lecturerPanel, "LECTURERS");
 
         workspacePanel.add(cardsContainer, BorderLayout.CENTER);
 
@@ -196,6 +201,8 @@ public class AdminDashboard extends JFrame {
         navPanel.add(createNavItem("Dashboard", "dashboard", true));
         navPanel.add(Box.createVerticalStrut(4));
         navPanel.add(createNavItem("Student Management", "students", false));
+        navPanel.add(Box.createVerticalStrut(4));
+        navPanel.add(createNavItem("Lecturer Management", "lecturers", false));
         navPanel.add(Box.createVerticalStrut(4));
         navPanel.add(createNavItem("User Management", "users", false));
         navPanel.add(Box.createVerticalStrut(4));
@@ -376,7 +383,7 @@ public class AdminDashboard extends JFrame {
     }
 
     public void showView(String name) {
-        if ("Student Management".equalsIgnoreCase(name) || "User Management".equalsIgnoreCase(name) || "Manage Users".equalsIgnoreCase(name)) {
+        if ("Student Management".equalsIgnoreCase(name)) {
             activeNavName = "Student Management";
             cardLayout.show(cardsContainer, "STUDENTS");
             if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / Student Management");
@@ -385,6 +392,20 @@ public class AdminDashboard extends JFrame {
             if (studentPanel != null) {
                 studentPanel.loadStudentsAsync();
             }
+        } else if ("Lecturer Management".equalsIgnoreCase(name) || "Lecturers".equalsIgnoreCase(name) || "Academic Staff".equalsIgnoreCase(name)) {
+            activeNavName = "Lecturer Management";
+            cardLayout.show(cardsContainer, "LECTURERS");
+            if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / Lecturer Management");
+            if (headerTitle != null) headerTitle.setText("Lecturer Management");
+            if (headerSubtitle != null) headerSubtitle.setText("Manage academic staff profiles, department assignments, and system access.");
+            if (lecturerPanel != null) {
+                lecturerPanel.loadLecturersAsync();
+            }
+        } else if ("User Management".equalsIgnoreCase(name) || "Manage Users".equalsIgnoreCase(name)) {
+            // Default User Management entry point routes cleanly to Student Management
+            activeNavName = "User Management";
+            showView("Student Management");
+            return;
         } else {
             activeNavName = "Dashboard";
             cardLayout.show(cardsContainer, "DASHBOARD");
@@ -402,8 +423,18 @@ public class AdminDashboard extends JFrame {
             return;
         }
 
-        if ("Student Management".equalsIgnoreCase(name) || "User Management".equalsIgnoreCase(name) || "Manage Users".equalsIgnoreCase(name)) {
+        if ("Student Management".equalsIgnoreCase(name)) {
             showView("Student Management");
+            return;
+        }
+
+        if ("Lecturer Management".equalsIgnoreCase(name) || "Lecturers".equalsIgnoreCase(name)) {
+            showView("Lecturer Management");
+            return;
+        }
+
+        if ("User Management".equalsIgnoreCase(name) || "Manage Users".equalsIgnoreCase(name)) {
+            showView("User Management");
             return;
         }
 
@@ -510,6 +541,13 @@ public class AdminDashboard extends JFrame {
                 );
                 g2.drawArc(x + 4, y + 7, 10, 7, 0, -180);
                 g2.drawLine(x + 15, y + 7, x + 15, y + 14);
+                break;
+            case "lecturers":
+                // Lecturer academic icon
+                g2.drawOval(x + 5, y + 1, 8, 8);
+                g2.drawArc(x + 1, y + 10, 16, 8, 0, 180);
+                g2.drawLine(x + 9, y + 13, x + 9, y + 16);
+                g2.drawLine(x + 5, y + 16, x + 13, y + 16);
                 break;
             case "users":
                 g2.drawOval(x + 3, y + 1, 6, 6);
@@ -776,7 +814,18 @@ public class AdminDashboard extends JFrame {
             }
         });
         row.add(studentCard);
-        row.add(createStatCard("Total Lecturers", "lecturers", new Color(79, 70, 229), new Color(238, 242, 255), lblLecturersCount, lblLecturersSub));
+
+        JPanel lecturerCard = createStatCard("Total Lecturers", "lecturers", new Color(79, 70, 229), new Color(238, 242, 255), lblLecturersCount, lblLecturersSub);
+        lecturerCard.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        lecturerCard.setToolTipText("Click to view and manage lecturers");
+        lecturerCard.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showView("Lecturer Management");
+            }
+        });
+        row.add(lecturerCard);
+
         row.add(createStatCard("Technical Officers", "officers", WARNING_COLOR, new Color(254, 243, 199), lblOfficersCount, lblOfficersSub));
         row.add(createStatCard("Total Courses", "courses", SUCCESS_COLOR, new Color(220, 252, 231), lblCoursesCount, lblCoursesSub));
         row.add(createStatCard("Total Notices", "notices", new Color(14, 165, 233), new Color(224, 242, 254), lblNoticesCount, lblNoticesSub));
