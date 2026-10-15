@@ -48,6 +48,7 @@ public class AdminDashboard extends JFrame {
     private LecturerManagementPanel lecturerPanel;
     private TechnicalOfficerManagementPanel officerPanel;
     private UserManagementPanel userPanel;
+    private CourseManagementPanel coursePanel;
     private String activeNavName = "Dashboard";
 
     // Header labels for dynamic breadcrumbs & titles
@@ -133,6 +134,10 @@ public class AdminDashboard extends JFrame {
         // Card 5: User Management Panel
         userPanel = new UserManagementPanel(() -> loadDashboardDataAsync());
         cardsContainer.add(userPanel, "USERS");
+
+        // Card 6: Course Management Panel
+        coursePanel = new CourseManagementPanel(() -> loadDashboardDataAsync());
+        cardsContainer.add(coursePanel, "COURSES");
 
         workspacePanel.add(cardsContainer, BorderLayout.CENTER);
 
@@ -431,6 +436,15 @@ public class AdminDashboard extends JFrame {
             if (userPanel != null) {
                 userPanel.loadUsersAsync();
             }
+        } else if ("Course Management".equalsIgnoreCase(name) || "Courses".equalsIgnoreCase(name) || "Manage Courses".equalsIgnoreCase(name)) {
+            activeNavName = "Course Management";
+            cardLayout.show(cardsContainer, "COURSES");
+            if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / Course Management");
+            if (headerTitle != null) headerTitle.setText("COURSE MANAGEMENT");
+            if (headerSubtitle != null) headerSubtitle.setText("Manage Academic Courses");
+            if (coursePanel != null) {
+                coursePanel.loadCoursesAsync();
+            }
         } else {
             activeNavName = "Dashboard";
             cardLayout.show(cardsContainer, "DASHBOARD");
@@ -465,6 +479,11 @@ public class AdminDashboard extends JFrame {
 
         if ("User Management".equalsIgnoreCase(name) || "Manage Users".equalsIgnoreCase(name) || "Users".equalsIgnoreCase(name)) {
             showView("User Management");
+            return;
+        }
+
+        if ("Course Management".equalsIgnoreCase(name) || "Courses".equalsIgnoreCase(name) || "Manage Courses".equalsIgnoreCase(name)) {
+            showView("Course Management");
             return;
         }
 
@@ -876,7 +895,16 @@ public class AdminDashboard extends JFrame {
             }
         });
         row.add(officerCard);
-        row.add(createStatCard("Total Courses", "courses", SUCCESS_COLOR, new Color(220, 252, 231), lblCoursesCount, lblCoursesSub));
+        JPanel coursesCard = createStatCard("Total Courses", "courses", SUCCESS_COLOR, new Color(220, 252, 231), lblCoursesCount, lblCoursesSub);
+        coursesCard.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        coursesCard.setToolTipText("Click to view and manage academic courses");
+        coursesCard.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                showView("Course Management");
+            }
+        });
+        row.add(coursesCard);
         row.add(createStatCard("Total Notices", "notices", new Color(14, 165, 233), new Color(224, 242, 254), lblNoticesCount, lblNoticesSub));
 
         return row;
