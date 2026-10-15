@@ -1015,7 +1015,7 @@ public class CourseManagementPanel extends JPanel {
             onTableRowSelected();
         }
     }
-    
+
     // INNER CLASS: TABLE MODEL
 
     private static class CourseTableModel extends AbstractTableModel {

@@ -5,6 +5,7 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import ui.admin.AdminDashboard;
+import ui.admin.NoticeViewerFrame;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
@@ -581,17 +582,29 @@ public class LoginFrame extends JFrame {
                             dispose();
                         } else {
                             String roleName = formatRoleName(role);
-                            JOptionPane.showMessageDialog(
+                            Object[] options = {"View Academic Notices", "OK"};
+                            int choice = JOptionPane.showOptionDialog(
                                     this,
-                                    "<html><body style='font-family: sans-serif; width: 280px;'>" +
+                                    "<html><body style='font-family: sans-serif; width: 300px;'>" +
                                     "<h4 style='color: #10284A; margin-bottom: 6px;'>Welcome, " + displayName + "!</h4>" +
                                     "<p style='color: #4A5568; line-height: 1.4;'>" +
                                     "You have successfully authenticated as <b>" + roleName + "</b>.<br><br>" +
-                                    "The " + roleName + " portal is currently in development and will be available soon." +
+                                    "The full " + roleName + " portal is currently scheduled for upcoming phases.<br>" +
+                                    "You can view published faculty academic notices now." +
                                     "</p></body></html>",
                                     "Login Successful - " + roleName,
-                                    JOptionPane.INFORMATION_MESSAGE
+                                    JOptionPane.DEFAULT_OPTION,
+                                    JOptionPane.INFORMATION_MESSAGE,
+                                    null,
+                                    options,
+                                    options[0]
                             );
+                            if (choice == 0) {
+                                SwingUtilities.invokeLater(() -> {
+                                    NoticeViewerFrame viewer = new NoticeViewerFrame(role, displayName);
+                                    viewer.setVisible(true);
+                                });
+                            }
                         }
                     } else {
                         JOptionPane.showMessageDialog(
