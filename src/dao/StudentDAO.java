@@ -237,7 +237,7 @@ public class StudentDAO {
     public List<AttendanceRecord> getAttendanceRecords(String studentId) {
         List<AttendanceRecord> list = new ArrayList<>();
         String sql = "SELECT att.attendance_id, att.session_id, att.student_id, att.status, att.remarks, " +
-                     "s.session_date, s.session_type, s.session_number, s.topic, " +
+                     "s.offering_id, s.session_date, s.session_type, s.session_number, s.topic, " +
                      "c.course_code, c.course_name " +
                      "FROM attendance att " +
                      "JOIN attendance_sessions s ON att.session_id = s.session_id " +
@@ -256,6 +256,7 @@ public class StudentDAO {
                         rec.setAttendanceId(rs.getString("attendance_id"));
                         rec.setSessionId(rs.getString("session_id"));
                         rec.setStudentId(rs.getString("student_id"));
+                        rec.setOfferingId(rs.getString("offering_id"));
                         rec.setStatus(rs.getString("status"));
                         rec.setRemarks(rs.getString("remarks"));
                         rec.setSessionDate(rs.getDate("session_date"));
@@ -270,6 +271,54 @@ public class StudentDAO {
             }
         } catch (SQLException e) {
             System.err.println("Error fetching attendance: " + e.getMessage());
+        }
+        return list;
+    }
+
+    /**
+     * Retrieves lectures/attendance sessions where the student is recorded as ABSENT (lacking attendance).
+     */
+    public List<AttendanceRecord> getAbsentSessions(String studentId) {
+        List<AttendanceRecord> list = new ArrayList<>();
+        String sql = "SELECT att.attendance_id, att.session_id, att.student_id, att.status, att.remarks, " +
+                     "s.offering_id, s.session_date, s.session_type, s.session_number, s.topic, " +
+                     "c.course_code, c.course_name, " +
+                     "(SELECT m.approval_status FROM medicals m WHERE m.student_id = att.student_id AND m.offering_id = s.offering_id AND m.medical_date = s.session_date LIMIT 1) as medical_status, " +
+                     "(SELECT m.medical_id FROM medicals m WHERE m.student_id = att.student_id AND m.offering_id = s.offering_id AND m.medical_date = s.session_date LIMIT 1) as linked_medical_id " +
+                     "FROM attendance att " +
+                     "JOIN attendance_sessions s ON att.session_id = s.session_id " +
+                     "JOIN course_offerings co ON s.offering_id = co.offering_id " +
+                     "JOIN courses c ON co.course_id = c.course_id " +
+                     "WHERE att.student_id = ? AND att.status = 'ABSENT' " +
+                     "ORDER BY s.session_date DESC, s.session_number DESC";
+
+        try {
+            Connection conn = DBConnection.getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, studentId);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        AttendanceRecord rec = new AttendanceRecord();
+                        rec.setAttendanceId(rs.getString("attendance_id"));
+                        rec.setSessionId(rs.getString("session_id"));
+                        rec.setStudentId(rs.getString("student_id"));
+                        rec.setOfferingId(rs.getString("offering_id"));
+                        rec.setStatus(rs.getString("status"));
+                        rec.setRemarks(rs.getString("remarks"));
+                        rec.setSessionDate(rs.getDate("session_date"));
+                        rec.setSessionType(rs.getString("session_type"));
+                        rec.setSessionNumber(rs.getInt("session_number"));
+                        rec.setTopic(rs.getString("topic"));
+                        rec.setCourseCode(rs.getString("course_code"));
+                        rec.setCourseName(rs.getString("course_name"));
+                        rec.setMedicalStatus(rs.getString("medical_status"));
+                        rec.setMedicalId(rs.getString("linked_medical_id"));
+                        list.add(rec);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching absent sessions: " + e.getMessage());
         }
         return list;
     }

@@ -6,6 +6,7 @@ public class AttendanceRecord {
     private String attendanceId;
     private String sessionId;
     private String studentId;
+    private String offeringId;
     private String courseCode;
     private String courseName;
     private Date sessionDate;
@@ -14,8 +15,19 @@ public class AttendanceRecord {
     private String topic;
     private String status;
     private String remarks;
+    private String medicalStatus;
+    private String medicalId;
 
     public AttendanceRecord() {}
+
+    public String getMedicalStatus() { return medicalStatus; }
+    public void setMedicalStatus(String medicalStatus) { this.medicalStatus = medicalStatus; }
+
+    public String getMedicalId() { return medicalId; }
+    public void setMedicalId(String medicalId) { this.medicalId = medicalId; }
+
+    public String getOfferingId() { return offeringId; }
+    public void setOfferingId(String offeringId) { this.offeringId = offeringId; }
 
     public String getAttendanceId() { return attendanceId; }
     public void setAttendanceId(String attendanceId) { this.attendanceId = attendanceId; }
@@ -49,4 +61,8 @@ public class AttendanceRecord {
 
     public String getRemarks() { return remarks; }
     public void setRemarks(String remarks) { this.remarks = remarks; }
+
+    public String getDisplaySummary() {
+        return courseCode + " - " + (sessionType != null ? sessionType : "Session") + " #" + sessionNumber + " (" + sessionDate + "): " + (topic != null ? topic : "Lecture");
+    }
 }

@@ -600,7 +600,7 @@ public class StudentDashboard extends JFrame {
     // 7. MEDICAL SUBMISSIONS VIEW
     // ==========================================
     private JPanel buildMedicalPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 15));
+        JPanel panel = new JPanel(new BorderLayout(0, 12));
         panel.setBackground(lightBackground);
         panel.setBorder(new EmptyBorder(0, 25, 20, 25));
 
@@ -630,7 +630,7 @@ public class StudentDashboard extends JFrame {
         submitNewBtn.setBackground(darkBlue);
         submitNewBtn.setFocusPainted(false);
         submitNewBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        submitNewBtn.setPreferredSize(new Dimension(225, 38));
+        submitNewBtn.setPreferredSize(new Dimension(235, 38));
 
         submitNewBtn.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
@@ -645,32 +645,143 @@ public class StudentDashboard extends JFrame {
         topBar.add(submitNewBtn, BorderLayout.EAST);
         panel.add(topBar, BorderLayout.NORTH);
 
-        // Center content: Summary badges + Table
-        JPanel centerContent = new JPanel(new BorderLayout(0, 12));
-        centerContent.setBackground(lightBackground);
-
-        // KPI summary bar
-        JPanel summaryBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-        summaryBar.setBackground(Color.WHITE);
-        summaryBar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(225, 228, 232)),
-                new EmptyBorder(4, 10, 4, 10)
+        // -------------------------------------------------------------
+        // SECTION 1: LECTURES LACKING ATTENDANCE (ABSENCES)
+        // -------------------------------------------------------------
+        JPanel absentCard = new JPanel(new BorderLayout(0, 8));
+        absentCard.setBackground(Color.WHITE);
+        absentCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(225, 228, 232), 1),
+                new EmptyBorder(12, 16, 12, 16)
         ));
 
-        JLabel totalLabel = new JLabel("Total Submissions: 0");
-        totalLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        JPanel absentHeader = new JPanel(new BorderLayout());
+        absentHeader.setBackground(Color.WHITE);
+
+        JPanel absentTitlePanel = new JPanel();
+        absentTitlePanel.setLayout(new BoxLayout(absentTitlePanel, BoxLayout.Y_AXIS));
+        absentTitlePanel.setBackground(Color.WHITE);
+
+        JLabel absentTitle = new JLabel("Lectures Lacking Attendance (Recorded Absences)");
+        absentTitle.setFont(new Font("Arial", Font.BOLD, 14));
+        absentTitle.setForeground(textColor);
+
+        JLabel absentSubTitle = new JLabel("Lectures where you were marked ABSENT. Double-click any row or select a lecture to submit a medical certificate.");
+        absentSubTitle.setFont(new Font("Arial", Font.PLAIN, 11));
+        absentSubTitle.setForeground(new Color(110, 120, 130));
+
+        absentTitlePanel.add(absentTitle);
+        absentTitlePanel.add(Box.createVerticalStrut(2));
+        absentTitlePanel.add(absentSubTitle);
+
+        JPanel absentActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        absentActions.setBackground(Color.WHITE);
+
+        JLabel absentCountBadge = new JLabel("0 Lectures Lacking Attendance");
+        absentCountBadge.setFont(new Font("Arial", Font.BOLD, 12));
+        absentCountBadge.setForeground(new Color(220, 38, 38));
+
+        JButton submitSelectedBtn = new JButton("Submit Medical for Selected");
+        submitSelectedBtn.setFont(new Font("Arial", Font.BOLD, 11));
+        submitSelectedBtn.setBackground(new Color(240, 245, 250));
+        submitSelectedBtn.setForeground(darkBlue);
+        submitSelectedBtn.setFocusPainted(false);
+        submitSelectedBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        submitSelectedBtn.setEnabled(false);
+
+        absentActions.add(absentCountBadge);
+        absentActions.add(submitSelectedBtn);
+
+        absentHeader.add(absentTitlePanel, BorderLayout.WEST);
+        absentHeader.add(absentActions, BorderLayout.EAST);
+        absentCard.add(absentHeader, BorderLayout.NORTH);
+
+        String[] absentColumns = {"Course Code", "Course Name", "Session Date", "Session Type", "Session #", "Lecture Topic", "Attendance", "Medical Status"};
+        DefaultTableModel absentModel = new DefaultTableModel(absentColumns, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        JTable absentTable = createStandardTable(absentModel);
+        absentCard.add(new JScrollPane(absentTable), BorderLayout.CENTER);
+
+        // Renderer for Attendance Status (col 6)
+        absentTable.getColumnModel().getColumn(6).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+                JLabel lbl = (JLabel) super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, col);
+                lbl.setHorizontalAlignment(SwingConstants.CENTER);
+                lbl.setFont(new Font("Arial", Font.BOLD, 11));
+                lbl.setForeground(new Color(220, 38, 38)); // Red for ABSENT
+                return lbl;
+            }
+        });
+
+        // Renderer for Medical Status (col 7)
+        absentTable.getColumnModel().getColumn(7).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+                JLabel lbl = (JLabel) super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, col);
+                lbl.setHorizontalAlignment(SwingConstants.CENTER);
+                lbl.setFont(new Font("Arial", Font.BOLD, 11));
+                String st = (value != null) ? value.toString() : "";
+                if (st.contains("Approved")) {
+                    lbl.setForeground(new Color(20, 165, 145));
+                } else if (st.contains("Pending")) {
+                    lbl.setForeground(new Color(217, 119, 6));
+                } else {
+                    lbl.setForeground(new Color(185, 28, 28));
+                }
+                return lbl;
+            }
+        });
+
+        // -------------------------------------------------------------
+        // SECTION 2: MEDICAL SUBMISSIONS HISTORY
+        // -------------------------------------------------------------
+        JPanel historyCard = new JPanel(new BorderLayout(0, 8));
+        historyCard.setBackground(Color.WHITE);
+        historyCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(225, 228, 232), 1),
+                new EmptyBorder(12, 16, 12, 16)
+        ));
+
+        JPanel historyHeader = new JPanel(new BorderLayout());
+        historyHeader.setBackground(Color.WHITE);
+
+        JPanel historyTitlePanel = new JPanel();
+        historyTitlePanel.setLayout(new BoxLayout(historyTitlePanel, BoxLayout.Y_AXIS));
+        historyTitlePanel.setBackground(Color.WHITE);
+
+        JLabel historyTitle = new JLabel("Medical Certificate Submissions History");
+        historyTitle.setFont(new Font("Arial", Font.BOLD, 14));
+        historyTitle.setForeground(textColor);
+
+        JLabel historySubTitle = new JLabel("Review submitted medical documents, technical officer verification, and approval statuses.");
+        historySubTitle.setFont(new Font("Arial", Font.PLAIN, 11));
+        historySubTitle.setForeground(new Color(110, 120, 130));
+
+        historyTitlePanel.add(historyTitle);
+        historyTitlePanel.add(Box.createVerticalStrut(2));
+        historyTitlePanel.add(historySubTitle);
+
+        // KPI summary bar
+        JPanel summaryBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        summaryBar.setBackground(Color.WHITE);
+
+        JLabel totalLabel = new JLabel("Total: 0");
+        totalLabel.setFont(new Font("Arial", Font.BOLD, 11));
         totalLabel.setForeground(textColor);
 
         JLabel approvedLabel = new JLabel("Approved: 0");
-        approvedLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        approvedLabel.setFont(new Font("Arial", Font.BOLD, 11));
         approvedLabel.setForeground(new Color(20, 165, 145));
 
-        JLabel pendingLabel = new JLabel("Pending Verification: 0");
-        pendingLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        JLabel pendingLabel = new JLabel("Pending: 0");
+        pendingLabel.setFont(new Font("Arial", Font.BOLD, 11));
         pendingLabel.setForeground(new Color(217, 119, 6));
 
         JLabel notApprovedLabel = new JLabel("Not Approved: 0");
-        notApprovedLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        notApprovedLabel.setFont(new Font("Arial", Font.BOLD, 11));
         notApprovedLabel.setForeground(new Color(220, 38, 38));
 
         summaryBar.add(totalLabel);
@@ -681,60 +792,20 @@ public class StudentDashboard extends JFrame {
         summaryBar.add(new JSeparator(SwingConstants.VERTICAL));
         summaryBar.add(notApprovedLabel);
 
-        centerContent.add(summaryBar, BorderLayout.NORTH);
+        historyHeader.add(historyTitlePanel, BorderLayout.WEST);
+        historyHeader.add(summaryBar, BorderLayout.EAST);
+        historyCard.add(historyHeader, BorderLayout.NORTH);
 
-        // Table
-        String[] columns = {"Medical ID", "Course", "Date of Absence", "Reason / Medical Condition", "Supporting Document", "Status", "Review Remarks"};
-        DefaultTableModel model = new DefaultTableModel(columns, 0) {
+        String[] historyColumns = {"Medical ID", "Course", "Date of Absence", "Reason / Medical Condition", "Supporting Document", "Status", "Review Remarks"};
+        DefaultTableModel historyModel = new DefaultTableModel(historyColumns, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
 
-        // Reload helper
-        Runnable reloadMedicals = () -> {
-            model.setRowCount(0);
-            List<Medical> list = studentDAO.getStudentMedicals(currentStudent.getUserId());
-            int total = list.size();
-            int approved = 0;
-            int pending = 0;
-            int notApproved = 0;
+        JTable historyTable = createStandardTable(historyModel);
+        historyCard.add(new JScrollPane(historyTable), BorderLayout.CENTER);
 
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            for (Medical m : list) {
-                if ("APPROVED".equalsIgnoreCase(m.getApprovalStatus())) {
-                    approved++;
-                } else if ("PENDING".equalsIgnoreCase(m.getApprovalStatus())) {
-                    pending++;
-                } else {
-                    notApproved++;
-                }
-
-                String docName = (m.getDocumentPath() != null && !m.getDocumentPath().isEmpty())
-                        ? new File(m.getDocumentPath()).getName()
-                        : "No attachment";
-
-                model.addRow(new Object[]{
-                        m.getMedicalId(),
-                        m.getCourseCode() + " - " + m.getCourseName(),
-                        m.getMedicalDate() != null ? sdf.format(m.getMedicalDate()) : "N/A",
-                        m.getReason(),
-                        docName,
-                        m.getApprovalStatus(),
-                        m.getRemarks() != null ? m.getRemarks() : "Under evaluation"
-                });
-            }
-
-            totalLabel.setText("Total Submissions: " + total);
-            approvedLabel.setText("Approved: " + approved);
-            pendingLabel.setText("Pending Verification: " + pending);
-            notApprovedLabel.setText("Not Approved: " + notApproved);
-        };
-
-        reloadMedicals.run();
-
-        JTable table = createStandardTable(model);
-
-        // Custom status color renderer
-        table.getColumnModel().getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
+        // Custom status renderer for history table
+        historyTable.getColumnModel().getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
                 JLabel lbl = (JLabel) super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, col);
@@ -752,36 +823,213 @@ public class StudentDashboard extends JFrame {
             }
         });
 
-        centerContent.add(new JScrollPane(table), BorderLayout.CENTER);
-        panel.add(centerContent, BorderLayout.CENTER);
+        // -------------------------------------------------------------
+        // SPLIT PANE: VERTICAL STACK OF BOTH TABLES
+        // -------------------------------------------------------------
+        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, absentCard, historyCard);
+        splitPane.setResizeWeight(0.48);
+        splitPane.setDividerSize(6);
+        splitPane.setBorder(null);
+        splitPane.setBackground(lightBackground);
+        panel.add(splitPane, BorderLayout.CENTER);
 
-        // Action listener for submission modal
-        submitNewBtn.addActionListener(e -> openMedicalSubmissionDialog(reloadMedicals));
+        // Store absent records in memory for table interaction
+        List<AttendanceRecord> currentAbsentRecords = new ArrayList<>();
 
+        // Unified reload helper
+        Runnable reloadMedicals = () -> {
+            // 1. Reload absent sessions (lectures lacking attendance)
+            absentModel.setRowCount(0);
+            currentAbsentRecords.clear();
+            List<AttendanceRecord> absentList = studentDAO.getAbsentSessions(currentStudent.getUserId());
+            currentAbsentRecords.addAll(absentList);
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            for (AttendanceRecord a : absentList) {
+                String medDisplay;
+                if (a.getMedicalStatus() == null) {
+                    medDisplay = "Action Required: Not Submitted";
+                } else if ("PENDING".equalsIgnoreCase(a.getMedicalStatus())) {
+                    medDisplay = "Medical Submitted (Pending)";
+                } else if ("APPROVED".equalsIgnoreCase(a.getMedicalStatus())) {
+                    medDisplay = "Medical Approved (" + (a.getMedicalId() != null ? a.getMedicalId() : "") + ")";
+                } else {
+                    medDisplay = "Medical: " + a.getMedicalStatus();
+                }
+
+                absentModel.addRow(new Object[]{
+                        a.getCourseCode(),
+                        a.getCourseName(),
+                        a.getSessionDate() != null ? sdf.format(a.getSessionDate()) : "N/A",
+                        a.getSessionType(),
+                        "#" + a.getSessionNumber(),
+                        a.getTopic() != null ? a.getTopic() : "Lecture Session",
+                        a.getStatus(),
+                        medDisplay
+                });
+            }
+
+            if (absentList.isEmpty()) {
+                absentCountBadge.setText("✓ Full Attendance (0 Absences)");
+                absentCountBadge.setForeground(new Color(20, 165, 145));
+                submitSelectedBtn.setEnabled(false);
+            } else {
+                absentCountBadge.setText(absentList.size() + " Lecture(s) Lacking Attendance");
+                absentCountBadge.setForeground(new Color(220, 38, 38));
+            }
+
+            // 2. Reload medical submissions history
+            historyModel.setRowCount(0);
+            List<Medical> list = studentDAO.getStudentMedicals(currentStudent.getUserId());
+            int total = list.size();
+            int approved = 0;
+            int pending = 0;
+            int notApproved = 0;
+
+            for (Medical m : list) {
+                if ("APPROVED".equalsIgnoreCase(m.getApprovalStatus())) {
+                    approved++;
+                } else if ("PENDING".equalsIgnoreCase(m.getApprovalStatus())) {
+                    pending++;
+                } else {
+                    notApproved++;
+                }
+
+                String docName = (m.getDocumentPath() != null && !m.getDocumentPath().isEmpty())
+                        ? new File(m.getDocumentPath()).getName()
+                        : "No attachment";
+
+                historyModel.addRow(new Object[]{
+                        m.getMedicalId(),
+                        m.getCourseCode() + " - " + m.getCourseName(),
+                        m.getMedicalDate() != null ? sdf.format(m.getMedicalDate()) : "N/A",
+                        m.getReason(),
+                        docName,
+                        m.getApprovalStatus(),
+                        m.getRemarks() != null ? m.getRemarks() : "Under evaluation"
+                });
+            }
+
+            totalLabel.setText("Total: " + total);
+            approvedLabel.setText("Approved: " + approved);
+            pendingLabel.setText("Pending: " + pending);
+            notApprovedLabel.setText("Not Approved: " + notApproved);
+        };
+
+        // Table selection handler
+        absentTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                int selectedRow = absentTable.getSelectedRow();
+                submitSelectedBtn.setEnabled(selectedRow >= 0 && selectedRow < currentAbsentRecords.size());
+            }
+        });
+
+        // Double-click on absent lecture opens dialog with pre-filled record
+        absentTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    int row = absentTable.getSelectedRow();
+                    if (row >= 0 && row < currentAbsentRecords.size()) {
+                        openMedicalSubmissionDialog(reloadMedicals, currentAbsentRecords.get(row));
+                    }
+                }
+            }
+        });
+
+        // Submit for selected button
+        submitSelectedBtn.addActionListener(e -> {
+            int row = absentTable.getSelectedRow();
+            if (row >= 0 && row < currentAbsentRecords.size()) {
+                openMedicalSubmissionDialog(reloadMedicals, currentAbsentRecords.get(row));
+            }
+        });
+
+        // New submission button (general)
+        submitNewBtn.addActionListener(e -> openMedicalSubmissionDialog(reloadMedicals, null));
+
+        reloadMedicals.run();
         return panel;
     }
 
     private void openMedicalSubmissionDialog(Runnable onSuccess) {
+        openMedicalSubmissionDialog(onSuccess, null);
+    }
+
+    private void openMedicalSubmissionDialog(Runnable onSuccess, AttendanceRecord initialRecord) {
         JDialog dialog = new JDialog(this, "Submit Medical Certificate", true);
-        dialog.setSize(540, 510);
+        dialog.setSize(620, 680);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
 
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(darkBlue);
-        header.setBorder(new EmptyBorder(16, 22, 16, 22));
+        header.setBorder(new EmptyBorder(16, 24, 16, 24));
 
         JLabel title = new JLabel("New Medical Certificate Submission");
-        title.setFont(new Font("Arial", Font.BOLD, 15));
+        title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setForeground(Color.WHITE);
-        header.add(title, BorderLayout.WEST);
+
+        JLabel subtitle = new JLabel("Excuse recorded absences by submitting certified medical documentation");
+        subtitle.setFont(new Font("Arial", Font.PLAIN, 12));
+        subtitle.setForeground(new Color(210, 225, 240));
+
+        JPanel headerText = new JPanel();
+        headerText.setLayout(new BoxLayout(headerText, BoxLayout.Y_AXIS));
+        headerText.setBackground(darkBlue);
+        headerText.add(title);
+        headerText.add(Box.createVerticalStrut(3));
+        headerText.add(subtitle);
+        header.add(headerText, BorderLayout.WEST);
 
         JPanel body = new JPanel();
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
         body.setBackground(Color.WHITE);
         body.setBorder(new EmptyBorder(20, 25, 20, 25));
 
-        // 1. Course Selection
+        // -------------------------------------------------------------
+        // 1. SELECT LECTURE LACKING ATTENDANCE (PRIMARY WORKFLOW)
+        // -------------------------------------------------------------
+        JLabel absentLbl = new JLabel("Lectures Lacking Attendance (Recorded Absences) *");
+        absentLbl.setFont(new Font("Arial", Font.BOLD, 12));
+        absentLbl.setForeground(textColor);
+
+        List<AttendanceRecord> absentSessions = studentDAO.getAbsentSessions(currentStudent.getUserId());
+        JComboBox<AbsentSessionItem> absentCombo = new JComboBox<>();
+        absentCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+        absentCombo.setPreferredSize(new Dimension(540, 36));
+
+        if (absentSessions.isEmpty()) {
+            absentCombo.addItem(new AbsentSessionItem(null, "-- No absent sessions recorded (Manual Entry) --"));
+        } else {
+            absentCombo.addItem(new AbsentSessionItem(null, "-- Select a lecture lacking attendance to autofill -- (" + absentSessions.size() + " recorded absences)"));
+            for (AttendanceRecord a : absentSessions) {
+                String label = a.getCourseCode() + " | " + a.getSessionDate() + " | " + a.getSessionType() + " #" + a.getSessionNumber() +
+                        " - " + (a.getTopic() != null ? a.getTopic() : "Lecture") +
+                        (a.getMedicalStatus() != null ? " [" + a.getMedicalStatus() + "]" : " [ABSENT]");
+                absentCombo.addItem(new AbsentSessionItem(a, label));
+            }
+            absentCombo.addItem(new AbsentSessionItem(null, "-- Other / Manual Course & Date Entry --"));
+        }
+
+        // Lecture Info Preview Banner
+        JPanel infoBanner = new JPanel(new BorderLayout(8, 4));
+        infoBanner.setBackground(new Color(240, 246, 254));
+        infoBanner.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(191, 219, 254), 1),
+                new EmptyBorder(8, 12, 8, 12)
+        ));
+        infoBanner.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
+        infoBanner.setPreferredSize(new Dimension(540, 60));
+
+        JLabel infoBannerLabel = new JLabel("<html><b>💡 Quick Selection:</b> Choose an absent lecture above to automatically pre-fill the course offering and date of absence.</html>");
+        infoBannerLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        infoBannerLabel.setForeground(new Color(30, 58, 138));
+        infoBanner.add(infoBannerLabel, BorderLayout.CENTER);
+
+        // -------------------------------------------------------------
+        // 2. ENROLLED COURSE OFFERING
+        // -------------------------------------------------------------
         JLabel courseLbl = new JLabel("Enrolled Course Offering *");
         courseLbl.setFont(new Font("Arial", Font.BOLD, 12));
         courseLbl.setForeground(textColor);
@@ -789,21 +1037,25 @@ public class StudentDashboard extends JFrame {
         List<Course> courses = studentDAO.getEnrolledCourses(currentStudent.getUserId());
         JComboBox<CourseItem> courseCombo = new JComboBox<>();
         courseCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        courseCombo.setPreferredSize(new Dimension(470, 36));
+        courseCombo.setPreferredSize(new Dimension(540, 36));
         for (Course c : courses) {
             courseCombo.addItem(new CourseItem(c.getOfferingId(), c.getCourseCode() + " - " + c.getCourseName()));
         }
 
-        // 2. Date of Absence
+        // -------------------------------------------------------------
+        // 3. DATE OF ABSENCE
+        // -------------------------------------------------------------
         JLabel dateLbl = new JLabel("Date of Absence / Medical Date (YYYY-MM-DD) *");
         dateLbl.setFont(new Font("Arial", Font.BOLD, 12));
         dateLbl.setForeground(textColor);
 
         JTextField dateField = new JTextField(new SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date()));
         dateField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        dateField.setPreferredSize(new Dimension(470, 36));
+        dateField.setPreferredSize(new Dimension(540, 36));
 
-        // 3. Reason
+        // -------------------------------------------------------------
+        // 4. REASON / DIAGNOSIS
+        // -------------------------------------------------------------
         JLabel reasonLbl = new JLabel("Reason / Medical Diagnosis *");
         reasonLbl.setFont(new Font("Arial", Font.BOLD, 12));
         reasonLbl.setForeground(textColor);
@@ -813,10 +1065,12 @@ public class StudentDashboard extends JFrame {
         reasonArea.setLineWrap(true);
         reasonArea.setWrapStyleWord(true);
         JScrollPane reasonScroll = new JScrollPane(reasonArea);
-        reasonScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 75));
-        reasonScroll.setPreferredSize(new Dimension(470, 75));
+        reasonScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
+        reasonScroll.setPreferredSize(new Dimension(540, 70));
 
-        // 4. File Attachment
+        // -------------------------------------------------------------
+        // 5. FILE ATTACHMENT
+        // -------------------------------------------------------------
         JLabel attachLbl = new JLabel("Medical Certificate Document (PDF, JPG, PNG) *");
         attachLbl.setFont(new Font("Arial", Font.BOLD, 12));
         attachLbl.setForeground(textColor);
@@ -852,6 +1106,52 @@ public class StudentDashboard extends JFrame {
         fileRow.add(fileField, BorderLayout.CENTER);
         fileRow.add(chooseBtn, BorderLayout.EAST);
 
+        // Autofill logic when absentCombo selection changes
+        absentCombo.addActionListener(e -> {
+            AbsentSessionItem selected = (AbsentSessionItem) absentCombo.getSelectedItem();
+            if (selected != null && selected.record != null) {
+                AttendanceRecord rec = selected.record;
+
+                // Match Course Offering
+                for (int i = 0; i < courseCombo.getItemCount(); i++) {
+                    CourseItem ci = courseCombo.getItemAt(i);
+                    if (ci.offeringId.equals(rec.getOfferingId())) {
+                        courseCombo.setSelectedIndex(i);
+                        break;
+                    }
+                }
+
+                // Set date
+                if (rec.getSessionDate() != null) {
+                    dateField.setText(new SimpleDateFormat("yyyy-MM-dd").format(rec.getSessionDate()));
+                }
+
+                // Suggest reason if empty or generic
+                String curReason = reasonArea.getText().trim();
+                if (curReason.isEmpty() || curReason.startsWith("Medical absence for")) {
+                    reasonArea.setText("Medical absence for " + rec.getCourseCode() + " " + rec.getSessionType() +
+                            " Session #" + rec.getSessionNumber() + " (" + (rec.getTopic() != null ? rec.getTopic() : "Lecture") + ") due to illness.");
+                }
+
+                // Update Info Banner
+                String medStatusText = rec.getMedicalStatus() != null
+                        ? "<span style='color:#D97706;'>[Medical already " + rec.getMedicalStatus() + "]</span>"
+                        : "<span style='color:#DC2626;'>[Status: ABSENT - Excusal Required]</span>";
+                infoBannerLabel.setText("<html><b>📌 Linked Lecture:</b> " + rec.getCourseCode() + " (" + rec.getCourseName() + ")<br/>" +
+                        "<b>Session:</b> " + rec.getSessionType() + " #" + rec.getSessionNumber() + " on <b>" + rec.getSessionDate() + "</b> &nbsp;|&nbsp; " +
+                        medStatusText + "</html>");
+            } else {
+                infoBannerLabel.setText("<html><b>💡 Tip:</b> Select a missed lecture above to automatically link your medical certificate, or enter details below manually.</html>");
+            }
+        });
+
+        // Assemble body
+        body.add(absentLbl);
+        body.add(Box.createVerticalStrut(5));
+        body.add(absentCombo);
+        body.add(Box.createVerticalStrut(8));
+        body.add(infoBanner);
+        body.add(Box.createVerticalStrut(12));
         body.add(courseLbl);
         body.add(Box.createVerticalStrut(5));
         body.add(courseCombo);
@@ -867,6 +1167,22 @@ public class StudentDashboard extends JFrame {
         body.add(attachLbl);
         body.add(Box.createVerticalStrut(5));
         body.add(fileRow);
+
+        // Pre-select initial record if provided
+        if (initialRecord != null) {
+            for (int i = 0; i < absentCombo.getItemCount(); i++) {
+                AbsentSessionItem item = absentCombo.getItemAt(i);
+                if (item.record != null && item.record.getSessionId().equals(initialRecord.getSessionId())) {
+                    absentCombo.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
+
+        // Wrap body in scroll pane for responsive display
+        JScrollPane scrollPane = new JScrollPane(body);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(14);
 
         // Footer buttons
         JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 12));
@@ -952,9 +1268,24 @@ public class StudentDashboard extends JFrame {
         footer.add(submitBtn);
 
         dialog.add(header, BorderLayout.NORTH);
-        dialog.add(body, BorderLayout.CENTER);
+        dialog.add(scrollPane, BorderLayout.CENTER);
         dialog.add(footer, BorderLayout.SOUTH);
         dialog.setVisible(true);
+    }
+
+    private static class AbsentSessionItem {
+        final AttendanceRecord record;
+        final String displayText;
+
+        AbsentSessionItem(AttendanceRecord record, String displayText) {
+            this.record = record;
+            this.displayText = displayText;
+        }
+
+        @Override
+        public String toString() {
+            return displayText;
+        }
     }
 
     private static class CourseItem {

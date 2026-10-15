@@ -44,6 +44,10 @@ public class StudentService {
         return studentDAO.getStudentMedicals(studentId);
     }
 
+    public List<AttendanceRecord> getAbsentSessions(String studentId) {
+        return studentDAO.getAbsentSessions(studentId);
+    }
+
     public boolean submitMedical(Medical medical) {
         return studentDAO.submitMedical(medical);
     }
