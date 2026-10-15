@@ -51,4 +51,8 @@ public class StudentService {
     public boolean submitMedical(Medical medical) {
         return studentDAO.submitMedical(medical);
     }
+
+    public boolean updateMedical(Medical medical) {
+        return studentDAO.updateMedical(medical);
+    }
 }

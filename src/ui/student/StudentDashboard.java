@@ -10,6 +10,8 @@ import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -24,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class StudentDashboard extends JFrame {
@@ -756,7 +759,7 @@ public class StudentDashboard extends JFrame {
         historyTitle.setFont(new Font("Arial", Font.BOLD, 14));
         historyTitle.setForeground(textColor);
 
-        JLabel historySubTitle = new JLabel("Review submitted medical documents, technical officer verification, and approval statuses.");
+        JLabel historySubTitle = new JLabel("Review submissions, edit specific days taken off for pending entries, or track technical officer reviews.");
         historySubTitle.setFont(new Font("Arial", Font.PLAIN, 11));
         historySubTitle.setForeground(new Color(110, 120, 130));
 
@@ -792,11 +795,26 @@ public class StudentDashboard extends JFrame {
         summaryBar.add(new JSeparator(SwingConstants.VERTICAL));
         summaryBar.add(notApprovedLabel);
 
+        // Edit Entry button
+        JButton editLeaveBtn = new JButton("✏️ Edit Selected Entry");
+        editLeaveBtn.setFont(new Font("Arial", Font.BOLD, 11));
+        editLeaveBtn.setBackground(new Color(240, 245, 250));
+        editLeaveBtn.setForeground(darkBlue);
+        editLeaveBtn.setFocusPainted(false);
+        editLeaveBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        editLeaveBtn.setEnabled(false);
+
+        JPanel historyRightBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        historyRightBar.setBackground(Color.WHITE);
+        historyRightBar.add(summaryBar);
+        historyRightBar.add(new JSeparator(SwingConstants.VERTICAL));
+        historyRightBar.add(editLeaveBtn);
+
         historyHeader.add(historyTitlePanel, BorderLayout.WEST);
-        historyHeader.add(summaryBar, BorderLayout.EAST);
+        historyHeader.add(historyRightBar, BorderLayout.EAST);
         historyCard.add(historyHeader, BorderLayout.NORTH);
 
-        String[] historyColumns = {"Medical ID", "Course", "Date of Absence", "Reason / Medical Condition", "Supporting Document", "Status", "Review Remarks"};
+        String[] historyColumns = {"Medical ID", "Course", "Days Taken Off", "Reason / Medical Condition", "Supporting Document", "Status", "Review Remarks"};
         DefaultTableModel historyModel = new DefaultTableModel(historyColumns, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -833,8 +851,9 @@ public class StudentDashboard extends JFrame {
         splitPane.setBackground(lightBackground);
         panel.add(splitPane, BorderLayout.CENTER);
 
-        // Store absent records in memory for table interaction
+        // Store records in memory for table interaction
         List<AttendanceRecord> currentAbsentRecords = new ArrayList<>();
+        List<Medical> currentMedicalList = new ArrayList<>();
 
         // Unified reload helper
         Runnable reloadMedicals = () -> {
@@ -880,7 +899,9 @@ public class StudentDashboard extends JFrame {
 
             // 2. Reload medical submissions history
             historyModel.setRowCount(0);
+            currentMedicalList.clear();
             List<Medical> list = studentDAO.getStudentMedicals(currentStudent.getUserId());
+            currentMedicalList.addAll(list);
             int total = list.size();
             int approved = 0;
             int pending = 0;
@@ -902,7 +923,7 @@ public class StudentDashboard extends JFrame {
                 historyModel.addRow(new Object[]{
                         m.getMedicalId(),
                         m.getCourseCode() + " - " + m.getCourseName(),
-                        m.getMedicalDate() != null ? sdf.format(m.getMedicalDate()) : "N/A",
+                        m.getDaysTakenOffDisplay(),
                         m.getReason(),
                         docName,
                         m.getApprovalStatus(),
@@ -914,9 +935,10 @@ public class StudentDashboard extends JFrame {
             approvedLabel.setText("Approved: " + approved);
             pendingLabel.setText("Pending: " + pending);
             notApprovedLabel.setText("Not Approved: " + notApproved);
+            editLeaveBtn.setEnabled(false);
         };
 
-        // Table selection handler
+        // Table selection handler for absent table
         absentTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 int selectedRow = absentTable.getSelectedRow();
@@ -931,7 +953,7 @@ public class StudentDashboard extends JFrame {
                 if (e.getClickCount() == 2) {
                     int row = absentTable.getSelectedRow();
                     if (row >= 0 && row < currentAbsentRecords.size()) {
-                        openMedicalSubmissionDialog(reloadMedicals, currentAbsentRecords.get(row));
+                        openMedicalSubmissionDialog(reloadMedicals, currentAbsentRecords.get(row), null);
                     }
                 }
             }
@@ -941,24 +963,73 @@ public class StudentDashboard extends JFrame {
         submitSelectedBtn.addActionListener(e -> {
             int row = absentTable.getSelectedRow();
             if (row >= 0 && row < currentAbsentRecords.size()) {
-                openMedicalSubmissionDialog(reloadMedicals, currentAbsentRecords.get(row));
+                openMedicalSubmissionDialog(reloadMedicals, currentAbsentRecords.get(row), null);
+            }
+        });
+
+        // History table selection handler
+        historyTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                int row = historyTable.getSelectedRow();
+                editLeaveBtn.setEnabled(row >= 0 && row < currentMedicalList.size());
+            }
+        });
+
+        // Action for editing selected history entry
+        editLeaveBtn.addActionListener(e -> {
+            int row = historyTable.getSelectedRow();
+            if (row >= 0 && row < currentMedicalList.size()) {
+                Medical m = currentMedicalList.get(row);
+                if ("APPROVED".equalsIgnoreCase(m.getApprovalStatus())) {
+                    JOptionPane.showMessageDialog(this,
+                            "This medical certificate has already been APPROVED and cannot be modified.\nPlease contact administration if you need changes.",
+                            "Entry Already Approved", JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                }
+                openMedicalSubmissionDialog(reloadMedicals, null, m);
+            }
+        });
+
+        // Double-click on history entry opens it for editing
+        historyTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) {
+                    int row = historyTable.getSelectedRow();
+                    if (row >= 0 && row < currentMedicalList.size()) {
+                        Medical m = currentMedicalList.get(row);
+                        if ("APPROVED".equalsIgnoreCase(m.getApprovalStatus())) {
+                            JOptionPane.showMessageDialog(StudentDashboard.this,
+                                    "This medical certificate has already been APPROVED and cannot be modified.\nPlease contact administration if you need changes.",
+                                    "Entry Already Approved", JOptionPane.INFORMATION_MESSAGE);
+                            return;
+                        }
+                        openMedicalSubmissionDialog(reloadMedicals, null, m);
+                    }
+                }
             }
         });
 
         // New submission button (general)
-        submitNewBtn.addActionListener(e -> openMedicalSubmissionDialog(reloadMedicals, null));
+        submitNewBtn.addActionListener(e -> openMedicalSubmissionDialog(reloadMedicals, null, null));
 
         reloadMedicals.run();
         return panel;
     }
 
     private void openMedicalSubmissionDialog(Runnable onSuccess) {
-        openMedicalSubmissionDialog(onSuccess, null);
+        openMedicalSubmissionDialog(onSuccess, null, null);
     }
 
     private void openMedicalSubmissionDialog(Runnable onSuccess, AttendanceRecord initialRecord) {
-        JDialog dialog = new JDialog(this, "Submit Medical Certificate", true);
-        dialog.setSize(620, 680);
+        openMedicalSubmissionDialog(onSuccess, initialRecord, null);
+    }
+
+    private void openMedicalSubmissionDialog(Runnable onSuccess, AttendanceRecord initialRecord, Medical existingMedicalToEdit) {
+        boolean isEditMode = (existingMedicalToEdit != null);
+        String dialogTitle = isEditMode ? "Edit Medical Leave Entry - " + existingMedicalToEdit.getMedicalId() : "Submit Medical Leave Certificate";
+        JDialog dialog = new JDialog(this, dialogTitle, true);
+        dialog.setSize(640, 720);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
 
@@ -966,11 +1037,11 @@ public class StudentDashboard extends JFrame {
         header.setBackground(darkBlue);
         header.setBorder(new EmptyBorder(16, 24, 16, 24));
 
-        JLabel title = new JLabel("New Medical Certificate Submission");
+        JLabel title = new JLabel(isEditMode ? "Edit Medical Leave Entry (" + existingMedicalToEdit.getMedicalId() + ")" : "New Medical Leave Certificate Submission");
         title.setFont(new Font("Arial", Font.BOLD, 16));
         title.setForeground(Color.WHITE);
 
-        JLabel subtitle = new JLabel("Excuse recorded absences by submitting certified medical documentation");
+        JLabel subtitle = new JLabel(isEditMode ? "Modify the specific days taken off, reason, or supporting certificate document" : "Select and edit the specific days taken off to excuse recorded absences");
         subtitle.setFont(new Font("Arial", Font.PLAIN, 12));
         subtitle.setForeground(new Color(210, 225, 240));
 
@@ -988,44 +1059,29 @@ public class StudentDashboard extends JFrame {
         body.setBorder(new EmptyBorder(20, 25, 20, 25));
 
         // -------------------------------------------------------------
-        // 1. SELECT LECTURE LACKING ATTENDANCE (PRIMARY WORKFLOW)
+        // 1. SELECT FROM RECORDED ABSENT LECTURES (OPTIONAL AUTOFILL)
         // -------------------------------------------------------------
-        JLabel absentLbl = new JLabel("Lectures Lacking Attendance (Recorded Absences) *");
+        JLabel absentLbl = new JLabel("Quick Fill from Recorded Absent Lectures:");
         absentLbl.setFont(new Font("Arial", Font.BOLD, 12));
         absentLbl.setForeground(textColor);
 
         List<AttendanceRecord> absentSessions = studentDAO.getAbsentSessions(currentStudent.getUserId());
         JComboBox<AbsentSessionItem> absentCombo = new JComboBox<>();
         absentCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        absentCombo.setPreferredSize(new Dimension(540, 36));
+        absentCombo.setPreferredSize(new Dimension(560, 36));
 
         if (absentSessions.isEmpty()) {
             absentCombo.addItem(new AbsentSessionItem(null, "-- No absent sessions recorded (Manual Entry) --"));
         } else {
-            absentCombo.addItem(new AbsentSessionItem(null, "-- Select a lecture lacking attendance to autofill -- (" + absentSessions.size() + " recorded absences)"));
+            absentCombo.addItem(new AbsentSessionItem(null, "-- Select an absent lecture to autofill days taken off -- (" + absentSessions.size() + " recorded absences)"));
             for (AttendanceRecord a : absentSessions) {
                 String label = a.getCourseCode() + " | " + a.getSessionDate() + " | " + a.getSessionType() + " #" + a.getSessionNumber() +
                         " - " + (a.getTopic() != null ? a.getTopic() : "Lecture") +
                         (a.getMedicalStatus() != null ? " [" + a.getMedicalStatus() + "]" : " [ABSENT]");
                 absentCombo.addItem(new AbsentSessionItem(a, label));
             }
-            absentCombo.addItem(new AbsentSessionItem(null, "-- Other / Manual Course & Date Entry --"));
+            absentCombo.addItem(new AbsentSessionItem(null, "-- Manual / Custom Leave Entry --"));
         }
-
-        // Lecture Info Preview Banner
-        JPanel infoBanner = new JPanel(new BorderLayout(8, 4));
-        infoBanner.setBackground(new Color(240, 246, 254));
-        infoBanner.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(191, 219, 254), 1),
-                new EmptyBorder(8, 12, 8, 12)
-        ));
-        infoBanner.setMaximumSize(new Dimension(Integer.MAX_VALUE, 65));
-        infoBanner.setPreferredSize(new Dimension(540, 60));
-
-        JLabel infoBannerLabel = new JLabel("<html><b>💡 Quick Selection:</b> Choose an absent lecture above to automatically pre-fill the course offering and date of absence.</html>");
-        infoBannerLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        infoBannerLabel.setForeground(new Color(30, 58, 138));
-        infoBanner.add(infoBannerLabel, BorderLayout.CENTER);
 
         // -------------------------------------------------------------
         // 2. ENROLLED COURSE OFFERING
@@ -1037,21 +1093,217 @@ public class StudentDashboard extends JFrame {
         List<Course> courses = studentDAO.getEnrolledCourses(currentStudent.getUserId());
         JComboBox<CourseItem> courseCombo = new JComboBox<>();
         courseCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        courseCombo.setPreferredSize(new Dimension(540, 36));
+        courseCombo.setPreferredSize(new Dimension(560, 36));
         for (Course c : courses) {
             courseCombo.addItem(new CourseItem(c.getOfferingId(), c.getCourseCode() + " - " + c.getCourseName()));
         }
 
         // -------------------------------------------------------------
-        // 3. DATE OF ABSENCE
+        // 3. SPECIFIC DAYS TAKEN OFF (EDITABLE DATE RANGE / PRESETS)
         // -------------------------------------------------------------
-        JLabel dateLbl = new JLabel("Date of Absence / Medical Date (YYYY-MM-DD) *");
-        dateLbl.setFont(new Font("Arial", Font.BOLD, 12));
-        dateLbl.setForeground(textColor);
+        JPanel daysPanel = new JPanel();
+        daysPanel.setLayout(new BoxLayout(daysPanel, BoxLayout.Y_AXIS));
+        daysPanel.setBackground(new Color(248, 250, 252));
+        daysPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 228, 238), 1),
+                new EmptyBorder(12, 14, 12, 14)
+        ));
+        daysPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 220));
 
-        JTextField dateField = new JTextField(new SimpleDateFormat("yyyy-MM-dd").format(new java.util.Date()));
-        dateField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        dateField.setPreferredSize(new Dimension(540, 36));
+        JLabel daysHeader = new JLabel("Specific Days Taken Off / Medical Leave Period *");
+        daysHeader.setFont(new Font("Arial", Font.BOLD, 12));
+        daysHeader.setForeground(textColor);
+
+        // Leave Mode Radios
+        JRadioButton singleDayRadio = new JRadioButton("Single Day Taken Off", true);
+        singleDayRadio.setFont(new Font("Arial", Font.PLAIN, 12));
+        singleDayRadio.setBackground(new Color(248, 250, 252));
+
+        JRadioButton multiDayRadio = new JRadioButton("Multiple Days Taken Off (Date Range)", false);
+        multiDayRadio.setFont(new Font("Arial", Font.PLAIN, 12));
+        multiDayRadio.setBackground(new Color(248, 250, 252));
+
+        ButtonGroup dayGroup = new ButtonGroup();
+        dayGroup.add(singleDayRadio);
+        dayGroup.add(multiDayRadio);
+
+        JPanel radioRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        radioRow.setBackground(new Color(248, 250, 252));
+        radioRow.add(singleDayRadio);
+        radioRow.add(multiDayRadio);
+
+        // Date input fields (Side-by-Side)
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        String defaultDate = sdf.format(new java.util.Date());
+        if (isEditMode && existingMedicalToEdit.getStartDate() != null) {
+            defaultDate = sdf.format(existingMedicalToEdit.getStartDate());
+        }
+
+        JTextField startDateField = new JTextField(defaultDate);
+        startDateField.setPreferredSize(new Dimension(240, 34));
+
+        String defaultEndDate = defaultDate;
+        if (isEditMode && existingMedicalToEdit.getEndDate() != null) {
+            defaultEndDate = sdf.format(existingMedicalToEdit.getEndDate());
+        }
+        JTextField endDateField = new JTextField(defaultEndDate);
+        endDateField.setPreferredSize(new Dimension(240, 34));
+        endDateField.setEnabled(false);
+
+        JPanel dateFieldsRow = new JPanel(new GridLayout(1, 2, 15, 0));
+        dateFieldsRow.setBackground(new Color(248, 250, 252));
+
+        JPanel startBox = new JPanel(new BorderLayout(0, 4));
+        startBox.setBackground(new Color(248, 250, 252));
+        JLabel startLbl = new JLabel("From Date / Start Date (YYYY-MM-DD) *");
+        startLbl.setFont(new Font("Arial", Font.PLAIN, 11));
+        startLbl.setForeground(new Color(75, 85, 99));
+        startBox.add(startLbl, BorderLayout.NORTH);
+        startBox.add(startDateField, BorderLayout.CENTER);
+
+        JPanel endBox = new JPanel(new BorderLayout(0, 4));
+        endBox.setBackground(new Color(248, 250, 252));
+        JLabel endLbl = new JLabel("To Date / End Date (YYYY-MM-DD) *");
+        endLbl.setFont(new Font("Arial", Font.PLAIN, 11));
+        endLbl.setForeground(new Color(75, 85, 99));
+        endBox.add(endLbl, BorderLayout.NORTH);
+        endBox.add(endDateField, BorderLayout.CENTER);
+
+        dateFieldsRow.add(startBox);
+        dateFieldsRow.add(endBox);
+
+        // Quick Day Presets Row
+        JPanel presetRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
+        presetRow.setBackground(new Color(248, 250, 252));
+        JLabel presetLbl = new JLabel("Quick Presets:");
+        presetLbl.setFont(new Font("Arial", Font.PLAIN, 11));
+        presetLbl.setForeground(new Color(100, 110, 120));
+        presetRow.add(presetLbl);
+
+        int[] presetDays = {1, 2, 3, 5, 7};
+        String[] presetNames = {"1 Day", "2 Days", "3 Days", "5 Days", "1 Week"};
+        for (int i = 0; i < presetDays.length; i++) {
+            final int daysCount = presetDays[i];
+            JButton pBtn = new JButton(presetNames[i]);
+            pBtn.setFont(new Font("Arial", Font.PLAIN, 11));
+            pBtn.setBackground(Color.WHITE);
+            pBtn.setFocusPainted(false);
+            pBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            pBtn.addActionListener(e -> {
+                try {
+                    java.util.Date s = sdf.parse(startDateField.getText().trim());
+                    Calendar cal = Calendar.getInstance();
+                    cal.setTime(s);
+                    cal.add(Calendar.DAY_OF_MONTH, daysCount - 1);
+                    endDateField.setText(sdf.format(cal.getTime()));
+                    if (daysCount == 1) {
+                        singleDayRadio.setSelected(true);
+                        endDateField.setEnabled(false);
+                    } else {
+                        multiDayRadio.setSelected(true);
+                        endDateField.setEnabled(true);
+                    }
+                } catch (Exception ex) {
+                    // Ignore date parse issues during quick click
+                }
+            });
+            presetRow.add(pBtn);
+        }
+
+        // Live calculation summary label
+        JLabel daysSummaryLabel = new JLabel("📅 Days Taken Off: 1 day (" + defaultDate + ")");
+        daysSummaryLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        daysSummaryLabel.setForeground(new Color(30, 64, 175));
+
+        JPanel summaryCard = new JPanel(new BorderLayout());
+        summaryCard.setBackground(new Color(239, 246, 255));
+        summaryCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(191, 219, 254), 1),
+                new EmptyBorder(8, 12, 8, 12)
+        ));
+        summaryCard.add(daysSummaryLabel, BorderLayout.CENTER);
+
+        // Helper to update days summary live
+        Runnable updateDaysSummary = () -> {
+            try {
+                String sStr = startDateField.getText().trim();
+                String eStr = singleDayRadio.isSelected() ? sStr : endDateField.getText().trim();
+                java.util.Date sDate = sdf.parse(sStr);
+                java.util.Date eDate = sdf.parse(eStr);
+                long diff = (eDate.getTime() - sDate.getTime()) / (1000L * 60 * 60 * 24) + 1;
+                if (diff < 1) {
+                    daysSummaryLabel.setText("⚠️ Invalid date range: End date must be on or after Start date!");
+                    daysSummaryLabel.setForeground(new Color(220, 38, 38));
+                    return;
+                }
+
+                // Check covered absences
+                int coveredCount = 0;
+                for (AttendanceRecord a : absentSessions) {
+                    if (a.getSessionDate() != null && !a.getSessionDate().before(new java.sql.Date(sDate.getTime())) && !a.getSessionDate().after(new java.sql.Date(eDate.getTime()))) {
+                        coveredCount++;
+                    }
+                }
+
+                String durationText = (diff == 1)
+                        ? "1 day (" + sStr + ")"
+                        : diff + " calendar days (" + sStr + " to " + eStr + ")";
+
+                String coveredText = (coveredCount > 0)
+                        ? " &nbsp;|&nbsp; <span style='color:#15803D;'><b>✓ Covers " + coveredCount + " recorded absent lecture(s)</b></span>"
+                        : "";
+
+                daysSummaryLabel.setText("<html>📅 <b>Days Taken Off:</b> " + durationText + coveredText + "</html>");
+                daysSummaryLabel.setForeground(new Color(30, 64, 175));
+            } catch (Exception ex) {
+                daysSummaryLabel.setText("📅 Please enter valid dates in YYYY-MM-DD format");
+                daysSummaryLabel.setForeground(new Color(156, 163, 175));
+            }
+        };
+
+        // Radio listeners
+        singleDayRadio.addActionListener(e -> {
+            endDateField.setText(startDateField.getText().trim());
+            endDateField.setEnabled(false);
+            updateDaysSummary.run();
+        });
+
+        multiDayRadio.addActionListener(e -> {
+            endDateField.setEnabled(true);
+            updateDaysSummary.run();
+        });
+
+        // Document listeners for live updates
+        DocumentListener dateDocListener = new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) {
+                if (singleDayRadio.isSelected()) {
+                    SwingUtilities.invokeLater(() -> endDateField.setText(startDateField.getText().trim()));
+                }
+                updateDaysSummary.run();
+            }
+            public void removeUpdate(DocumentEvent e) {
+                if (singleDayRadio.isSelected()) {
+                    SwingUtilities.invokeLater(() -> endDateField.setText(startDateField.getText().trim()));
+                }
+                updateDaysSummary.run();
+            }
+            public void changedUpdate(DocumentEvent e) {
+                updateDaysSummary.run();
+            }
+        };
+
+        startDateField.getDocument().addDocumentListener(dateDocListener);
+        endDateField.getDocument().addDocumentListener(dateDocListener);
+
+        daysPanel.add(daysHeader);
+        daysPanel.add(Box.createVerticalStrut(6));
+        daysPanel.add(radioRow);
+        daysPanel.add(Box.createVerticalStrut(8));
+        daysPanel.add(dateFieldsRow);
+        daysPanel.add(Box.createVerticalStrut(8));
+        daysPanel.add(presetRow);
+        daysPanel.add(Box.createVerticalStrut(8));
+        daysPanel.add(summaryCard);
 
         // -------------------------------------------------------------
         // 4. REASON / DIAGNOSIS
@@ -1064,14 +1316,17 @@ public class StudentDashboard extends JFrame {
         reasonArea.setFont(new Font("Arial", Font.PLAIN, 12));
         reasonArea.setLineWrap(true);
         reasonArea.setWrapStyleWord(true);
+        if (isEditMode && existingMedicalToEdit.getReason() != null) {
+            reasonArea.setText(existingMedicalToEdit.getReason());
+        }
         JScrollPane reasonScroll = new JScrollPane(reasonArea);
         reasonScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
-        reasonScroll.setPreferredSize(new Dimension(540, 70));
+        reasonScroll.setPreferredSize(new Dimension(560, 70));
 
         // -------------------------------------------------------------
         // 5. FILE ATTACHMENT
         // -------------------------------------------------------------
-        JLabel attachLbl = new JLabel("Medical Certificate Document (PDF, JPG, PNG) *");
+        JLabel attachLbl = new JLabel(isEditMode ? "Supporting Medical Certificate (Upload new to replace or keep current) *" : "Medical Certificate Document (PDF, JPG, PNG) *");
         attachLbl.setFont(new Font("Arial", Font.BOLD, 12));
         attachLbl.setForeground(textColor);
 
@@ -1079,7 +1334,10 @@ public class StudentDashboard extends JFrame {
         fileRow.setBackground(Color.WHITE);
         fileRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
 
-        JTextField fileField = new JTextField("No document chosen");
+        String initialFileName = isEditMode && existingMedicalToEdit.getDocumentPath() != null
+                ? new File(existingMedicalToEdit.getDocumentPath()).getName() + " (Current document attached)"
+                : "No document chosen";
+        JTextField fileField = new JTextField(initialFileName);
         fileField.setEditable(false);
         fileField.setFont(new Font("Arial", Font.PLAIN, 12));
 
@@ -1106,7 +1364,7 @@ public class StudentDashboard extends JFrame {
         fileRow.add(fileField, BorderLayout.CENTER);
         fileRow.add(chooseBtn, BorderLayout.EAST);
 
-        // Autofill logic when absentCombo selection changes
+        // Quick fill action when absentCombo selection changes
         absentCombo.addActionListener(e -> {
             AbsentSessionItem selected = (AbsentSessionItem) absentCombo.getSelectedItem();
             if (selected != null && selected.record != null) {
@@ -1121,27 +1379,21 @@ public class StudentDashboard extends JFrame {
                     }
                 }
 
-                // Set date
+                // Set date taken off
                 if (rec.getSessionDate() != null) {
-                    dateField.setText(new SimpleDateFormat("yyyy-MM-dd").format(rec.getSessionDate()));
+                    String dStr = sdf.format(rec.getSessionDate());
+                    startDateField.setText(dStr);
+                    endDateField.setText(dStr);
                 }
 
-                // Suggest reason if empty or generic
+                // Suggest reason if empty or placeholder
                 String curReason = reasonArea.getText().trim();
                 if (curReason.isEmpty() || curReason.startsWith("Medical absence for")) {
                     reasonArea.setText("Medical absence for " + rec.getCourseCode() + " " + rec.getSessionType() +
                             " Session #" + rec.getSessionNumber() + " (" + (rec.getTopic() != null ? rec.getTopic() : "Lecture") + ") due to illness.");
                 }
 
-                // Update Info Banner
-                String medStatusText = rec.getMedicalStatus() != null
-                        ? "<span style='color:#D97706;'>[Medical already " + rec.getMedicalStatus() + "]</span>"
-                        : "<span style='color:#DC2626;'>[Status: ABSENT - Excusal Required]</span>";
-                infoBannerLabel.setText("<html><b>📌 Linked Lecture:</b> " + rec.getCourseCode() + " (" + rec.getCourseName() + ")<br/>" +
-                        "<b>Session:</b> " + rec.getSessionType() + " #" + rec.getSessionNumber() + " on <b>" + rec.getSessionDate() + "</b> &nbsp;|&nbsp; " +
-                        medStatusText + "</html>");
-            } else {
-                infoBannerLabel.setText("<html><b>💡 Tip:</b> Select a missed lecture above to automatically link your medical certificate, or enter details below manually.</html>");
+                updateDaysSummary.run();
             }
         });
 
@@ -1149,16 +1401,12 @@ public class StudentDashboard extends JFrame {
         body.add(absentLbl);
         body.add(Box.createVerticalStrut(5));
         body.add(absentCombo);
-        body.add(Box.createVerticalStrut(8));
-        body.add(infoBanner);
         body.add(Box.createVerticalStrut(12));
         body.add(courseLbl);
         body.add(Box.createVerticalStrut(5));
         body.add(courseCombo);
         body.add(Box.createVerticalStrut(12));
-        body.add(dateLbl);
-        body.add(Box.createVerticalStrut(5));
-        body.add(dateField);
+        body.add(daysPanel);
         body.add(Box.createVerticalStrut(12));
         body.add(reasonLbl);
         body.add(Box.createVerticalStrut(5));
@@ -1168,8 +1416,24 @@ public class StudentDashboard extends JFrame {
         body.add(Box.createVerticalStrut(5));
         body.add(fileRow);
 
-        // Pre-select initial record if provided
-        if (initialRecord != null) {
+        // Initialize state for Edit Mode or Initial Absent Record
+        if (isEditMode) {
+            // Select course
+            for (int i = 0; i < courseCombo.getItemCount(); i++) {
+                CourseItem ci = courseCombo.getItemAt(i);
+                if (ci.offeringId.equals(existingMedicalToEdit.getOfferingId())) {
+                    courseCombo.setSelectedIndex(i);
+                    break;
+                }
+            }
+            if (existingMedicalToEdit.getStartDate() != null && existingMedicalToEdit.getEndDate() != null && !existingMedicalToEdit.getStartDate().equals(existingMedicalToEdit.getEndDate())) {
+                multiDayRadio.setSelected(true);
+                endDateField.setEnabled(true);
+            } else {
+                singleDayRadio.setSelected(true);
+                endDateField.setEnabled(false);
+            }
+        } else if (initialRecord != null) {
             for (int i = 0; i < absentCombo.getItemCount(); i++) {
                 AbsentSessionItem item = absentCombo.getItemAt(i);
                 if (item.record != null && item.record.getSessionId().equals(initialRecord.getSessionId())) {
@@ -1179,7 +1443,9 @@ public class StudentDashboard extends JFrame {
             }
         }
 
-        // Wrap body in scroll pane for responsive display
+        updateDaysSummary.run();
+
+        // Wrap body in scroll pane
         JScrollPane scrollPane = new JScrollPane(body);
         scrollPane.setBorder(null);
         scrollPane.getVerticalScrollBar().setUnitIncrement(14);
@@ -1193,7 +1459,8 @@ public class StudentDashboard extends JFrame {
         cancelBtn.setFocusPainted(false);
         cancelBtn.addActionListener(e -> dialog.dispose());
 
-        JButton submitBtn = new JButton("Submit Medical Certificate");
+        String submitBtnTitle = isEditMode ? "💾 Save Changes & Update Entry" : "Submit Medical Certificate";
+        JButton submitBtn = new JButton(submitBtnTitle);
         submitBtn.setFont(new Font("Arial", Font.BOLD, 12));
         submitBtn.setForeground(Color.WHITE);
         submitBtn.setBackground(darkBlue);
@@ -1207,13 +1474,21 @@ public class StudentDashboard extends JFrame {
                 return;
             }
 
-            String dateStr = dateField.getText().trim();
-            java.sql.Date sqlDate;
+            String startStr = startDateField.getText().trim();
+            String endStr = singleDayRadio.isSelected() ? startStr : endDateField.getText().trim();
+            java.sql.Date sqlStartDate;
+            java.sql.Date sqlEndDate;
             try {
-                java.util.Date parsed = new SimpleDateFormat("yyyy-MM-dd").parse(dateStr);
-                sqlDate = new java.sql.Date(parsed.getTime());
+                java.util.Date pStart = sdf.parse(startStr);
+                java.util.Date pEnd = sdf.parse(endStr);
+                if (pEnd.before(pStart)) {
+                    JOptionPane.showMessageDialog(dialog, "End date cannot be earlier than Start date!", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                sqlStartDate = new java.sql.Date(pStart.getTime());
+                sqlEndDate = new java.sql.Date(pEnd.getTime());
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog, "Invalid date format! Please enter YYYY-MM-DD.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(dialog, "Invalid date format! Please enter dates in YYYY-MM-DD format.", "Validation Error", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
@@ -1223,44 +1498,79 @@ public class StudentDashboard extends JFrame {
                 return;
             }
 
-            if (chosenFile[0] == null) {
+            if (!isEditMode && chosenFile[0] == null) {
                 JOptionPane.showMessageDialog(dialog, "Please attach a medical certificate file (PDF, JPG, PNG).", "Validation Error", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
             String docPath = null;
-            try {
-                File dir = new File("uploads/medicals");
-                if (!dir.exists()) dir.mkdirs();
+            if (chosenFile[0] != null) {
+                try {
+                    File dir = new File("uploads/medicals");
+                    if (!dir.exists()) dir.mkdirs();
 
-                String origName = chosenFile[0].getName().toLowerCase();
-                String ext = origName.contains(".") ? origName.substring(origName.lastIndexOf('.')) : ".pdf";
-                String targetName = currentStudent.getUserId() + "_" + System.currentTimeMillis() + ext;
-                File targetFile = new File(dir, targetName);
-                Files.copy(chosenFile[0].toPath(), targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                docPath = targetFile.getPath().replace("\\", "/");
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog, "Failed to copy attached document: " + ex.getMessage(), "File Error", JOptionPane.ERROR_MESSAGE);
-                return;
+                    String origName = chosenFile[0].getName().toLowerCase();
+                    String ext = origName.contains(".") ? origName.substring(origName.lastIndexOf('.')) : ".pdf";
+                    String targetName = currentStudent.getUserId() + "_" + System.currentTimeMillis() + ext;
+                    File targetFile = new File(dir, targetName);
+                    Files.copy(chosenFile[0].toPath(), targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    docPath = targetFile.getPath().replace("\\", "/");
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(dialog, "Failed to copy attached document: " + ex.getMessage(), "File Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            } else if (isEditMode) {
+                docPath = existingMedicalToEdit.getDocumentPath();
             }
 
-            Medical m = new Medical();
-            m.setStudentId(currentStudent.getUserId());
-            m.setOfferingId(selectedCourse.offeringId);
-            m.setMedicalDate(sqlDate);
-            m.setReason(reason);
-            m.setDocumentPath(docPath);
-            m.setRemarks("Submitted by student. Awaiting Technical Officer verification.");
+            if (isEditMode) {
+                existingMedicalToEdit.setOfferingId(selectedCourse.offeringId);
+                existingMedicalToEdit.setStartDate(sqlStartDate);
+                existingMedicalToEdit.setEndDate(sqlEndDate);
+                existingMedicalToEdit.setMedicalDate(sqlStartDate);
+                existingMedicalToEdit.setReason(reason);
+                if (docPath != null) {
+                    existingMedicalToEdit.setDocumentPath(docPath);
+                }
 
-            boolean ok = studentDAO.submitMedical(m);
-            if (ok) {
-                JOptionPane.showMessageDialog(dialog, "Medical certificate submitted successfully!\nReference ID: " + m.getMedicalId(), "Submission Successful", JOptionPane.INFORMATION_MESSAGE);
-                dialog.dispose();
-                if (onSuccess != null) {
-                    onSuccess.run();
+                boolean ok = studentDAO.updateMedical(existingMedicalToEdit);
+                if (ok) {
+                    JOptionPane.showMessageDialog(dialog,
+                            "Medical leave entry " + existingMedicalToEdit.getMedicalId() + " updated successfully!\n" +
+                            "Specific days taken off: " + existingMedicalToEdit.getDaysTakenOffDisplay(),
+                            "Entry Updated", JOptionPane.INFORMATION_MESSAGE);
+                    dialog.dispose();
+                    if (onSuccess != null) {
+                        onSuccess.run();
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(dialog, "Database error: could not update medical leave record.", "Error", JOptionPane.ERROR_MESSAGE);
                 }
             } else {
-                JOptionPane.showMessageDialog(dialog, "Database error: could not save medical certificate record.", "Error", JOptionPane.ERROR_MESSAGE);
+                Medical m = new Medical();
+                m.setStudentId(currentStudent.getUserId());
+                m.setOfferingId(selectedCourse.offeringId);
+                m.setStartDate(sqlStartDate);
+                m.setEndDate(sqlEndDate);
+                m.setMedicalDate(sqlStartDate);
+                m.setReason(reason);
+                m.setDocumentPath(docPath);
+                m.setRemarks("Submitted by student. Awaiting Technical Officer verification.");
+
+                boolean ok = studentDAO.submitMedical(m);
+                if (ok) {
+                    JOptionPane.showMessageDialog(dialog,
+                            "Medical leave certificate submitted successfully!\n" +
+                            "Reference ID: " + m.getMedicalId() + "\n" +
+                            "Specific days taken off: " + m.getDaysTakenOffDisplay(),
+                            "Submission Successful", JOptionPane.INFORMATION_MESSAGE);
+                    dialog.dispose();
+                    if (onSuccess != null) {
+                        onSuccess.run();
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(dialog, "Database error: could not save medical certificate record.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
 

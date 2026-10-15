@@ -283,8 +283,8 @@ public class StudentDAO {
         String sql = "SELECT att.attendance_id, att.session_id, att.student_id, att.status, att.remarks, " +
                      "s.offering_id, s.session_date, s.session_type, s.session_number, s.topic, " +
                      "c.course_code, c.course_name, " +
-                     "(SELECT m.approval_status FROM medicals m WHERE m.student_id = att.student_id AND m.offering_id = s.offering_id AND m.medical_date = s.session_date LIMIT 1) as medical_status, " +
-                     "(SELECT m.medical_id FROM medicals m WHERE m.student_id = att.student_id AND m.offering_id = s.offering_id AND m.medical_date = s.session_date LIMIT 1) as linked_medical_id " +
+                     "(SELECT m.approval_status FROM medicals m WHERE m.student_id = att.student_id AND m.offering_id = s.offering_id AND (m.medical_date = s.session_date OR (m.start_date <= s.session_date AND m.end_date >= s.session_date)) LIMIT 1) as medical_status, " +
+                     "(SELECT m.medical_id FROM medicals m WHERE m.student_id = att.student_id AND m.offering_id = s.offering_id AND (m.medical_date = s.session_date OR (m.start_date <= s.session_date AND m.end_date >= s.session_date)) LIMIT 1) as linked_medical_id " +
                      "FROM attendance att " +
                      "JOIN attendance_sessions s ON att.session_id = s.session_id " +
                      "JOIN course_offerings co ON s.offering_id = co.offering_id " +
@@ -481,6 +481,10 @@ public class StudentDAO {
                         med.setCourseCode(rs.getString("course_code"));
                         med.setCourseName(rs.getString("course_name"));
                         med.setMedicalDate(rs.getDate("medical_date"));
+                        try {
+                            med.setStartDate(rs.getDate("start_date"));
+                            med.setEndDate(rs.getDate("end_date"));
+                        } catch (Exception ignored) {}
                         med.setReason(rs.getString("reason"));
                         med.setDocumentPath(rs.getString("document_path"));
                         med.setApprovalStatus(rs.getString("approval_status"));
@@ -497,12 +501,12 @@ public class StudentDAO {
     }
 
     /**
-     * Submits a new medical certificate record.
+     * Submits a new medical certificate record with support for specific days taken off.
      */
     public boolean submitMedical(Medical medical) {
         String nextIdQuery = "SELECT MAX(CAST(SUBSTRING(medical_id, 4) AS UNSIGNED)) FROM medicals";
-        String insertSql = "INSERT INTO medicals (medical_id, student_id, offering_id, medical_date, reason, document_path, approval_status, remarks) " +
-                           "VALUES (?, ?, ?, ?, ?, ?, 'PENDING', ?)";
+        String insertSql = "INSERT INTO medicals (medical_id, student_id, offering_id, medical_date, start_date, end_date, reason, document_path, approval_status, remarks) " +
+                           "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?)";
 
         try {
             Connection conn = DBConnection.getConnection();
@@ -517,18 +521,54 @@ public class StudentDAO {
             String newMedicalId = String.format("MED%03d", nextNum);
             medical.setMedicalId(newMedicalId);
 
+            java.sql.Date sDate = medical.getStartDate() != null ? medical.getStartDate() : medical.getMedicalDate();
+            java.sql.Date eDate = medical.getEndDate() != null ? medical.getEndDate() : sDate;
+
             try (PreparedStatement stmt = conn.prepareStatement(insertSql)) {
                 stmt.setString(1, newMedicalId);
                 stmt.setString(2, medical.getStudentId());
                 stmt.setString(3, medical.getOfferingId());
-                stmt.setDate(4, medical.getMedicalDate());
-                stmt.setString(5, medical.getReason());
-                stmt.setString(6, medical.getDocumentPath());
-                stmt.setString(7, medical.getRemarks() != null ? medical.getRemarks() : "Submitted for academic verification");
+                stmt.setDate(4, sDate);
+                stmt.setDate(5, sDate);
+                stmt.setDate(6, eDate);
+                stmt.setString(7, medical.getReason());
+                stmt.setString(8, medical.getDocumentPath());
+                stmt.setString(9, medical.getRemarks() != null ? medical.getRemarks() : "Submitted for academic verification");
                 return stmt.executeUpdate() > 0;
             }
         } catch (SQLException e) {
             System.err.println("Error submitting medical certificate: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Updates an existing medical leave entry (selected days taken off, offering, reason, document).
+     */
+    public boolean updateMedical(Medical medical) {
+        String updateSql = "UPDATE medicals SET offering_id = ?, medical_date = ?, start_date = ?, end_date = ?, reason = ?, " +
+                           "document_path = COALESCE(?, document_path), remarks = ? " +
+                           "WHERE medical_id = ? AND student_id = ?";
+
+        try {
+            Connection conn = DBConnection.getConnection();
+            java.sql.Date sDate = medical.getStartDate() != null ? medical.getStartDate() : medical.getMedicalDate();
+            java.sql.Date eDate = medical.getEndDate() != null ? medical.getEndDate() : sDate;
+
+            try (PreparedStatement stmt = conn.prepareStatement(updateSql)) {
+                stmt.setString(1, medical.getOfferingId());
+                stmt.setDate(2, sDate);
+                stmt.setDate(3, sDate);
+                stmt.setDate(4, eDate);
+                stmt.setString(5, medical.getReason());
+                stmt.setString(6, medical.getDocumentPath());
+                stmt.setString(7, medical.getRemarks() != null ? medical.getRemarks() : "Updated by student");
+                stmt.setString(8, medical.getMedicalId());
+                stmt.setString(9, medical.getStudentId());
+                return stmt.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error updating medical certificate: " + e.getMessage());
             return false;
         }
     }

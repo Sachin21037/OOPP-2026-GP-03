@@ -9,6 +9,8 @@ public class Medical {
     private String courseCode;
     private String courseName;
     private Date medicalDate;
+    private Date startDate;
+    private Date endDate;
     private String reason;
     private String documentPath;
     private String approvalStatus; // 'PENDING', 'APPROVED', 'NOT_APPROVED'
@@ -47,6 +49,23 @@ public class Medical {
 
     public Date getMedicalDate() { return medicalDate; }
     public void setMedicalDate(Date medicalDate) { this.medicalDate = medicalDate; }
+
+    public Date getStartDate() { return startDate != null ? startDate : medicalDate; }
+    public void setStartDate(Date startDate) { this.startDate = startDate; }
+
+    public Date getEndDate() { return endDate != null ? endDate : (startDate != null ? startDate : medicalDate); }
+    public void setEndDate(Date endDate) { this.endDate = endDate; }
+
+    public String getDaysTakenOffDisplay() {
+        Date start = getStartDate();
+        Date end = getEndDate();
+        if (start == null && end == null) return "N/A";
+        if (start != null && (end == null || start.equals(end))) {
+            return start.toString() + " (1 day)";
+        }
+        long diff = (end.getTime() - start.getTime()) / (1000L * 60 * 60 * 24) + 1;
+        return start + " to " + end + " (" + diff + " days)";
+    }
 
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
