@@ -388,4 +388,22 @@ public class StudentDAO {
         }
         return list;
     }
+
+    /**
+     * Updates student profile picture path in users table.
+     */
+    public boolean updateProfilePicture(String userId, String picturePath) {
+        String sql = "UPDATE users SET profile_picture = ? WHERE user_id = ?";
+        try {
+            Connection conn = DBConnection.getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, picturePath);
+                stmt.setString(2, userId);
+                return stmt.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error updating profile picture: " + e.getMessage());
+            return false;
+        }
+    }
 }

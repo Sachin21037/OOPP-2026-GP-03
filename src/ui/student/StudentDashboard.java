@@ -4,17 +4,24 @@ import dao.StudentDAO;
 import model.*;
 import ui.login.LoginFrame;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.Ellipse2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +45,7 @@ public class StudentDashboard extends JFrame {
     private JPanel dynamicViewsPanel;
     private JLabel welcomeLabel;
     private JLabel subtitleLabel;
+    private JLabel headerAvatarLabel;
 
     private Student currentStudent;
     private final StudentDAO studentDAO = new StudentDAO();
@@ -90,17 +98,21 @@ public class StudentDashboard extends JFrame {
         systemTitle.setForeground(Color.WHITE);
         systemTitle.setFont(new Font("Arial", Font.BOLD, 19));
 
-        JPanel headerRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 18));
+        JPanel headerRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 14));
         headerRight.setOpaque(false);
 
-        JLabel userType = new JLabel("STUDENT  ");
-        userType.setForeground(new Color(180, 240, 220));
-        userType.setFont(new Font("Arial", Font.BOLD, 13));
+        String initials = getStudentInitials();
+        headerAvatarLabel = new JLabel(createAvatarIcon(currentStudent.getProfilePicture(), 36, initials));
 
         JLabel studentBadge = new JLabel(currentStudent.getFirstName() + " (" + currentStudent.getIndexNo() + ")  ");
         studentBadge.setForeground(Color.WHITE);
         studentBadge.setFont(new Font("Arial", Font.PLAIN, 12));
 
+        JLabel userType = new JLabel("STUDENT  ");
+        userType.setForeground(new Color(180, 240, 220));
+        userType.setFont(new Font("Arial", Font.BOLD, 13));
+
+        headerRight.add(headerAvatarLabel);
         headerRight.add(studentBadge);
         headerRight.add(userType);
 
@@ -583,7 +595,7 @@ public class StudentDashboard extends JFrame {
     }
 
     // ==========================================
-    // 7. MY PROFILE VIEW
+    // 7. MY PROFILE VIEW (WITH PHOTO UPLOAD)
     // ==========================================
     private JPanel buildProfilePanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
@@ -595,24 +607,270 @@ public class StudentDashboard extends JFrame {
         sectionTitle.setForeground(textColor);
         panel.add(sectionTitle, BorderLayout.NORTH);
 
-        JPanel profileCard = new JPanel(new GridLayout(4, 2, 20, 15));
-        profileCard.setBackground(Color.WHITE);
-        profileCard.setBorder(BorderFactory.createCompoundBorder(
+        // Center split: Left Card (Photo & Identity) + Right Card (Detailed Info)
+        JPanel centerGrid = new JPanel(new BorderLayout(20, 0));
+        centerGrid.setBackground(lightBackground);
+
+        // 1. LEFT CARD: Photo & Identity
+        JPanel leftCard = new JPanel();
+        leftCard.setLayout(new BoxLayout(leftCard, BoxLayout.Y_AXIS));
+        leftCard.setBackground(Color.WHITE);
+        leftCard.setPreferredSize(new Dimension(280, 440));
+        leftCard.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(225, 228, 232)),
-                BorderFactory.createEmptyBorder(25, 25, 25, 25)
+                BorderFactory.createEmptyBorder(25, 20, 25, 20)
         ));
 
-        addProfileField(profileCard, "Full Name", currentStudent.getFullName());
-        addProfileField(profileCard, "Student Index No", currentStudent.getIndexNo());
-        addProfileField(profileCard, "Department", currentStudent.getDepartment());
-        addProfileField(profileCard, "Academic Batch", currentStudent.getBatch());
-        addProfileField(profileCard, "Current Academic Level", currentStudent.getAcademicYear());
-        addProfileField(profileCard, "Official Email", currentStudent.getEmail());
-        addProfileField(profileCard, "Contact Number", currentStudent.getPhone());
-        addProfileField(profileCard, "Address / Residence", currentStudent.getAddress());
+        String initials = getStudentInitials();
+        JLabel profileAvatarLabel = new JLabel(createAvatarIcon(currentStudent.getProfilePicture(), 130, initials));
+        profileAvatarLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        panel.add(profileCard, BorderLayout.CENTER);
+        JButton uploadBtn = new JButton("📷  Upload Photo");
+        uploadBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        uploadBtn.setForeground(Color.WHITE);
+        uploadBtn.setBackground(darkBlue);
+        uploadBtn.setFocusPainted(false);
+        uploadBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        uploadBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        uploadBtn.setMaximumSize(new Dimension(180, 36));
+        uploadBtn.setPreferredSize(new Dimension(180, 36));
+
+        uploadBtn.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                uploadBtn.setBackground(new Color(38, 85, 128));
+            }
+            public void mouseExited(MouseEvent e) {
+                uploadBtn.setBackground(darkBlue);
+            }
+        });
+
+        uploadBtn.addActionListener(e -> handlePhotoUpload(profileAvatarLabel, headerAvatarLabel));
+
+        JLabel formatHint = new JLabel("Formats: JPG, JPEG, PNG");
+        formatHint.setFont(new Font("Arial", Font.PLAIN, 11));
+        formatHint.setForeground(new Color(110, 120, 130));
+        formatHint.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel maxHint = new JLabel("Standard photographs or PNG");
+        maxHint.setFont(new Font("Arial", Font.PLAIN, 10));
+        maxHint.setForeground(new Color(140, 150, 160));
+        maxHint.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JSeparator sep = new JSeparator();
+        sep.setMaximumSize(new Dimension(230, 1));
+        sep.setForeground(new Color(230, 235, 240));
+
+        JLabel nameLabel = new JLabel(currentStudent.getFullName());
+        nameLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        nameLabel.setForeground(textColor);
+        nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel indexLabel = new JLabel(currentStudent.getIndexNo());
+        indexLabel.setFont(new Font("Arial", Font.PLAIN, 13));
+        indexLabel.setForeground(new Color(100, 110, 120));
+        indexLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel statusPill = new JLabel("  " + currentStudent.getStudentStatus() + " • ACTIVE  ");
+        statusPill.setFont(new Font("Arial", Font.BOLD, 11));
+        statusPill.setForeground(new Color(20, 165, 145));
+        statusPill.setOpaque(true);
+        statusPill.setBackground(new Color(230, 247, 244));
+        statusPill.setBorder(BorderFactory.createLineBorder(new Color(180, 235, 225), 1, true));
+        statusPill.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        leftCard.add(profileAvatarLabel);
+        leftCard.add(Box.createVerticalStrut(14));
+        leftCard.add(uploadBtn);
+        leftCard.add(Box.createVerticalStrut(6));
+        leftCard.add(formatHint);
+        leftCard.add(Box.createVerticalStrut(2));
+        leftCard.add(maxHint);
+        leftCard.add(Box.createVerticalStrut(14));
+        leftCard.add(sep);
+        leftCard.add(Box.createVerticalStrut(14));
+        leftCard.add(nameLabel);
+        leftCard.add(Box.createVerticalStrut(4));
+        leftCard.add(indexLabel);
+        leftCard.add(Box.createVerticalStrut(10));
+        leftCard.add(statusPill);
+
+        // 2. RIGHT CARD: Detailed Information
+        JPanel rightCard = new JPanel(new BorderLayout());
+        rightCard.setBackground(Color.WHITE);
+        rightCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(225, 228, 232)),
+                BorderFactory.createEmptyBorder(22, 25, 22, 25)
+        ));
+
+        JLabel cardHeading = new JLabel("Academic & Personal Information");
+        cardHeading.setFont(new Font("Arial", Font.BOLD, 15));
+        cardHeading.setForeground(darkBlue);
+        cardHeading.setBorder(new EmptyBorder(0, 0, 15, 0));
+        rightCard.add(cardHeading, BorderLayout.NORTH);
+
+        JPanel fieldsGrid = new JPanel(new GridLayout(5, 2, 20, 14));
+        fieldsGrid.setBackground(Color.WHITE);
+
+        addProfileField(fieldsGrid, "Full Name", currentStudent.getFullName());
+        addProfileField(fieldsGrid, "Student User ID", currentStudent.getUserId());
+        addProfileField(fieldsGrid, "Student Index No", currentStudent.getIndexNo());
+        addProfileField(fieldsGrid, "Department", currentStudent.getDepartment());
+        addProfileField(fieldsGrid, "Academic Batch", currentStudent.getBatch());
+        addProfileField(fieldsGrid, "Current Academic Level", currentStudent.getAcademicYear());
+        addProfileField(fieldsGrid, "Official University Email", currentStudent.getEmail());
+        addProfileField(fieldsGrid, "Contact Phone Number", currentStudent.getPhone());
+        addProfileField(fieldsGrid, "Permanent Residence", currentStudent.getAddress());
+        addProfileField(fieldsGrid, "Student Status", currentStudent.getStudentStatus());
+
+        rightCard.add(fieldsGrid, BorderLayout.CENTER);
+
+        centerGrid.add(leftCard, BorderLayout.WEST);
+        centerGrid.add(rightCard, BorderLayout.CENTER);
+
+        panel.add(centerGrid, BorderLayout.CENTER);
         return panel;
+    }
+
+    private String getStudentInitials() {
+        String f = (currentStudent != null) ? currentStudent.getFirstName() : "S";
+        String l = (currentStudent != null) ? currentStudent.getLastName() : "";
+        String first = (f != null && !f.isEmpty()) ? f.substring(0, 1).toUpperCase() : "S";
+        String last = (l != null && !l.isEmpty()) ? l.substring(0, 1).toUpperCase() : "";
+        return first + last;
+    }
+
+    private ImageIcon createAvatarIcon(String imagePath, int size, String initials) {
+        BufferedImage image = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = image.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+        boolean loaded = false;
+        if (imagePath != null && !imagePath.trim().isEmpty()) {
+            File file = new File(imagePath);
+            if (file.exists() && file.isFile()) {
+                try {
+                    BufferedImage raw = ImageIO.read(file);
+                    if (raw != null) {
+                        g2.setClip(new Ellipse2D.Double(0, 0, size, size));
+                        g2.drawImage(raw, 0, 0, size, size, null);
+                        g2.setClip(null);
+
+                        g2.setColor(new Color(27, 67, 103));
+                        g2.setStroke(new BasicStroke(2.5f));
+                        g2.drawOval(1, 1, size - 3, size - 3);
+                        loaded = true;
+                    }
+                } catch (Exception ex) {
+                    System.err.println("Could not load avatar: " + ex.getMessage());
+                }
+            }
+        }
+
+        if (!loaded) {
+            GradientPaint gp = new GradientPaint(0, 0, new Color(35, 85, 130), size, size, new Color(18, 48, 76));
+            g2.setPaint(gp);
+            g2.fillOval(0, 0, size, size);
+
+            g2.setColor(new Color(180, 240, 220));
+            g2.setStroke(new BasicStroke(2f));
+            g2.drawOval(1, 1, size - 3, size - 3);
+
+            g2.setColor(Color.WHITE);
+            int fontSize = Math.max(12, size / 3);
+            g2.setFont(new Font("Arial", Font.BOLD, fontSize));
+            FontMetrics fm = g2.getFontMetrics();
+            int strW = fm.stringWidth(initials);
+            int strH = fm.getAscent();
+            g2.drawString(initials, (size - strW) / 2, (size + strH) / 2 - 3);
+        }
+
+        g2.dispose();
+        return new ImageIcon(image);
+    }
+
+    private void handlePhotoUpload(JLabel avatarLabel, JLabel headerAvatar) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Select Profile Photo (JPEG or PNG)");
+        chooser.setAcceptAllFileFilterUsed(false);
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Image Files (*.jpg, *.jpeg, *.png)", "jpg", "jpeg", "png");
+        chooser.addChoosableFileFilter(filter);
+
+        int result = chooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = chooser.getSelectedFile();
+            String name = selectedFile.getName().toLowerCase();
+
+            // Validate format: JPEG (.jpg, .jpeg) and PNG (.png)
+            if (!name.endsWith(".jpg") && !name.endsWith(".jpeg") && !name.endsWith(".png")) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Unsupported format! Please select a JPEG (.jpg, .jpeg) or PNG (.png) file.",
+                        "Invalid Format",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                return;
+            }
+
+            // Size limit: 5MB
+            if (selectedFile.length() > 5 * 1024 * 1024) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "File exceeds 5 MB limit. Please choose a smaller image.",
+                        "File Too Large",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
+            try {
+                File uploadDir = new File("uploads/profiles");
+                if (!uploadDir.exists()) {
+                    uploadDir.mkdirs();
+                }
+
+                String ext = name.substring(name.lastIndexOf('.'));
+                String targetFileName = currentStudent.getUserId() + "_" + System.currentTimeMillis() + ext;
+                File targetFile = new File(uploadDir, targetFileName);
+
+                Files.copy(selectedFile.toPath(), targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+                String savedPath = targetFile.getPath().replace("\\", "/");
+                boolean updated = studentDAO.updateProfilePicture(currentStudent.getUserId(), savedPath);
+
+                if (updated) {
+                    currentStudent.setProfilePicture(savedPath);
+
+                    String initials = getStudentInitials();
+                    avatarLabel.setIcon(createAvatarIcon(savedPath, 130, initials));
+                    if (headerAvatar != null) {
+                        headerAvatar.setIcon(createAvatarIcon(savedPath, 36, initials));
+                    }
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Profile photo updated successfully!",
+                            "Upload Successful",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
+                } else {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Database error: could not save photo path.",
+                            "Database Error",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Error saving image: " + ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+                ex.printStackTrace();
+            }
+        }
     }
 
     private void addProfileField(JPanel panel, String label, String value) {

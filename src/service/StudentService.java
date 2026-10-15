@@ -35,4 +35,8 @@ public class StudentService {
     public List<Notice> getActiveNotices() {
         return studentDAO.getActiveNotices();
     }
+
+    public boolean updateProfilePicture(String userId, String picturePath) {
+        return studentDAO.updateProfilePicture(userId, picturePath);
+    }
 }
