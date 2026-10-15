@@ -201,7 +201,10 @@ public class Attendance extends JFrame {
             // Already on Attendance page
         }));
 
-        menu.add(createMenuButton("Marks / Grades", false, () -> showComingSoon("Marks / Grades")));
+        menu.add(createMenuButton("Marks / Grades", false, () -> {
+            new MarksGrades().setVisible(true);
+            dispose();
+        }));
 
         menu.add(createMenuButton("Assignments", false, () -> showComingSoon("Assignments")));
 

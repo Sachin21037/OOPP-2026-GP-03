@@ -205,8 +205,10 @@ public class MyCourses extends JFrame {
         ));
 
         menu.add(createMenuButton(
-                "Marks / Grades", false,
-                () -> showComingSoon("Marks / Grades")
+                "Marks / Grades", false, () -> {
+                    new MarksGrades().setVisible(true);
+                    dispose();
+                }
         ));
 
         menu.add(createMenuButton(

@@ -139,7 +139,8 @@ public class LecturerProfile extends JFrame {
         }));
 
         menu.add(createMenuButton("Marks / Grades", false, () -> {
-            showComingSoon("Marks / Grades");
+            new MarksGrades().setVisible(true);
+            dispose();
         }));
 
         menu.add(createMenuButton("Assignments", false, () -> {
