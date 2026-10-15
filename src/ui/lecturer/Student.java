@@ -1,5 +1,6 @@
-
 package ui;
+
+import database.DBConnection;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -9,7 +10,15 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class Student extends JFrame {
 
@@ -42,31 +51,64 @@ public class Student extends JFrame {
     private JLabel totalStudentsValue;
     private JLabel activeStudentsValue;
     private JLabel courseCountValue;
+    private JLabel subtitleLabel;
+    private JLabel tableHintLabel;
 
-    /*
-     * Sample data for GUI testing only.
-     * Replace this with database data later.
+    // Active lecturer ID
+    private String lecturerId;
+
+    // Real student records loaded from database
+    private final List<StudentItem> loadedStudents = new ArrayList<>();
+
+    /**
+     * Inner helper class to hold student details retrieved from database.
      */
-    private final Object[][] studentData = {
-            {"stu01", "ICT/2023/001", "Kamal Perera",
-                    "ICT2132", "2023", "Active"},
-            {"stu02", "ICT/2023/002", "Nimali Silva",
-                    "ICT2142", "2023", "Active"},
-            {"stu03", "ICT/2023/003", "Amal Fernando",
-                    "ICT2123", "2023", "Active"},
-            {"stu04", "ICT/2023/004", "Sajini Kumari",
-                    "ICT2152", "2023", "Active"},
-            {"stu05", "ICT/2024/001", "Nuwan Jayasuriya",
-                    "ICT2132", "2024", "Active"},
-            {"stu06", "ICT/2024/002", "Tharushi Silva",
-                    "ICT2142", "2024", "Inactive"},
-            {"stu07", "ICT/2024/003", "Kasun Madushan",
-                    "ICT2123", "2024", "Active"},
-            {"stu08", "ICT/2024/004", "Dinithi Perera",
-                    "ICT2152", "2024", "Active"}
-    };
+    private static class StudentItem {
+        final String studentId;
+        final String indexNumber;
+        final String studentName;
+        final String courseCode;
+        final String courseName;
+        final String batch;
+        final String status;
+        final String email;
+        final String studentStatus;
 
+        StudentItem(String studentId, String indexNumber, String studentName,
+                    String courseCode, String courseName, String batch,
+                    String status, String email, String studentStatus) {
+            this.studentId = studentId != null ? studentId : "";
+            this.indexNumber = indexNumber != null ? indexNumber : "";
+            this.studentName = studentName != null ? studentName : "";
+            this.courseCode = courseCode != null ? courseCode : "";
+            this.courseName = courseName != null ? courseName : "";
+            this.batch = batch != null ? batch : "";
+            this.status = status != null ? status : "Active";
+            this.email = email != null ? email : "";
+            this.studentStatus = studentStatus != null ? studentStatus : "";
+        }
+
+        Object[] toTableRow() {
+            return new Object[]{studentId, indexNumber, studentName, courseCode, batch, status};
+        }
+    }
+
+    /**
+     * Default constructor: uses active lecturer ID from LecturerDashboard or JVM property.
+     */
     public Student() {
+        this(resolveActiveLecturerId());
+    }
+
+    /**
+     * Overloaded constructor accepting an explicit lecturer ID.
+     *
+     * @param lecturerId the lecturer ID (e.g. "LEC001")
+     */
+    public Student(String lecturerId) {
+        this.lecturerId = (lecturerId != null && !lecturerId.trim().isEmpty())
+                ? lecturerId.trim()
+                : null;
 
         setTitle(
                 "Faculty Academic Management System - Students"
@@ -83,6 +125,18 @@ public class Student extends JFrame {
         add(createHeader(), BorderLayout.NORTH);
         add(createSidebar(), BorderLayout.WEST);
         add(createMainContent(), BorderLayout.CENTER);
+    }
+
+    private static String resolveActiveLecturerId() {
+        String active = LecturerDashboard.getActiveLecturerId();
+        if (active != null && !active.trim().isEmpty()) {
+            return active.trim();
+        }
+        String sysProp = System.getProperty("fams.lecturer.id");
+        if (sysProp != null && !sysProp.trim().isEmpty()) {
+            return sysProp.trim();
+        }
+        return null;
     }
 
     // ================= HEADER =================
@@ -235,6 +289,7 @@ public class Student extends JFrame {
             );
 
             if (answer == JOptionPane.YES_OPTION) {
+                LecturerDashboard.setActiveLecturerId(null);
                 dispose();
 
                 JOptionPane.showMessageDialog(
@@ -332,7 +387,7 @@ public class Student extends JFrame {
         headingText.setLayout(
                 new BoxLayout(
                         headingText, BoxLayout.Y_AXIS
-                )
+                    )
         );
 
         JLabel pageTitle = new JLabel("Students");
@@ -343,21 +398,21 @@ public class Student extends JFrame {
 
         pageTitle.setForeground(TEXT);
 
-        JLabel subtitle = new JLabel(
+        subtitleLabel = new JLabel(
                 "View and manage students enrolled in your courses."
         );
 
-        subtitle.setFont(
+        subtitleLabel.setFont(
                 new Font("Arial", Font.PLAIN, 14)
         );
 
-        subtitle.setForeground(MUTED);
-        subtitle.setBorder(
+        subtitleLabel.setForeground(MUTED);
+        subtitleLabel.setBorder(
                 new EmptyBorder(5, 1, 0, 0)
         );
 
         headingText.add(pageTitle);
-        headingText.add(subtitle);
+        headingText.add(subtitleLabel);
 
         JLabel portalLabel = new JLabel("LECTURER PORTAL");
 
@@ -393,15 +448,15 @@ public class Student extends JFrame {
 
         summary.setBackground(BACKGROUND);
 
-        totalStudentsValue = new JLabel("8");
-        activeStudentsValue = new JLabel("7");
-        courseCountValue = new JLabel("4");
+        totalStudentsValue = new JLabel("-");
+        activeStudentsValue = new JLabel("-");
+        courseCountValue = new JLabel("-");
 
         summary.add(createSummaryCard(
                 "TOTAL STUDENTS",
                 totalStudentsValue,
                 NAVY,
-                "Students in this sample list"
+                "Enrolled across your courses"
         ));
 
         summary.add(createSummaryCard(
@@ -450,22 +505,22 @@ public class Student extends JFrame {
 
         tableTitle.setForeground(TEXT);
 
-        JLabel tableHint = new JLabel(
+        tableHintLabel = new JLabel(
                 "Select a student to view details"
         );
 
-        tableHint.setFont(
+        tableHintLabel.setFont(
                 new Font("Arial", Font.PLAIN, 11)
         );
 
-        tableHint.setForeground(MUTED);
+        tableHintLabel.setForeground(MUTED);
 
         tableHeading.add(
                 tableTitle, BorderLayout.WEST
         );
 
         tableHeading.add(
-                tableHint, BorderLayout.EAST
+                tableHintLabel, BorderLayout.EAST
         );
 
         tablePanel.add(
@@ -638,19 +693,13 @@ public class Student extends JFrame {
 
         courseFilter = new JComboBox<>(
                 new String[]{
-                        "All Courses",
-                        "ICT2132",
-                        "ICT2142",
-                        "ICT2123",
-                        "ICT2152"
+                        "All Courses"
                 }
         );
 
         batchFilter = new JComboBox<>(
                 new String[]{
-                        "All Batches",
-                        "2023",
-                        "2024"
+                        "All Batches"
                 }
         );
 
@@ -724,30 +773,23 @@ public class Student extends JFrame {
         );
 
         refreshButton.addActionListener(e -> {
-
             searchField.setText("");
-
-            courseFilter.setSelectedIndex(0);
-            batchFilter.setSelectedIndex(0);
-
+            if (courseFilter.getItemCount() > 0) courseFilter.setSelectedIndex(0);
+            if (batchFilter.getItemCount() > 0) batchFilter.setSelectedIndex(0);
             loadStudents();
-
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Student list refreshed.",
+                    "Refresh",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
         });
 
         viewButton.addActionListener(
                 e -> viewSelectedStudent()
         );
 
-        studentTable.getSelectionModel()
-                .addListSelectionListener(e -> {
-
-                    if (!e.getValueIsAdjusting()) {
-                        // Selection is handled by View Details.
-                    }
-                });
-
         body.add(tablePanel, BorderLayout.CENTER);
-
         content.add(body, BorderLayout.CENTER);
 
         loadStudents();
@@ -863,7 +905,7 @@ public class Student extends JFrame {
 
                 if (!selected) {
 
-                    if ("Active".equals(value)) {
+                    if ("Active".equalsIgnoreCase(String.valueOf(value))) {
                         label.setForeground(
                                 new Color(29, 130, 103)
                         );
@@ -944,15 +986,153 @@ public class Student extends JFrame {
 
     // ================= LOAD STUDENTS =================
 
+    /**
+     * Loads actual student records enrolled in the active lecturer's course offerings from the database.
+     * Uses DBConnection.getConnection() safely and handles errors without crashing.
+     */
     private void loadStudents() {
-
+        loadedStudents.clear();
         tableModel.setRowCount(0);
 
-        for (Object[] student : studentData) {
-            tableModel.addRow(student);
+        // Resolve lecturer ID
+        if (this.lecturerId == null || this.lecturerId.trim().isEmpty()) {
+            this.lecturerId = resolveActiveLecturerId();
+        }
+
+        // If no lecturer ID is available
+        if (this.lecturerId == null || this.lecturerId.trim().isEmpty()) {
+            if (subtitleLabel != null) {
+                subtitleLabel.setText("No active lecturer ID. Open from Lecturer Dashboard or provide an active lecturer ID.");
+            }
+            if (tableHintLabel != null) {
+                tableHintLabel.setText("NO LECTURER ID");
+            }
+            updateSummary();
+            return;
+        }
+
+        String sql =
+                "SELECT ug.student_id, ug.index_no, u.first_name, u.last_name, u.email, " +
+                "       c.course_code, c.course_name, ug.batch, ug.student_status, " +
+                "       u.status AS user_status, e.status AS enrollment_status " +
+                "FROM course_lecturers cl " +
+                "JOIN course_offerings co ON cl.offering_id = co.offering_id " +
+                "JOIN courses c ON co.course_id = c.course_id " +
+                "JOIN enrollments e ON co.offering_id = e.offering_id " +
+                "JOIN undergraduates ug ON e.student_id = ug.student_id " +
+                "JOIN users u ON ug.student_id = u.user_id " +
+                "WHERE cl.lecturer_id = ? " +
+                "ORDER BY c.course_code, ug.student_id";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, lecturerId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String studentId = rs.getString("student_id");
+                    String indexNo = rs.getString("index_no");
+                    String first = rs.getString("first_name");
+                    String last = rs.getString("last_name");
+                    String fullName = ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
+                    String email = rs.getString("email");
+                    String courseCode = rs.getString("course_code");
+                    String courseName = rs.getString("course_name");
+                    String batch = rs.getString("batch");
+                    String studentStatus = rs.getString("student_status");
+                    String userStatus = rs.getString("user_status");
+
+                    // Status formatting matching table status renderer ("Active" vs "Inactive")
+                    String displayStatus = "Active";
+                    if (userStatus != null && !userStatus.equalsIgnoreCase("ACTIVE")) {
+                        displayStatus = "Inactive";
+                    }
+
+                    loadedStudents.add(new StudentItem(
+                            studentId, indexNo, fullName, courseCode, courseName,
+                            batch, displayStatus, email, studentStatus
+                    ));
+                }
+            }
+
+            // Populate dynamic filter options
+            populateFilterDropdowns();
+
+            if (loadedStudents.isEmpty()) {
+                if (subtitleLabel != null) {
+                    subtitleLabel.setText("No students enrolled in courses assigned to lecturer " + lecturerId + ".");
+                }
+                if (tableHintLabel != null) {
+                    tableHintLabel.setText("0 STUDENTS");
+                }
+            } else {
+                if (subtitleLabel != null) {
+                    subtitleLabel.setText("View and manage students enrolled in your courses (" + lecturerId + ").");
+                }
+                if (tableHintLabel != null) {
+                    tableHintLabel.setText(loadedStudents.size() + " STUDENTS ENROLLED");
+                }
+            }
+
+            for (StudentItem student : loadedStudents) {
+                tableModel.addRow(student.toTableRow());
+            }
+
+        } catch (SQLException e) {
+            System.err.println("[Student] Database error while loading students: " + e.getMessage());
+            if (subtitleLabel != null) {
+                subtitleLabel.setText("Database error loading students: " + e.getMessage());
+            }
+            if (tableHintLabel != null) {
+                tableHintLabel.setText("DB ERROR");
+            }
         }
 
         updateSummary();
+    }
+
+    private void populateFilterDropdowns() {
+        if (courseFilter == null || batchFilter == null) {
+            return;
+        }
+
+        String currentCourse = (String) courseFilter.getSelectedItem();
+        String currentBatch = (String) batchFilter.getSelectedItem();
+
+        // Update Course Filter
+        courseFilter.removeAllItems();
+        courseFilter.addItem("All Courses");
+        Set<String> courses = new TreeSet<>();
+        for (StudentItem s : loadedStudents) {
+            if (!s.courseCode.isEmpty()) courses.add(s.courseCode);
+        }
+        for (String c : courses) {
+            courseFilter.addItem(c);
+        }
+
+        // Update Batch Filter
+        batchFilter.removeAllItems();
+        batchFilter.addItem("All Batches");
+        Set<String> batches = new TreeSet<>();
+        for (StudentItem s : loadedStudents) {
+            if (!s.batch.isEmpty()) batches.add(s.batch);
+        }
+        for (String b : batches) {
+            batchFilter.addItem(b);
+        }
+
+        if (currentCourse != null && courses.contains(currentCourse)) {
+            courseFilter.setSelectedItem(currentCourse);
+        } else {
+            courseFilter.setSelectedIndex(0);
+        }
+
+        if (currentBatch != null && batches.contains(currentBatch)) {
+            batchFilter.setSelectedItem(currentBatch);
+        } else {
+            batchFilter.setSelectedIndex(0);
+        }
     }
 
     // ================= SEARCH AND FILTER =================
@@ -975,20 +1155,13 @@ public class Student extends JFrame {
 
         tableModel.setRowCount(0);
 
-        for (Object[] student : studentData) {
+        for (StudentItem student : loadedStudents) {
 
-            String id = student[0].toString()
-                    .toLowerCase(Locale.ROOT);
-
-            String index = student[1].toString()
-                    .toLowerCase(Locale.ROOT);
-
-            String name = student[2].toString()
-                    .toLowerCase(Locale.ROOT);
-
-            String course = student[3].toString();
-
-            String batch = student[4].toString();
+            String id = student.studentId.toLowerCase(Locale.ROOT);
+            String index = student.indexNumber.toLowerCase(Locale.ROOT);
+            String name = student.studentName.toLowerCase(Locale.ROOT);
+            String course = student.courseCode;
+            String batch = student.batch;
 
             boolean matchesSearch =
                     id.contains(query)
@@ -998,18 +1171,19 @@ public class Student extends JFrame {
             boolean matchesCourse =
                     selectedCourse == null
                             || selectedCourse.equals("All Courses")
-                            || selectedCourse.equals(course);
+                            || selectedCourse.equalsIgnoreCase(course);
 
             boolean matchesBatch =
                     selectedBatch == null
                             || selectedBatch.equals("All Batches")
+                            || batch.contains(selectedBatch)
                             || selectedBatch.equals(batch);
 
             if (matchesSearch
                     && matchesCourse
                     && matchesBatch) {
 
-                tableModel.addRow(student);
+                tableModel.addRow(student.toTableRow());
             }
         }
 
@@ -1020,28 +1194,36 @@ public class Student extends JFrame {
 
     private void updateSummary() {
 
-        if (tableModel == null) {
+        if (tableModel == null
+                || totalStudentsValue == null
+                || activeStudentsValue == null
+                || courseCountValue == null) {
+            return;
+        }
+
+        if (lecturerId == null || lecturerId.trim().isEmpty()) {
+            totalStudentsValue.setText("-");
+            activeStudentsValue.setText("-");
+            courseCountValue.setText("-");
             return;
         }
 
         int total = tableModel.getRowCount();
         int active = 0;
-        java.util.Set<String> courses =
-                new java.util.HashSet<>();
+        Set<String> courses = new java.util.HashSet<>();
 
         for (int i = 0; i < total; i++) {
 
-            String status =
-                    tableModel.getValueAt(i, 5).toString();
+            Object statusObj = tableModel.getValueAt(i, 5);
+            Object courseObj = tableModel.getValueAt(i, 3);
 
-            String course =
-                    tableModel.getValueAt(i, 3).toString();
-
-            if ("Active".equals(status)) {
+            if (statusObj != null && "Active".equalsIgnoreCase(statusObj.toString())) {
                 active++;
             }
 
-            courses.add(course);
+            if (courseObj != null) {
+                courses.add(courseObj.toString());
+            }
         }
 
         totalStudentsValue.setText(
@@ -1055,6 +1237,17 @@ public class Student extends JFrame {
         courseCountValue.setText(
                 String.valueOf(courses.size())
         );
+    }
+
+    private StudentItem findStudentByIdAndCourse(String id, String course) {
+        if (id == null) return null;
+        for (StudentItem item : loadedStudents) {
+            if (item.studentId.equalsIgnoreCase(id) &&
+                    (course == null || item.courseCode.equalsIgnoreCase(course))) {
+                return item;
+            }
+        }
+        return null;
     }
 
     // ================= VIEW STUDENT DETAILS =================
@@ -1098,6 +1291,8 @@ public class Student extends JFrame {
         String status =
                 tableModel.getValueAt(row, 5).toString();
 
+        StudentItem item = findStudentByIdAndCourse(id, course);
+
         JPanel details = new JPanel(
                 new GridLayout(0, 1, 5, 8)
         );
@@ -1109,9 +1304,15 @@ public class Student extends JFrame {
         details.add(new JLabel("Student ID: " + id));
         details.add(new JLabel("Index Number: " + index));
         details.add(new JLabel("Student Name: " + name));
-        details.add(new JLabel("Course Code: " + course));
+        if (item != null && !item.email.isEmpty()) {
+            details.add(new JLabel("Email Address: " + item.email));
+        }
+        details.add(new JLabel("Course Code: " + course + (item != null && !item.courseName.isEmpty() ? " (" + item.courseName + ")" : "")));
         details.add(new JLabel("Batch: " + batch));
-        details.add(new JLabel("Status: " + status));
+        details.add(new JLabel("Account Status: " + status));
+        if (item != null && !item.studentStatus.isEmpty()) {
+            details.add(new JLabel("Academic Status: " + item.studentStatus));
+        }
 
         JOptionPane.showMessageDialog(
                 this,
@@ -1137,8 +1338,13 @@ public class Student extends JFrame {
 
     public static void main(String[] args) {
 
+        String testId = args.length > 0 ? args[0] : null;
+        if (testId != null) {
+            LecturerDashboard.setActiveLecturerId(testId);
+        }
+
         SwingUtilities.invokeLater(() -> {
-            new Student().setVisible(true);
+            new Student(testId).setVisible(true);
         });
     }
 }
