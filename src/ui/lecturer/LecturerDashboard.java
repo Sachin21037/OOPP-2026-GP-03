@@ -596,17 +596,10 @@ public class LecturerDashboard extends JFrame {
         );
     }
 
-    /*public static void main(String[] args) {
-        // Allows testing from command line or IntelliJ Run Configurations:
-        // Pass lecturer ID as first argument (e.g., LEC001) or set -Dfams.lecturer.id=LEC001
-        String lecturerArg = args.length > 0 ? args[0] : null;
+    public static void main(String[] args) {
+        String lecturerArg = (args != null && args.length > 0) ? args[0] : null;
         SwingUtilities.invokeLater(
                 () -> new LecturerDashboard(lecturerArg).setVisible(true)
-        );
-    }*/
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(
-                () -> new LecturerDashboard("LEC001").setVisible(true)
         );
     }
 }
