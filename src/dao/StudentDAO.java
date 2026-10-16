@@ -685,6 +685,30 @@ public class StudentDAO {
         try {
             Connection conn = DBConnection.getConnection();
 
+            // Strict Role-Based Access Control: Only users with LECTURER or ADMIN role can post announcements
+            String creatorId = notice.getCreatedBy();
+            if (creatorId == null || creatorId.trim().isEmpty()) {
+                System.err.println("Access Denied: Creator ID is required to post announcements.");
+                return false;
+            }
+
+            String roleQuery = "SELECT role FROM users WHERE user_id = ?";
+            try (PreparedStatement roleStmt = conn.prepareStatement(roleQuery)) {
+                roleStmt.setString(1, creatorId);
+                try (ResultSet roleRs = roleStmt.executeQuery()) {
+                    if (roleRs.next()) {
+                        String userRole = roleRs.getString("role");
+                        if (!"LECTURER".equalsIgnoreCase(userRole) && !"ADMIN".equalsIgnoreCase(userRole)) {
+                            System.err.println("Access Denied: User " + creatorId + " has role '" + userRole + "'. Only lecturers can post announcements.");
+                            return false;
+                        }
+                    } else {
+                        System.err.println("Access Denied: Creator user ID '" + creatorId + "' not found in database.");
+                        return false;
+                    }
+                }
+            }
+
             // 1. Determine next notice_id
             int nextNum = 1;
             try (Statement stmt = conn.createStatement();

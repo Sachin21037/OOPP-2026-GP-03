@@ -119,11 +119,14 @@ public class StudentDashboard extends JFrame {
         String initials = getStudentInitials();
         headerAvatarLabel = new JLabel(createAvatarIcon(currentStudent.getProfilePicture(), 36, initials));
 
-        JLabel studentBadge = new JLabel(currentStudent.getFirstName() + " (" + currentStudent.getIndexNo() + ")  ");
+        boolean isLec = currentStudent != null && "LECTURER".equalsIgnoreCase(currentStudent.getRole());
+
+        String badgeId = (isLec ? currentStudent.getUserId() : currentStudent.getIndexNo());
+        JLabel studentBadge = new JLabel(currentStudent.getFirstName() + " (" + (badgeId != null ? badgeId : currentStudent.getUserId()) + ")  ");
         studentBadge.setForeground(Color.WHITE);
         studentBadge.setFont(new Font("Arial", Font.PLAIN, 12));
 
-        JLabel userType = new JLabel("STUDENT  ");
+        JLabel userType = new JLabel(isLec ? "LECTURER  " : "STUDENT  ");
         userType.setForeground(new Color(180, 240, 220));
         userType.setFont(new Font("Arial", Font.BOLD, 13));
 
@@ -145,7 +148,7 @@ public class StudentDashboard extends JFrame {
         menuPanel.setBackground(sidebarColor);
         menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
 
-        JLabel menuTitle = new JLabel("  STUDENT MENU");
+        JLabel menuTitle = new JLabel(isLecturer() ? "  LECTURER MENU" : "  STUDENT MENU");
         menuTitle.setFont(new Font("Arial", Font.BOLD, 12));
         menuTitle.setForeground(new Color(170, 215, 245));
         menuTitle.setBorder(BorderFactory.createEmptyBorder(20, 15, 15, 0));
@@ -1953,6 +1956,10 @@ public class StudentDashboard extends JFrame {
         contentCardLayout.show(dynamicViewsPanel, sectionName);
     }
 
+    public boolean isLecturer() {
+        return currentStudent != null && "LECTURER".equalsIgnoreCase(currentStudent.getRole());
+    }
+
     private JPanel buildAnnouncementsPanel() {
         JPanel mainPanel = new JPanel(new BorderLayout(0, 14));
         mainPanel.setBackground(lightBackground);
@@ -1981,18 +1988,6 @@ public class StudentDashboard extends JFrame {
         JPanel headerButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         headerButtons.setBackground(lightBackground);
 
-        JButton postBtn = new JButton("+ Post Announcement (Lecturer)");
-        postBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        postBtn.setBackground(new Color(20, 165, 145));
-        postBtn.setForeground(Color.WHITE);
-        postBtn.setFocusPainted(false);
-        postBtn.setBorder(new CompoundBorder(
-                new LineBorder(new Color(16, 135, 120), 1, true),
-                new EmptyBorder(8, 14, 8, 14)
-        ));
-        postBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        postBtn.addActionListener(e -> showPostAnnouncementDialog());
-
         JButton refreshBtn = new JButton("🔄 Refresh");
         refreshBtn.setFont(new Font("Arial", Font.PLAIN, 12));
         refreshBtn.setBackground(Color.WHITE);
@@ -2004,9 +1999,50 @@ public class StudentDashboard extends JFrame {
         ));
         refreshBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         refreshBtn.addActionListener(e -> refreshAnnouncementsData());
-
         headerButtons.add(refreshBtn);
-        headerButtons.add(postBtn);
+
+        if (isLecturer()) {
+            JButton postBtn = new JButton("+ Post Announcement (Lecturer)");
+            postBtn.setFont(new Font("Arial", Font.BOLD, 12));
+            postBtn.setBackground(new Color(20, 165, 145));
+            postBtn.setForeground(Color.WHITE);
+            postBtn.setFocusPainted(false);
+            postBtn.setBorder(new CompoundBorder(
+                    new LineBorder(new Color(16, 135, 120), 1, true),
+                    new EmptyBorder(8, 14, 8, 14)
+            ));
+            postBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            postBtn.addActionListener(e -> showPostAnnouncementDialog(currentStudent));
+            headerButtons.add(postBtn);
+        } else {
+            // For students: Posting is restricted exclusively to lecturers
+            JLabel restrictedBadge = new JLabel("🔒 Only Lecturers can post announcements");
+            restrictedBadge.setFont(new Font("Arial", Font.BOLD, 11));
+            restrictedBadge.setForeground(new Color(115, 125, 140));
+            restrictedBadge.setBackground(new Color(238, 242, 248));
+            restrictedBadge.setOpaque(true);
+            restrictedBadge.setBorder(new CompoundBorder(
+                    new LineBorder(new Color(215, 222, 232), 1, true),
+                    new EmptyBorder(7, 12, 7, 12)
+            ));
+            restrictedBadge.setToolTipText("Access Restricted: Only faculty lecturers can create and post announcements.");
+
+            JButton lecturerAuthBtn = new JButton("Lecturer Login to Post 🔑");
+            lecturerAuthBtn.setFont(new Font("Arial", Font.PLAIN, 11));
+            lecturerAuthBtn.setBackground(Color.WHITE);
+            lecturerAuthBtn.setForeground(darkBlue);
+            lecturerAuthBtn.setBorder(new CompoundBorder(
+                    new LineBorder(new Color(195, 215, 238), 1, true),
+                    new EmptyBorder(7, 11, 7, 11)
+            ));
+            lecturerAuthBtn.setFocusPainted(false);
+            lecturerAuthBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            lecturerAuthBtn.setToolTipText("Authenticate with Lecturer credentials to post an announcement");
+            lecturerAuthBtn.addActionListener(e -> promptLecturerAuthenticationAndPost());
+
+            headerButtons.add(restrictedBadge);
+            headerButtons.add(lecturerAuthBtn);
+        }
 
         headerPanel.add(headerTitles, BorderLayout.WEST);
         headerPanel.add(headerButtons, BorderLayout.EAST);
@@ -2460,7 +2496,125 @@ public class StudentDashboard extends JFrame {
         dialog.setVisible(true);
     }
 
+    private void promptLecturerAuthenticationAndPost() {
+        JDialog authDialog = new JDialog(this, "Lecturer Authentication Required", true);
+        authDialog.setSize(440, 310);
+        authDialog.setResizable(false);
+        authDialog.setLocationRelativeTo(this);
+
+        JPanel p = new JPanel(new BorderLayout());
+        p.setBackground(lightBackground);
+
+        JPanel top = new JPanel();
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        top.setBackground(darkBlue);
+        top.setBorder(new EmptyBorder(16, 20, 16, 20));
+
+        JLabel t = new JLabel("Lecturer Authorization");
+        t.setFont(new Font("Arial", Font.BOLD, 15));
+        t.setForeground(Color.WHITE);
+
+        JLabel sub = new JLabel("Only lecturers are authorized to post announcements.");
+        sub.setFont(new Font("Arial", Font.PLAIN, 12));
+        sub.setForeground(new Color(180, 240, 220));
+
+        top.add(t);
+        top.add(Box.createVerticalStrut(3));
+        top.add(sub);
+        p.add(top, BorderLayout.NORTH);
+
+        JPanel form = new JPanel();
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.setBackground(Color.WHITE);
+        form.setBorder(new EmptyBorder(18, 22, 18, 22));
+
+        JLabel uLbl = new JLabel("Lecturer Username (e.g., lec001):");
+        uLbl.setFont(new Font("Arial", Font.BOLD, 12));
+        uLbl.setForeground(textColor);
+
+        JTextField uField = new JTextField("lec001");
+        uField.setFont(new Font("Arial", Font.PLAIN, 13));
+        uField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+
+        JLabel pLbl = new JLabel("Lecturer Password (e.g., Lec@123):");
+        pLbl.setFont(new Font("Arial", Font.BOLD, 12));
+        pLbl.setForeground(textColor);
+
+        JPasswordField pField = new JPasswordField("Lec@123");
+        pField.setFont(new Font("Arial", Font.PLAIN, 13));
+        pField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+
+        JLabel errLbl = new JLabel(" ");
+        errLbl.setFont(new Font("Arial", Font.PLAIN, 11));
+        errLbl.setForeground(new Color(210, 50, 50));
+
+        form.add(uLbl);
+        form.add(Box.createVerticalStrut(4));
+        form.add(uField);
+        form.add(Box.createVerticalStrut(10));
+        form.add(pLbl);
+        form.add(Box.createVerticalStrut(4));
+        form.add(pField);
+        form.add(Box.createVerticalStrut(4));
+        form.add(errLbl);
+
+        p.add(form, BorderLayout.CENTER);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 12));
+        btnPanel.setBackground(lightBackground);
+
+        JButton cancelBtn = new JButton("Cancel");
+        cancelBtn.setFont(new Font("Arial", Font.PLAIN, 12));
+        cancelBtn.setBackground(Color.WHITE);
+        cancelBtn.addActionListener(e -> authDialog.dispose());
+
+        JButton verifyBtn = new JButton("Verify & Continue to Post");
+        verifyBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        verifyBtn.setBackground(new Color(20, 165, 145));
+        verifyBtn.setForeground(Color.WHITE);
+        verifyBtn.setFocusPainted(false);
+        verifyBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        verifyBtn.addActionListener(e -> {
+            String u = uField.getText().trim();
+            String pwd = new String(pField.getPassword()).trim();
+            if (u.isEmpty() || pwd.isEmpty()) {
+                errLbl.setText("Please enter both lecturer username and password.");
+                return;
+            }
+            dao.UserDAO uDao = new dao.UserDAO();
+            User verified = uDao.authenticate(u, pwd);
+            if (verified != null && "LECTURER".equalsIgnoreCase(verified.getRole())) {
+                authDialog.dispose();
+                showPostAnnouncementDialog(verified);
+            } else {
+                errLbl.setText("Access Denied: Only authenticated lecturers can post.");
+            }
+        });
+
+        btnPanel.add(cancelBtn);
+        btnPanel.add(verifyBtn);
+        p.add(btnPanel, BorderLayout.SOUTH);
+
+        authDialog.add(p);
+        authDialog.setVisible(true);
+    }
+
     private void showPostAnnouncementDialog() {
+        if (isLecturer()) {
+            showPostAnnouncementDialog(currentStudent);
+        } else {
+            promptLecturerAuthenticationAndPost();
+        }
+    }
+
+    private void showPostAnnouncementDialog(User authorizedLecturer) {
+        if (authorizedLecturer == null || (!"LECTURER".equalsIgnoreCase(authorizedLecturer.getRole()) && !"ADMIN".equalsIgnoreCase(authorizedLecturer.getRole()))) {
+            JOptionPane.showMessageDialog(this,
+                    "Access Denied: Only lecturers are authorized to post announcements.",
+                    "Unauthorized Action", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         JDialog dialog = new JDialog(this, "Post Advance Announcement (Lecturer Portal)", true);
         dialog.setSize(620, 680);
         dialog.setResizable(false);
@@ -2475,7 +2629,7 @@ public class StudentDashboard extends JFrame {
         header.setBackground(darkBlue);
         header.setBorder(new EmptyBorder(18, 22, 18, 22));
 
-        JLabel titleLbl = new JLabel("Post Advance Announcement");
+        JLabel titleLbl = new JLabel("Post Advance Announcement (Lecturer Portal)");
         titleLbl.setFont(new Font("Arial", Font.BOLD, 17));
         titleLbl.setForeground(Color.WHITE);
 
@@ -2494,27 +2648,22 @@ public class StudentDashboard extends JFrame {
         form.setBackground(Color.WHITE);
         form.setBorder(new EmptyBorder(20, 25, 20, 25));
 
-        // 1. Lecturer Selection
-        JLabel lecLabel = new JLabel("Lecturer / Creator:");
+        // 1. Authenticated Lecturer Display
+        JLabel lecLabel = new JLabel("Authenticated Lecturer / Author:");
         lecLabel.setFont(new Font("Arial", Font.BOLD, 12));
         lecLabel.setForeground(textColor);
 
-        JComboBox<LecturerItem> lecCombo = new JComboBox<>();
-        lecCombo.setFont(new Font("Arial", Font.PLAIN, 13));
-        lecCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
-
-        List<User> lecturers = studentDAO.getLecturers();
-        if (lecturers.isEmpty()) {
-            lecCombo.addItem(new LecturerItem("LEC001", "Kasun Perera", "Senior Lecturer"));
-            lecCombo.addItem(new LecturerItem("LEC002", "Nadeesha Fernando", "Lecturer"));
-            lecCombo.addItem(new LecturerItem("LEC003", "Tharindu Silva", "Lecturer"));
-            lecCombo.addItem(new LecturerItem("LEC004", "Ayesha Bandara", "Lecturer"));
-            lecCombo.addItem(new LecturerItem("LEC005", "Ruwan Jayasinghe", "Lecturer"));
-        } else {
-            for (User u : lecturers) {
-                lecCombo.addItem(new LecturerItem(u.getUserId(), u.getFirstName() + " " + u.getLastName(), "Lecturer"));
-            }
-        }
+        String lecDisplayName = authorizedLecturer.getFirstName() + " " + authorizedLecturer.getLastName() + " (" + authorizedLecturer.getUserId() + ") - Verified Lecturer";
+        JTextField lecField = new JTextField(lecDisplayName);
+        lecField.setFont(new Font("Arial", Font.BOLD, 12));
+        lecField.setEditable(false);
+        lecField.setBackground(new Color(245, 252, 248));
+        lecField.setForeground(new Color(20, 110, 95));
+        lecField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        lecField.setBorder(new CompoundBorder(
+                new LineBorder(new Color(180, 230, 215), 1),
+                new EmptyBorder(6, 10, 6, 10)
+        ));
 
         // 2. Course Offering Selection
         JLabel courseLabel = new JLabel("Target Course Offering:");
@@ -2665,7 +2814,7 @@ public class StudentDashboard extends JFrame {
         // Assemble Form
         form.add(lecLabel);
         form.add(Box.createVerticalStrut(4));
-        form.add(lecCombo);
+        form.add(lecField);
         form.add(Box.createVerticalStrut(10));
 
         form.add(courseLabel);
@@ -2745,7 +2894,6 @@ public class StudentDashboard extends JFrame {
                 return;
             }
 
-            LecturerItem selectedLec = (LecturerItem) lecCombo.getSelectedItem();
             CourseOfferingItem selectedCourse = (CourseOfferingItem) courseCombo.getSelectedItem();
             String rawType = (String) typeCombo.getSelectedItem();
             String typeCategory = "GENERAL";
@@ -2766,8 +2914,8 @@ public class StudentDashboard extends JFrame {
             n.setNoticeDate(new java.sql.Date(System.currentTimeMillis()));
             n.setEventDate(sqlDate);
             n.setNoticeType(typeCategory);
-            n.setCreatedBy(selectedLec != null ? selectedLec.userId : "LEC001");
-            n.setAuthorName(selectedLec != null ? selectedLec.name : "Lecturer");
+            n.setCreatedBy(authorizedLecturer.getUserId());
+            n.setAuthorName(authorizedLecturer.getFirstName() + " " + authorizedLecturer.getLastName());
             if (selectedCourse != null) {
                 n.setCourseCode(selectedCourse.courseCode);
                 n.setCourseName(selectedCourse.courseName);
@@ -2786,7 +2934,7 @@ public class StudentDashboard extends JFrame {
             if (ok) {
                 JOptionPane.showMessageDialog(
                         dialog,
-                        "Advance Announcement posted successfully!\n\n" +
+                        "Advance Announcement posted successfully by Lecturer " + authorizedLecturer.getFirstName() + " " + authorizedLecturer.getLastName() + "!\n\n" +
                         "• Title: " + title + "\n" +
                         "• Scheduled Date: " + sqlDate + "\n" +
                         "• Course: " + (selectedCourse != null ? selectedCourse.courseCode : "N/A") + "\n\n" +
@@ -2807,7 +2955,6 @@ public class StudentDashboard extends JFrame {
         mainPanel.add(bottomBar, BorderLayout.SOUTH);
 
         dialog.add(mainPanel);
-        dialog.setVisible(true);
     }
 
     private static class LecturerItem {
