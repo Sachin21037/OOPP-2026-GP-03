@@ -572,4 +572,253 @@ public class StudentDAO {
             return false;
         }
     }
+
+    /**
+     * Retrieves all announcements, including faculty notices and advance assessment alerts (quizzes & assignments).
+     */
+    public List<Notice> getAllAnnouncements(String studentId) {
+        List<Notice> list = new ArrayList<>();
+
+        // 1. Fetch active faculty notices
+        String noticeSql = "SELECT n.*, CONCAT(u.first_name, ' ', u.last_name) as author_name, u.role as author_role " +
+                           "FROM notices n " +
+                           "LEFT JOIN users u ON n.created_by = u.user_id " +
+                           "WHERE n.status = 'ACTIVE' " +
+                           "ORDER BY n.notice_date DESC";
+        try {
+            Connection conn = DBConnection.getConnection();
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(noticeSql)) {
+                while (rs.next()) {
+                    Notice notice = new Notice();
+                    notice.setNoticeId(rs.getString("notice_id"));
+                    notice.setTitle(rs.getString("title"));
+                    notice.setDescription(rs.getString("description"));
+                    notice.setNoticeDate(rs.getDate("notice_date"));
+                    notice.setCreatedBy(rs.getString("created_by"));
+                    String author = rs.getString("author_name");
+                    String role = rs.getString("author_role");
+                    if (author != null) {
+                        notice.setAuthorName(author + (role != null && role.equalsIgnoreCase("LECTURER") ? " (Lecturer)" : " (Faculty Admin)"));
+                    } else {
+                        notice.setAuthorName("Academic Department");
+                    }
+                    notice.setStatus(rs.getString("status"));
+                    list.add(notice);
+                }
+            }
+
+            // 2. Fetch advance assessment announcements (quizzes & assignments) for student's enrolled courses
+            String asmSql = "SELECT a.*, c.course_code, c.course_name, CONCAT(u.first_name, ' ', u.last_name) as lecturer_name " +
+                            "FROM assessments a " +
+                            "JOIN course_offerings co ON a.offering_id = co.offering_id " +
+                            (studentId != null && !studentId.isEmpty() ? "JOIN enrollments e ON co.offering_id = e.offering_id AND e.student_id = ? " : "") +
+                            "JOIN courses c ON co.course_id = c.course_id " +
+                            "LEFT JOIN users u ON a.created_by = u.user_id " +
+                            "ORDER BY a.assessment_date ASC";
+            try (PreparedStatement stmt = conn.prepareStatement(asmSql)) {
+                if (studentId != null && !studentId.isEmpty()) {
+                    stmt.setString(1, studentId);
+                }
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        String asmName = rs.getString("assessment_name");
+                        String courseCode = rs.getString("course_code");
+                        String type = rs.getString("assessment_type");
+                        java.sql.Date date = rs.getDate("assessment_date");
+                        BigDecimal weight = rs.getBigDecimal("weight_percentage");
+                        BigDecimal maxMarks = rs.getBigDecimal("max_marks");
+                        String lecturer = rs.getString("lecturer_name");
+
+                        Notice asmNotice = new Notice();
+                        asmNotice.setNoticeId(rs.getString("assessment_id"));
+                        asmNotice.setCourseCode(courseCode);
+                        asmNotice.setCourseName(rs.getString("course_name"));
+                        asmNotice.setOfferingId(rs.getString("offering_id"));
+                        asmNotice.setEventDate(date);
+                        asmNotice.setNoticeDate(date);
+                        asmNotice.setNoticeType(type);
+                        asmNotice.setAuthorName(lecturer != null ? lecturer + " (Course Lecturer)" : "Course Lecturer");
+                        asmNotice.setCreatedBy(rs.getString("created_by"));
+
+                        String typeDisplay = "QUIZ".equalsIgnoreCase(type) ? "Quiz Announcement" : 
+                                             "ASSIGNMENT".equalsIgnoreCase(type) ? "Assignment Notice" : "Assessment Notice";
+                        asmNotice.setTitle("[" + courseCode + "] " + typeDisplay + ": " + asmName);
+
+                        String desc = "Advance Announcement for " + courseCode + " - " + rs.getString("course_name") + ".\n" +
+                                      "Scheduled Date: " + (date != null ? date.toString() : "TBA") + " | " +
+                                      "Weight: " + (weight != null ? weight + "%" : "N/A") + " | " +
+                                      "Max Marks: " + (maxMarks != null ? maxMarks : "100") + ".\n" +
+                                      "Please ensure thorough preparation beforehand. Contact course lecturer for any clarification.";
+                        asmNotice.setDescription(desc);
+                        asmNotice.setStatus("ACTIVE");
+
+                        list.add(asmNotice);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching announcements: " + e.getMessage());
+        }
+
+        // Sort: items with closest future dates first, then by date descending
+        list.sort((n1, n2) -> {
+            java.sql.Date d1 = n1.getEventDate() != null ? n1.getEventDate() : n1.getNoticeDate();
+            java.sql.Date d2 = n2.getEventDate() != null ? n2.getEventDate() : n2.getNoticeDate();
+            if (d1 == null && d2 == null) return 0;
+            if (d1 == null) return 1;
+            if (d2 == null) return -1;
+            return d2.compareTo(d1);
+        });
+
+        return list;
+    }
+
+    /**
+     * Allows a lecturer to post an advance announcement.
+     * Optionally registers the quiz/assignment in the assessments table so students can track it.
+     */
+    public boolean postAnnouncement(Notice notice, String offeringId, String assessmentType, BigDecimal weightPercentage, BigDecimal maxMarks, boolean syncWithAssessments) {
+        String nextNoticeSql = "SELECT MAX(CAST(SUBSTRING(notice_id, 4) AS UNSIGNED)) FROM notices";
+        String insertNoticeSql = "INSERT INTO notices (notice_id, title, description, notice_date, created_by, status) VALUES (?, ?, ?, ?, ?, 'ACTIVE')";
+
+        try {
+            Connection conn = DBConnection.getConnection();
+
+            // 1. Determine next notice_id
+            int nextNum = 1;
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(nextNoticeSql)) {
+                if (rs.next()) {
+                    nextNum = rs.getInt(1) + 1;
+                }
+            }
+            String newNoticeId = String.format("NOT%03d", nextNum);
+            notice.setNoticeId(newNoticeId);
+
+            java.sql.Date pDate = notice.getNoticeDate() != null ? notice.getNoticeDate() : new java.sql.Date(System.currentTimeMillis());
+
+            // Insert notice record
+            try (PreparedStatement stmt = conn.prepareStatement(insertNoticeSql)) {
+                stmt.setString(1, newNoticeId);
+                stmt.setString(2, notice.getTitle());
+                stmt.setString(3, notice.getDescription());
+                stmt.setDate(4, pDate);
+                stmt.setString(5, notice.getCreatedBy() != null ? notice.getCreatedBy() : "LEC001");
+                stmt.executeUpdate();
+            } catch (SQLException ex) {
+                // If foreign key constraint triggers due to legacy admin FK, fallback to ADM001 safely
+                if (ex.getMessage().contains("foreign key") || ex.getMessage().contains("CONSTRAINT")) {
+                    try (PreparedStatement stmt = conn.prepareStatement(insertNoticeSql)) {
+                        stmt.setString(1, newNoticeId);
+                        stmt.setString(2, notice.getTitle());
+                        stmt.setString(3, notice.getDescription());
+                        stmt.setDate(4, pDate);
+                        stmt.setString(5, "ADM001");
+                        stmt.executeUpdate();
+                    }
+                } else {
+                    throw ex;
+                }
+            }
+
+            // 2. If syncWithAssessments requested and offeringId given, insert into assessments table
+            if (syncWithAssessments && offeringId != null && !offeringId.isEmpty()) {
+                String nextAsmSql = "SELECT MAX(CAST(SUBSTRING(assessment_id, 4) AS UNSIGNED)) FROM assessments";
+                int nextAsmNum = 1;
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery(nextAsmSql)) {
+                    if (rs.next()) {
+                        nextAsmNum = rs.getInt(1) + 1;
+                    }
+                }
+                String newAsmId = String.format("ASM%03d", nextAsmNum);
+
+                String insertAsmSql = "INSERT INTO assessments (assessment_id, offering_id, assessment_name, assessment_type, weight_percentage, max_marks, assessment_date, created_by) " +
+                                      "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                try (PreparedStatement stmt = conn.prepareStatement(insertAsmSql)) {
+                    stmt.setString(1, newAsmId);
+                    stmt.setString(2, offeringId);
+                    stmt.setString(3, notice.getTitle());
+                    stmt.setString(4, assessmentType != null ? assessmentType : "QUIZ");
+                    stmt.setBigDecimal(5, weightPercentage != null ? weightPercentage : new BigDecimal("10.00"));
+                    stmt.setBigDecimal(6, maxMarks != null ? maxMarks : new BigDecimal("100.00"));
+                    stmt.setDate(7, notice.getEventDate() != null ? notice.getEventDate() : pDate);
+                    stmt.setString(8, notice.getCreatedBy() != null ? notice.getCreatedBy() : "LEC001");
+                    stmt.executeUpdate();
+                }
+            }
+
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error posting announcement: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Retrieves all lecturers for announcement posting and contact information.
+     */
+    public List<User> getLecturers() {
+        List<User> list = new ArrayList<>();
+        String sql = "SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone, l.department, l.designation " +
+                     "FROM users u " +
+                     "JOIN lecturers l ON u.user_id = l.lecturer_id " +
+                     "WHERE u.status = 'ACTIVE' " +
+                     "ORDER BY u.first_name";
+        try {
+            Connection conn = DBConnection.getConnection();
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(sql)) {
+                while (rs.next()) {
+                    User u = new User();
+                    u.setUserId(rs.getString("user_id"));
+                    u.setFirstName(rs.getString("first_name"));
+                    u.setLastName(rs.getString("last_name"));
+                    u.setEmail(rs.getString("email"));
+                    u.setPhone(rs.getString("phone"));
+                    u.setRole("LECTURER");
+                    list.add(u);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching lecturers: " + e.getMessage());
+        }
+        return list;
+    }
+
+    /**
+     * Retrieves all course offerings with associated course code, name, and assigned lecturer.
+     */
+    public List<Course> getAllCourseOfferings() {
+        List<Course> list = new ArrayList<>();
+        String sql = "SELECT co.offering_id, c.course_id, c.course_code, c.course_name, c.credits, " +
+                     "co.academic_year, co.semester, co.batch, " +
+                     "CONCAT(u.first_name, ' ', u.last_name) as lecturer_name " +
+                     "FROM course_offerings co " +
+                     "JOIN courses c ON co.course_id = c.course_id " +
+                     "LEFT JOIN course_lecturers cl ON co.offering_id = cl.offering_id " +
+                     "LEFT JOIN users u ON cl.lecturer_id = u.user_id " +
+                     "ORDER BY c.course_code";
+        try {
+            Connection conn = DBConnection.getConnection();
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(sql)) {
+                while (rs.next()) {
+                    Course c = new Course();
+                    c.setCourseId(rs.getString("course_id"));
+                    c.setCourseCode(rs.getString("course_code"));
+                    c.setCourseName(rs.getString("course_name"));
+                    c.setCredits(rs.getInt("credits"));
+                    c.setOfferingId(rs.getString("offering_id"));
+                    c.setLecturerName(rs.getString("lecturer_name"));
+                    list.add(c);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching course offerings: " + e.getMessage());
+        }
+        return list;
+    }
 }
+

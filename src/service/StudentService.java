@@ -3,6 +3,7 @@ package service;
 import dao.StudentDAO;
 import model.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class StudentService {
@@ -55,4 +56,21 @@ public class StudentService {
     public boolean updateMedical(Medical medical) {
         return studentDAO.updateMedical(medical);
     }
+
+    public List<Notice> getAllAnnouncements(String studentId) {
+        return studentDAO.getAllAnnouncements(studentId);
+    }
+
+    public boolean postAnnouncement(Notice notice, String offeringId, String assessmentType, BigDecimal weightPercentage, BigDecimal maxMarks, boolean syncWithAssessments) {
+        return studentDAO.postAnnouncement(notice, offeringId, assessmentType, weightPercentage, maxMarks, syncWithAssessments);
+    }
+
+    public List<User> getLecturers() {
+        return studentDAO.getLecturers();
+    }
+
+    public List<Course> getAllCourseOfferings() {
+        return studentDAO.getAllCourseOfferings();
+    }
 }
+

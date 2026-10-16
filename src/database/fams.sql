@@ -1727,7 +1727,8 @@ ALTER TABLE `medicals`
 -- Constraints for table `notices`
 --
 ALTER TABLE `notices`
-  ADD CONSTRAINT `notices_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `admins` (`admin_id`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `notices_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON UPDATE CASCADE;
+
 
 --
 -- Constraints for table `results`

@@ -179,7 +179,6 @@ public class LoginFrame extends JFrame {
         usernameField.addKeyListener(enterKeyAdapter);
         passwordField.addKeyListener(enterKeyAdapter);
 
-        // Demo credentials quick-fill button
         JButton demoBtn = new JButton("Use Sample Student Credentials (stu001 / Stu@123)");
         demoBtn.setFont(new Font("Arial", Font.PLAIN, 11));
         demoBtn.setForeground(new Color(27, 67, 103));
@@ -188,10 +187,25 @@ public class LoginFrame extends JFrame {
         demoBtn.setFocusPainted(false);
         demoBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         demoBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        demoBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        demoBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
         demoBtn.addActionListener(e -> {
             usernameField.setText("stu001");
             passwordField.setText("Stu@123");
+            statusLabel.setText(" ");
+        });
+
+        JButton demoLecBtn = new JButton("Use Sample Lecturer Credentials (lec001 / Lec@123)");
+        demoLecBtn.setFont(new Font("Arial", Font.PLAIN, 11));
+        demoLecBtn.setForeground(new Color(20, 165, 145));
+        demoLecBtn.setBackground(new Color(240, 252, 248));
+        demoLecBtn.setBorder(new LineBorder(new Color(180, 230, 215), 1));
+        demoLecBtn.setFocusPainted(false);
+        demoLecBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        demoLecBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
+        demoLecBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+        demoLecBtn.addActionListener(e -> {
+            usernameField.setText("lec001");
+            passwordField.setText("Lec@123");
             statusLabel.setText(" ");
         });
 
@@ -213,8 +227,10 @@ public class LoginFrame extends JFrame {
         formCard.add(statusLabel);
         formCard.add(Box.createVerticalStrut(8));
         formCard.add(loginButton);
-        formCard.add(Box.createVerticalStrut(12));
+        formCard.add(Box.createVerticalStrut(10));
         formCard.add(demoBtn);
+        formCard.add(Box.createVerticalStrut(6));
+        formCard.add(demoLecBtn);
 
         centerWrapper.add(formCard);
         mainPanel.add(centerWrapper, BorderLayout.CENTER);
@@ -262,15 +278,38 @@ public class LoginFrame extends JFrame {
                 timer.setRepeats(false);
                 timer.start();
 
+            } else if ("LECTURER".equalsIgnoreCase(user.getRole())) {
+                statusLabel.setForeground(accentColor);
+                statusLabel.setText("Login successful! Opening Lecturer Portal...");
+
+                Student lecturerUser = new Student(
+                        user.getUserId(), user.getUsername(), user.getRole(),
+                        user.getFirstName(), user.getLastName(), user.getEmail(),
+                        user.getPhone(), user.getAddress(), user.getStatus(),
+                        "STAFF-" + user.getUserId(), "Academic Staff", "2026/2027",
+                        "Department of Information & Communication Technology", "ACTIVE"
+                );
+
+                final Student finalLecturer = lecturerUser;
+                Timer timer = new Timer(350, evt -> {
+                    dispose();
+                    StudentDashboard dash = new StudentDashboard(finalLecturer);
+                    dash.setVisible(true);
+                    dash.navigateToSection("Announcements");
+                });
+                timer.setRepeats(false);
+                timer.start();
+
             } else {
                 statusLabel.setForeground(new Color(210, 60, 60));
-                statusLabel.setText("Access denied: User is not an undergraduate student.");
+                statusLabel.setText("Access denied: User role (" + user.getRole() + ") is not supported.");
             }
         } else {
             statusLabel.setForeground(new Color(210, 60, 60));
             statusLabel.setText("Invalid username or password. Please try again.");
         }
     }
+
 
     public static void main(String[] args) {
         try {

@@ -22,9 +22,11 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -53,6 +55,16 @@ public class StudentDashboard extends JFrame {
     private Student currentStudent;
     private final StudentDAO studentDAO = new StudentDAO();
     private final List<JButton> menuButtons = new ArrayList<>();
+
+    // Announcements state
+    private JPanel announcementsListContainer;
+    private List<Notice> allAnnouncementsList = new ArrayList<>();
+    private String currentAnnouncementFilter = "ALL";
+    private String currentAnnouncementSearch = "";
+    private JLabel announcementsCountLabel;
+    private JLabel quizzesCountLabel;
+    private JLabel assignmentsCountLabel;
+    private final List<JButton> filterButtons = new ArrayList<>();
 
     // Default constructor for standalone launch
     public StudentDashboard() {
@@ -148,6 +160,7 @@ public class StudentDashboard extends JFrame {
         addMenuButton(menuPanel, "Assignments");
         addMenuButton(menuPanel, "Course Materials");
         addMenuButton(menuPanel, "Medical Submissions");
+        addMenuButton(menuPanel, "Announcements");
         addMenuButton(menuPanel, "My Profile");
 
         sidebar.add(menuPanel, BorderLayout.NORTH);
@@ -235,6 +248,7 @@ public class StudentDashboard extends JFrame {
         dynamicViewsPanel.add(buildAssignmentsPanel(), "Assignments");
         dynamicViewsPanel.add(buildCourseMaterialsPanel(), "Course Materials");
         dynamicViewsPanel.add(buildMedicalPanel(), "Medical Submissions");
+        dynamicViewsPanel.add(buildAnnouncementsPanel(), "Announcements");
         dynamicViewsPanel.add(buildProfilePanel(), "My Profile");
 
         contentPanel.add(dynamicViewsPanel, BorderLayout.CENTER);
@@ -327,9 +341,27 @@ public class StudentDashboard extends JFrame {
                 BorderFactory.createEmptyBorder(18, 18, 18, 18)
         ));
 
+        JPanel noticeHeader = new JPanel(new BorderLayout());
+        noticeHeader.setOpaque(false);
+
         JLabel noticeTitle = new JLabel("Faculty Announcements & Notices");
         noticeTitle.setFont(new Font("Arial", Font.BOLD, 15));
         noticeTitle.setForeground(darkBlue);
+
+        JButton viewAllBtn = new JButton("View All Announcements ↗");
+        viewAllBtn.setFont(new Font("Arial", Font.BOLD, 11));
+        viewAllBtn.setForeground(darkBlue);
+        viewAllBtn.setBackground(new Color(240, 245, 252));
+        viewAllBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(200, 220, 240), 1, true),
+                new EmptyBorder(4, 10, 4, 10)
+        ));
+        viewAllBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        viewAllBtn.setFocusPainted(false);
+        viewAllBtn.addActionListener(e -> navigateToSection("Announcements"));
+
+        noticeHeader.add(noticeTitle, BorderLayout.WEST);
+        noticeHeader.add(viewAllBtn, BorderLayout.EAST);
 
         JPanel noticeList = new JPanel();
         noticeList.setBackground(Color.WHITE);
@@ -347,7 +379,7 @@ public class StudentDashboard extends JFrame {
             }
         }
 
-        noticePanel.add(noticeTitle, BorderLayout.NORTH);
+        noticePanel.add(noticeHeader, BorderLayout.NORTH);
         noticePanel.add(noticeList, BorderLayout.CENTER);
 
         bottomGrid.add(activityPanel);
@@ -1910,6 +1942,906 @@ public class StudentDashboard extends JFrame {
         fieldPanel.add(val);
 
         panel.add(fieldPanel);
+    }
+
+    // ==========================================
+    // 8. ANNOUNCEMENTS VIEW (ADVANCE NOTICES)
+    // ==========================================
+
+    public void navigateToSection(String sectionName) {
+        highlightMenuButton(sectionName);
+        contentCardLayout.show(dynamicViewsPanel, sectionName);
+    }
+
+    private JPanel buildAnnouncementsPanel() {
+        JPanel mainPanel = new JPanel(new BorderLayout(0, 14));
+        mainPanel.setBackground(lightBackground);
+        mainPanel.setBorder(new EmptyBorder(0, 25, 20, 25));
+
+        // Header section
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(lightBackground);
+
+        JPanel headerTitles = new JPanel();
+        headerTitles.setLayout(new BoxLayout(headerTitles, BoxLayout.Y_AXIS));
+        headerTitles.setBackground(lightBackground);
+
+        JLabel sectionTitle = new JLabel("Announcements & Advance Assessment Notices");
+        sectionTitle.setFont(new Font("Arial", Font.BOLD, 18));
+        sectionTitle.setForeground(textColor);
+
+        JLabel sectionSub = new JLabel("Advance notifications regarding upcoming quizzes, assignments, exams, and lecture updates");
+        sectionSub.setFont(new Font("Arial", Font.PLAIN, 12));
+        sectionSub.setForeground(new Color(110, 120, 130));
+
+        headerTitles.add(sectionTitle);
+        headerTitles.add(Box.createVerticalStrut(3));
+        headerTitles.add(sectionSub);
+
+        JPanel headerButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        headerButtons.setBackground(lightBackground);
+
+        JButton postBtn = new JButton("+ Post Announcement (Lecturer)");
+        postBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        postBtn.setBackground(new Color(20, 165, 145));
+        postBtn.setForeground(Color.WHITE);
+        postBtn.setFocusPainted(false);
+        postBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(16, 135, 120), 1, true),
+                new EmptyBorder(8, 14, 8, 14)
+        ));
+        postBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        postBtn.addActionListener(e -> showPostAnnouncementDialog());
+
+        JButton refreshBtn = new JButton("🔄 Refresh");
+        refreshBtn.setFont(new Font("Arial", Font.PLAIN, 12));
+        refreshBtn.setBackground(Color.WHITE);
+        refreshBtn.setForeground(darkBlue);
+        refreshBtn.setFocusPainted(false);
+        refreshBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(210, 220, 230), 1, true),
+                new EmptyBorder(8, 12, 8, 12)
+        ));
+        refreshBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        refreshBtn.addActionListener(e -> refreshAnnouncementsData());
+
+        headerButtons.add(refreshBtn);
+        headerButtons.add(postBtn);
+
+        headerPanel.add(headerTitles, BorderLayout.WEST);
+        headerPanel.add(headerButtons, BorderLayout.EAST);
+
+        // Top Metrics Cards Panel
+        JPanel metricsPanel = new JPanel(new GridLayout(1, 3, 14, 0));
+        metricsPanel.setBackground(lightBackground);
+
+        JPanel totalCard = createMiniMetricCard("Total Announcements", "0", darkBlue);
+        JPanel quizCard = createMiniMetricCard("Upcoming Quizzes (Advance Notice)", "0", new Color(230, 126, 34));
+        JPanel asmCard = createMiniMetricCard("Upcoming Assignments (Advance Notice)", "0", new Color(20, 165, 145));
+
+        announcementsCountLabel = (JLabel) totalCard.getClientProperty("valLabel");
+        quizzesCountLabel = (JLabel) quizCard.getClientProperty("valLabel");
+        assignmentsCountLabel = (JLabel) asmCard.getClientProperty("valLabel");
+
+        metricsPanel.add(totalCard);
+        metricsPanel.add(quizCard);
+        metricsPanel.add(asmCard);
+
+        // Search & Filter Panel
+        JPanel filterSearchPanel = new JPanel(new BorderLayout(12, 8));
+        filterSearchPanel.setBackground(lightBackground);
+        filterSearchPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
+
+        // Category Filter Buttons
+        JPanel categoryFilterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        categoryFilterBar.setBackground(lightBackground);
+
+        filterButtons.clear();
+        addAnnouncementFilterButton(categoryFilterBar, "All Announcements", "ALL");
+        addAnnouncementFilterButton(categoryFilterBar, "🔔 Upcoming Quizzes", "QUIZ");
+        addAnnouncementFilterButton(categoryFilterBar, "📝 Upcoming Assignments", "ASSIGNMENT");
+        addAnnouncementFilterButton(categoryFilterBar, "📢 Faculty Notices", "GENERAL");
+
+        // Live Search Input
+        JPanel searchBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        searchBox.setBackground(lightBackground);
+
+        JLabel searchIcon = new JLabel("🔍");
+        searchIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 12));
+
+        JTextField searchField = new JTextField(18);
+        searchField.setFont(new Font("Arial", Font.PLAIN, 12));
+        searchField.setPreferredSize(new Dimension(240, 32));
+        searchField.setBorder(new CompoundBorder(
+                new LineBorder(new Color(210, 220, 230), 1, true),
+                new EmptyBorder(4, 8, 4, 8)
+        ));
+        searchField.setToolTipText("Filter by title, course code, or lecturer");
+
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { update(); }
+            public void removeUpdate(DocumentEvent e) { update(); }
+            public void changedUpdate(DocumentEvent e) { update(); }
+            private void update() {
+                currentAnnouncementSearch = searchField.getText().trim();
+                updateAnnouncementsFeed();
+            }
+        });
+
+        searchBox.add(searchIcon);
+        searchBox.add(searchField);
+
+        filterSearchPanel.add(categoryFilterBar, BorderLayout.WEST);
+        filterSearchPanel.add(searchBox, BorderLayout.EAST);
+
+        // Top Container
+        JPanel topContainer = new JPanel();
+        topContainer.setLayout(new BoxLayout(topContainer, BoxLayout.Y_AXIS));
+        topContainer.setBackground(lightBackground);
+        topContainer.add(headerPanel);
+        topContainer.add(Box.createVerticalStrut(12));
+        topContainer.add(metricsPanel);
+        topContainer.add(Box.createVerticalStrut(10));
+        topContainer.add(filterSearchPanel);
+
+        // Announcements Feed list container
+        announcementsListContainer = new JPanel();
+        announcementsListContainer.setLayout(new BoxLayout(announcementsListContainer, BoxLayout.Y_AXIS));
+        announcementsListContainer.setBackground(lightBackground);
+
+        JScrollPane scrollPane = new JScrollPane(announcementsListContainer);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.setBackground(lightBackground);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(14);
+
+        mainPanel.add(topContainer, BorderLayout.NORTH);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+
+        // Initial Load
+        refreshAnnouncementsData();
+
+        return mainPanel;
+    }
+
+    private JPanel createMiniMetricCard(String title, String initialVal, Color valColor) {
+        JPanel card = new JPanel();
+        card.setBackground(Color.WHITE);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(225, 228, 232), 1, true),
+                BorderFactory.createEmptyBorder(12, 16, 12, 16)
+        ));
+
+        JLabel tLbl = new JLabel(title);
+        tLbl.setFont(new Font("Arial", Font.PLAIN, 12));
+        tLbl.setForeground(new Color(110, 120, 130));
+
+        JLabel vLbl = new JLabel(initialVal);
+        vLbl.setFont(new Font("Arial", Font.BOLD, 22));
+        vLbl.setForeground(valColor);
+
+        card.add(tLbl);
+        card.add(Box.createVerticalStrut(4));
+        card.add(vLbl);
+
+        card.putClientProperty("valLabel", vLbl);
+        return card;
+    }
+
+    private void addAnnouncementFilterButton(JPanel parent, String label, String filterKey) {
+        JButton btn = new JButton(label);
+        btn.setFont(new Font("Arial", Font.PLAIN, 12));
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        if (filterKey.equals(currentAnnouncementFilter)) {
+            btn.setBackground(navActiveColor);
+            btn.setForeground(Color.WHITE);
+            btn.setBorder(new CompoundBorder(
+                    new LineBorder(navActiveColor, 1, true),
+                    new EmptyBorder(6, 12, 6, 12)
+            ));
+        } else {
+            btn.setBackground(Color.WHITE);
+            btn.setForeground(textColor);
+            btn.setBorder(new CompoundBorder(
+                    new LineBorder(new Color(215, 222, 230), 1, true),
+                    new EmptyBorder(6, 12, 6, 12)
+            ));
+        }
+
+        btn.addActionListener(e -> {
+            currentAnnouncementFilter = filterKey;
+            for (JButton b : filterButtons) {
+                b.setBackground(Color.WHITE);
+                b.setForeground(textColor);
+                b.setBorder(new CompoundBorder(
+                        new LineBorder(new Color(215, 222, 230), 1, true),
+                        new EmptyBorder(6, 12, 6, 12)
+                ));
+            }
+            btn.setBackground(navActiveColor);
+            btn.setForeground(Color.WHITE);
+            btn.setBorder(new CompoundBorder(
+                    new LineBorder(navActiveColor, 1, true),
+                    new EmptyBorder(6, 12, 6, 12)
+            ));
+            updateAnnouncementsFeed();
+        });
+
+        filterButtons.add(btn);
+        parent.add(btn);
+    }
+
+    private void refreshAnnouncementsData() {
+        allAnnouncementsList = studentDAO.getAllAnnouncements(currentStudent != null ? currentStudent.getUserId() : null);
+        updateAnnouncementMetrics();
+        updateAnnouncementsFeed();
+    }
+
+    private void updateAnnouncementMetrics() {
+        int total = allAnnouncementsList.size();
+        int quizzes = 0;
+        int assignments = 0;
+        for (Notice n : allAnnouncementsList) {
+            String type = n.getNoticeType() != null ? n.getNoticeType().toUpperCase() : "";
+            if (type.contains("QUIZ")) quizzes++;
+            else if (type.contains("ASSIGNMENT")) assignments++;
+        }
+        if (announcementsCountLabel != null) announcementsCountLabel.setText(String.valueOf(total));
+        if (quizzesCountLabel != null) quizzesCountLabel.setText(String.valueOf(quizzes));
+        if (assignmentsCountLabel != null) assignmentsCountLabel.setText(String.valueOf(assignments));
+    }
+
+    private void updateAnnouncementsFeed() {
+        if (announcementsListContainer == null) return;
+        announcementsListContainer.removeAll();
+
+        String query = (currentAnnouncementSearch != null) ? currentAnnouncementSearch.toLowerCase().trim() : "";
+        List<Notice> filtered = new ArrayList<>();
+
+        for (Notice n : allAnnouncementsList) {
+            String type = n.getNoticeType() != null ? n.getNoticeType().toUpperCase() : "GENERAL";
+            if ("QUIZ".equals(currentAnnouncementFilter) && !type.contains("QUIZ")) continue;
+            if ("ASSIGNMENT".equals(currentAnnouncementFilter) && !type.contains("ASSIGNMENT")) continue;
+            if ("GENERAL".equals(currentAnnouncementFilter) && (type.contains("QUIZ") || type.contains("ASSIGNMENT"))) continue;
+
+            if (!query.isEmpty()) {
+                String fullText = ((n.getTitle() != null ? n.getTitle() : "") + " " +
+                                  (n.getDescription() != null ? n.getDescription() : "") + " " +
+                                  (n.getCourseCode() != null ? n.getCourseCode() : "") + " " +
+                                  (n.getAuthorName() != null ? n.getAuthorName() : "")).toLowerCase();
+                if (!fullText.contains(query)) continue;
+            }
+
+            filtered.add(n);
+        }
+
+        if (filtered.isEmpty()) {
+            JPanel emptyPanel = new JPanel();
+            emptyPanel.setBackground(Color.WHITE);
+            emptyPanel.setBorder(new CompoundBorder(
+                    new LineBorder(new Color(225, 228, 232), 1, true),
+                    new EmptyBorder(40, 20, 40, 20)
+            ));
+            emptyPanel.setLayout(new BoxLayout(emptyPanel, BoxLayout.Y_AXIS));
+
+            JLabel emptyIcon = new JLabel("📢");
+            emptyIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 42));
+            emptyIcon.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            JLabel emptyTitle = new JLabel("No announcements found");
+            emptyTitle.setFont(new Font("Arial", Font.BOLD, 15));
+            emptyTitle.setForeground(textColor);
+            emptyTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            JLabel emptySub = new JLabel("No advance notices match the selected category or search filter.");
+            emptySub.setFont(new Font("Arial", Font.PLAIN, 12));
+            emptySub.setForeground(new Color(120, 130, 140));
+            emptySub.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            emptyPanel.add(emptyIcon);
+            emptyPanel.add(Box.createVerticalStrut(10));
+            emptyPanel.add(emptyTitle);
+            emptyPanel.add(Box.createVerticalStrut(5));
+            emptyPanel.add(emptySub);
+
+            announcementsListContainer.add(emptyPanel);
+        } else {
+            for (Notice notice : filtered) {
+                announcementsListContainer.add(createAnnouncementCard(notice));
+                announcementsListContainer.add(Box.createVerticalStrut(12));
+            }
+        }
+
+        announcementsListContainer.revalidate();
+        announcementsListContainer.repaint();
+    }
+
+    private JPanel createAnnouncementCard(Notice notice) {
+        String type = notice.getNoticeType() != null ? notice.getNoticeType().toUpperCase() : "GENERAL";
+        Color accentBarColor;
+        Color badgeBg;
+        String badgeText;
+
+        if (type.contains("QUIZ")) {
+            accentBarColor = new Color(230, 126, 34); // Warm Amber
+            badgeBg = new Color(243, 156, 18);
+            badgeText = "🔔 QUIZ - ADVANCE NOTICE";
+        } else if (type.contains("ASSIGNMENT")) {
+            accentBarColor = new Color(20, 165, 145); // Teal
+            badgeBg = new Color(20, 165, 145);
+            badgeText = "📝 UPCOMING ASSIGNMENT";
+        } else if (type.contains("EXAM")) {
+            accentBarColor = new Color(142, 68, 173); // Purple
+            badgeBg = new Color(142, 68, 173);
+            badgeText = "🎓 EXAM SCHEDULE";
+        } else {
+            accentBarColor = new Color(52, 152, 219); // Blue
+            badgeBg = new Color(52, 152, 219);
+            badgeText = "📢 FACULTY NOTICE";
+        }
+
+        JPanel card = new JPanel(new BorderLayout(0, 10));
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 5, 0, 0, accentBarColor),
+                BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(225, 230, 238), 1, true),
+                        BorderFactory.createEmptyBorder(14, 18, 14, 18)
+                )
+        ));
+
+        // Top Badges Row
+        JPanel topBadges = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        topBadges.setBackground(Color.WHITE);
+
+        JLabel typeBadge = new JLabel(" " + badgeText + " ");
+        typeBadge.setFont(new Font("Arial", Font.BOLD, 10));
+        typeBadge.setForeground(Color.WHITE);
+        typeBadge.setBackground(badgeBg);
+        typeBadge.setOpaque(true);
+        typeBadge.setBorder(new EmptyBorder(3, 8, 3, 8));
+
+        topBadges.add(typeBadge);
+
+        if (notice.getCourseCode() != null && !notice.getCourseCode().isEmpty()) {
+            JLabel courseBadge = new JLabel(" " + notice.getCourseCode() + " ");
+            courseBadge.setFont(new Font("Arial", Font.BOLD, 10));
+            courseBadge.setForeground(darkBlue);
+            courseBadge.setBackground(new Color(235, 243, 252));
+            courseBadge.setOpaque(true);
+            courseBadge.setBorder(new CompoundBorder(
+                    new LineBorder(new Color(195, 215, 240), 1),
+                    new EmptyBorder(2, 6, 2, 6)
+            ));
+            topBadges.add(courseBadge);
+        }
+
+        // Advance notice pill
+        String advanceNoticeText = notice.getAdvanceTimeNotice();
+        JLabel advancePill = new JLabel(" " + advanceNoticeText + " ");
+        advancePill.setFont(new Font("Arial", Font.BOLD, 10));
+        advancePill.setForeground(new Color(133, 77, 14));
+        advancePill.setBackground(new Color(254, 243, 199));
+        advancePill.setOpaque(true);
+        advancePill.setBorder(new CompoundBorder(
+                new LineBorder(new Color(245, 215, 145), 1),
+                new EmptyBorder(2, 6, 2, 6)
+        ));
+        topBadges.add(advancePill);
+
+        // Center Content
+        JPanel centerContent = new JPanel();
+        centerContent.setLayout(new BoxLayout(centerContent, BoxLayout.Y_AXIS));
+        centerContent.setBackground(Color.WHITE);
+
+        JLabel titleLbl = new JLabel(notice.getTitle());
+        titleLbl.setFont(new Font("Arial", Font.BOLD, 15));
+        titleLbl.setForeground(textColor);
+
+        // Metadata: Lecturer, Posted Date, Scheduled Event Date
+        StringBuilder metaSb = new StringBuilder();
+        metaSb.append("👤 Posted by: ").append(notice.getAuthorName() != null ? notice.getAuthorName() : "Academic Staff");
+        if (notice.getNoticeDate() != null) {
+            metaSb.append("   •   📅 Posted: ").append(notice.getNoticeDate().toString());
+        }
+        if (notice.getEventDate() != null) {
+            metaSb.append("   •   🎯 Scheduled Event Date: ").append(notice.getEventDate().toString());
+        }
+
+        JLabel metaLbl = new JLabel(metaSb.toString());
+        metaLbl.setFont(new Font("Arial", Font.PLAIN, 11));
+        metaLbl.setForeground(new Color(105, 115, 128));
+
+        // Description preview
+        String desc = notice.getDescription() != null ? notice.getDescription() : "";
+        String htmlDesc = desc.replace("\n", "<br>");
+        JLabel descLbl = new JLabel("<html><body style='width: 650px; font-family: Arial; font-size: 11px; color: #3c4858; line-height: 1.45;'>" + htmlDesc + "</body></html>");
+
+        centerContent.add(titleLbl);
+        centerContent.add(Box.createVerticalStrut(4));
+        centerContent.add(metaLbl);
+        centerContent.add(Box.createVerticalStrut(8));
+        centerContent.add(descLbl);
+
+        // Bottom Actions
+        JPanel bottomActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        bottomActions.setBackground(Color.WHITE);
+
+        JButton viewDetailsBtn = new JButton("View Full Details & Guidelines ↗");
+        viewDetailsBtn.setFont(new Font("Arial", Font.PLAIN, 11));
+        viewDetailsBtn.setBackground(new Color(245, 248, 252));
+        viewDetailsBtn.setForeground(darkBlue);
+        viewDetailsBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(205, 220, 238), 1, true),
+                new EmptyBorder(5, 10, 5, 10)
+        ));
+        viewDetailsBtn.setFocusPainted(false);
+        viewDetailsBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        viewDetailsBtn.addActionListener(e -> showAnnouncementDetailsDialog(notice));
+        bottomActions.add(viewDetailsBtn);
+
+        if (type.contains("QUIZ") || type.contains("ASSIGNMENT")) {
+            JButton goToAsmBtn = new JButton("Go to Assignments Tab ➔");
+            goToAsmBtn.setFont(new Font("Arial", Font.BOLD, 11));
+            goToAsmBtn.setBackground(Color.WHITE);
+            goToAsmBtn.setForeground(new Color(20, 165, 145));
+            goToAsmBtn.setBorder(new CompoundBorder(
+                    new LineBorder(new Color(20, 165, 145), 1, true),
+                    new EmptyBorder(5, 10, 5, 10)
+            ));
+            goToAsmBtn.setFocusPainted(false);
+            goToAsmBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            goToAsmBtn.addActionListener(e -> navigateToSection("Assignments"));
+            bottomActions.add(goToAsmBtn);
+        }
+
+        card.add(topBadges, BorderLayout.NORTH);
+        card.add(centerContent, BorderLayout.CENTER);
+        card.add(bottomActions, BorderLayout.SOUTH);
+
+        return card;
+    }
+
+    private void showAnnouncementDetailsDialog(Notice notice) {
+        JDialog dialog = new JDialog(this, "Announcement Details - " + notice.getTitle(), true);
+        dialog.setSize(560, 480);
+        dialog.setLocationRelativeTo(this);
+
+        JPanel panel = new JPanel(new BorderLayout(0, 15));
+        panel.setBackground(lightBackground);
+        panel.setBorder(new EmptyBorder(20, 25, 20, 25));
+
+        JPanel header = new JPanel();
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.setBackground(lightBackground);
+
+        JLabel titleLbl = new JLabel(notice.getTitle());
+        titleLbl.setFont(new Font("Arial", Font.BOLD, 16));
+        titleLbl.setForeground(darkBlue);
+
+        JLabel subLbl = new JLabel("Posted by: " + (notice.getAuthorName() != null ? notice.getAuthorName() : "Course Lecturer") +
+                                  " • Date: " + (notice.getNoticeDate() != null ? notice.getNoticeDate().toString() : "Recent"));
+        subLbl.setFont(new Font("Arial", Font.PLAIN, 12));
+        subLbl.setForeground(new Color(110, 120, 130));
+
+        header.add(titleLbl);
+        header.add(Box.createVerticalStrut(4));
+        header.add(subLbl);
+
+        JTextArea bodyArea = new JTextArea(notice.getDescription());
+        bodyArea.setFont(new Font("Arial", Font.PLAIN, 13));
+        bodyArea.setLineWrap(true);
+        bodyArea.setWrapStyleWord(true);
+        bodyArea.setEditable(false);
+        bodyArea.setBackground(Color.WHITE);
+        bodyArea.setBorder(new EmptyBorder(12, 12, 12, 12));
+
+        JScrollPane scroll = new JScrollPane(bodyArea);
+        scroll.setBorder(new LineBorder(new Color(220, 225, 230), 1, true));
+
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        footer.setBackground(lightBackground);
+
+        JButton closeBtn = new JButton("Close");
+        closeBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        closeBtn.setBackground(darkBlue);
+        closeBtn.setForeground(Color.WHITE);
+        closeBtn.setFocusPainted(false);
+        closeBtn.addActionListener(e -> dialog.dispose());
+        footer.add(closeBtn);
+
+        panel.add(header, BorderLayout.NORTH);
+        panel.add(scroll, BorderLayout.CENTER);
+        panel.add(footer, BorderLayout.SOUTH);
+
+        dialog.add(panel);
+        dialog.setVisible(true);
+    }
+
+    private void showPostAnnouncementDialog() {
+        JDialog dialog = new JDialog(this, "Post Advance Announcement (Lecturer Portal)", true);
+        dialog.setSize(620, 680);
+        dialog.setResizable(false);
+        dialog.setLocationRelativeTo(this);
+
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(lightBackground);
+
+        // Header
+        JPanel header = new JPanel();
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.setBackground(darkBlue);
+        header.setBorder(new EmptyBorder(18, 22, 18, 22));
+
+        JLabel titleLbl = new JLabel("Post Advance Announcement");
+        titleLbl.setFont(new Font("Arial", Font.BOLD, 17));
+        titleLbl.setForeground(Color.WHITE);
+
+        JLabel subLbl = new JLabel("Inform students in advance about upcoming quizzes, assignments, and academic events");
+        subLbl.setFont(new Font("Arial", Font.PLAIN, 12));
+        subLbl.setForeground(new Color(180, 240, 220));
+
+        header.add(titleLbl);
+        header.add(Box.createVerticalStrut(4));
+        header.add(subLbl);
+        mainPanel.add(header, BorderLayout.NORTH);
+
+        // Form fields in scrollable area
+        JPanel form = new JPanel();
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.setBackground(Color.WHITE);
+        form.setBorder(new EmptyBorder(20, 25, 20, 25));
+
+        // 1. Lecturer Selection
+        JLabel lecLabel = new JLabel("Lecturer / Creator:");
+        lecLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        lecLabel.setForeground(textColor);
+
+        JComboBox<LecturerItem> lecCombo = new JComboBox<>();
+        lecCombo.setFont(new Font("Arial", Font.PLAIN, 13));
+        lecCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+
+        List<User> lecturers = studentDAO.getLecturers();
+        if (lecturers.isEmpty()) {
+            lecCombo.addItem(new LecturerItem("LEC001", "Kasun Perera", "Senior Lecturer"));
+            lecCombo.addItem(new LecturerItem("LEC002", "Nadeesha Fernando", "Lecturer"));
+            lecCombo.addItem(new LecturerItem("LEC003", "Tharindu Silva", "Lecturer"));
+            lecCombo.addItem(new LecturerItem("LEC004", "Ayesha Bandara", "Lecturer"));
+            lecCombo.addItem(new LecturerItem("LEC005", "Ruwan Jayasinghe", "Lecturer"));
+        } else {
+            for (User u : lecturers) {
+                lecCombo.addItem(new LecturerItem(u.getUserId(), u.getFirstName() + " " + u.getLastName(), "Lecturer"));
+            }
+        }
+
+        // 2. Course Offering Selection
+        JLabel courseLabel = new JLabel("Target Course Offering:");
+        courseLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        courseLabel.setForeground(textColor);
+
+        JComboBox<CourseOfferingItem> courseCombo = new JComboBox<>();
+        courseCombo.setFont(new Font("Arial", Font.PLAIN, 13));
+        courseCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+
+        List<Course> offerings = studentDAO.getAllCourseOfferings();
+        if (offerings.isEmpty()) {
+            courseCombo.addItem(new CourseOfferingItem("OFF001", "ICT2132", "Object Oriented Programming"));
+            courseCombo.addItem(new CourseOfferingItem("OFF002", "ICT2123", "Database Systems"));
+            courseCombo.addItem(new CourseOfferingItem("OFF003", "ICT2142", "E-Business"));
+        } else {
+            for (Course c : offerings) {
+                courseCombo.addItem(new CourseOfferingItem(c.getOfferingId(), c.getCourseCode(), c.getCourseName()));
+            }
+        }
+
+        // 3. Announcement Type
+        JLabel typeLabel = new JLabel("Announcement Type:");
+        typeLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        typeLabel.setForeground(textColor);
+
+        String[] types = {
+                "Upcoming Quiz (Advance Notice)",
+                "Upcoming Assignment (Advance Notice)",
+                "Examination Schedule",
+                "General Course Notice"
+        };
+        JComboBox<String> typeCombo = new JComboBox<>(types);
+        typeCombo.setFont(new Font("Arial", Font.PLAIN, 13));
+        typeCombo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+
+        // 4. Title Field
+        JLabel titleFieldLabel = new JLabel("Announcement Title:");
+        titleFieldLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        titleFieldLabel.setForeground(textColor);
+
+        JTextField titleField = new JTextField("Advance Notice: Quiz 02 - Object Oriented Design Patterns");
+        titleField.setFont(new Font("Arial", Font.PLAIN, 13));
+        titleField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        titleField.setBorder(new CompoundBorder(
+                new LineBorder(new Color(215, 222, 230), 1),
+                new EmptyBorder(5, 8, 5, 8)
+        ));
+
+        // When type changes, adjust sample title
+        typeCombo.addActionListener(e -> {
+            String selected = (String) typeCombo.getSelectedItem();
+            CourseOfferingItem selectedCourse = (CourseOfferingItem) courseCombo.getSelectedItem();
+            String cCode = selectedCourse != null ? selectedCourse.courseCode : "ICT2132";
+            if (selected != null && selected.contains("Quiz")) {
+                titleField.setText("Advance Notice: Quiz 02 - Object Oriented Design Patterns (" + cCode + ")");
+            } else if (selected != null && selected.contains("Assignment")) {
+                titleField.setText("Advance Notice: Assignment 02 - Normalization & Complex SQL Queries (" + cCode + ")");
+            } else if (selected != null && selected.contains("Exam")) {
+                titleField.setText("Mid Semester Examination Timetable & Syllabus (" + cCode + ")");
+            } else {
+                titleField.setText("Lecture Room & Schedule Notice (" + cCode + ")");
+            }
+        });
+
+        // 5. Scheduled Event Date (Advance Notice Date)
+        JLabel dateLabel = new JLabel("Scheduled Assessment / Event Date (YYYY-MM-DD):");
+        dateLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        dateLabel.setForeground(textColor);
+
+        String defaultFutureDate = LocalDate.now().plusDays(7).toString();
+        JTextField dateField = new JTextField(defaultFutureDate);
+        dateField.setFont(new Font("Arial", Font.PLAIN, 13));
+        dateField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
+        dateField.setBorder(new CompoundBorder(
+                new LineBorder(new Color(215, 222, 230), 1),
+                new EmptyBorder(5, 8, 5, 8)
+        ));
+
+        JLabel dateHint = new JLabel("Students will receive advance notification prior to this date.");
+        dateHint.setFont(new Font("Arial", Font.ITALIC, 11));
+        dateHint.setForeground(new Color(110, 120, 130));
+
+        // 6. Weight & Max Marks
+        JPanel marksGrid = new JPanel(new GridLayout(1, 2, 12, 0));
+        marksGrid.setBackground(Color.WHITE);
+        marksGrid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 55));
+
+        JPanel weightP = new JPanel();
+        weightP.setLayout(new BoxLayout(weightP, BoxLayout.Y_AXIS));
+        weightP.setBackground(Color.WHITE);
+        JLabel wLbl = new JLabel("Assessment Weight (%):");
+        wLbl.setFont(new Font("Arial", Font.BOLD, 12));
+        wLbl.setForeground(textColor);
+        JTextField weightField = new JTextField("10.00");
+        weightField.setFont(new Font("Arial", Font.PLAIN, 13));
+        weightField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+        weightP.add(wLbl);
+        weightP.add(Box.createVerticalStrut(4));
+        weightP.add(weightField);
+
+        JPanel maxMarksP = new JPanel();
+        maxMarksP.setLayout(new BoxLayout(maxMarksP, BoxLayout.Y_AXIS));
+        maxMarksP.setBackground(Color.WHITE);
+        JLabel mLbl = new JLabel("Maximum Marks:");
+        mLbl.setFont(new Font("Arial", Font.BOLD, 12));
+        mLbl.setForeground(textColor);
+        JTextField maxMarksField = new JTextField("100.00");
+        maxMarksField.setFont(new Font("Arial", Font.PLAIN, 13));
+        maxMarksField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+        maxMarksP.add(mLbl);
+        maxMarksP.add(Box.createVerticalStrut(4));
+        maxMarksP.add(maxMarksField);
+
+        marksGrid.add(weightP);
+        marksGrid.add(maxMarksP);
+
+        // 7. Guidelines & Syllabus Description
+        JLabel descLabel = new JLabel("Detailed Guidelines & Syllabus for Students:");
+        descLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        descLabel.setForeground(textColor);
+
+        JTextArea descArea = new JTextArea(5, 20);
+        descArea.setFont(new Font("Arial", Font.PLAIN, 12));
+        descArea.setLineWrap(true);
+        descArea.setWrapStyleWord(true);
+        descArea.setText(
+                "Advance Notice for Students:\n" +
+                "• Topics Covered: Classes, Inheritance, Polymorphism, Abstract Classes, and Exception Handling.\n" +
+                "• Assessment Format: 20 Multiple Choice Questions + 2 Hands-on Coding Problems.\n" +
+                "• Venue & Timing: Software Lab 01 (09:00 AM - 10:00 AM).\n" +
+                "• Advance Guidelines: Review lecture slides 1 to 5 and complete the sample worksheet beforehand. Please bring your Student ID card."
+        );
+        descArea.setBorder(new EmptyBorder(8, 8, 8, 8));
+
+        JScrollPane descScroll = new JScrollPane(descArea);
+        descScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 95));
+        descScroll.setBorder(new LineBorder(new Color(215, 222, 230), 1));
+
+        // 8. Sync with Assessments checkbox
+        JCheckBox syncCheck = new JCheckBox("Automatically register this Quiz/Assignment in the Assessments schedule table");
+        syncCheck.setFont(new Font("Arial", Font.BOLD, 11));
+        syncCheck.setForeground(darkBlue);
+        syncCheck.setBackground(Color.WHITE);
+        syncCheck.setSelected(true);
+        syncCheck.setFocusPainted(false);
+
+        // Assemble Form
+        form.add(lecLabel);
+        form.add(Box.createVerticalStrut(4));
+        form.add(lecCombo);
+        form.add(Box.createVerticalStrut(10));
+
+        form.add(courseLabel);
+        form.add(Box.createVerticalStrut(4));
+        form.add(courseCombo);
+        form.add(Box.createVerticalStrut(10));
+
+        form.add(typeLabel);
+        form.add(Box.createVerticalStrut(4));
+        form.add(typeCombo);
+        form.add(Box.createVerticalStrut(10));
+
+        form.add(titleFieldLabel);
+        form.add(Box.createVerticalStrut(4));
+        form.add(titleField);
+        form.add(Box.createVerticalStrut(10));
+
+        form.add(dateLabel);
+        form.add(Box.createVerticalStrut(4));
+        form.add(dateField);
+        form.add(Box.createVerticalStrut(2));
+        form.add(dateHint);
+        form.add(Box.createVerticalStrut(10));
+
+        form.add(marksGrid);
+        form.add(Box.createVerticalStrut(10));
+
+        form.add(descLabel);
+        form.add(Box.createVerticalStrut(4));
+        form.add(descScroll);
+        form.add(Box.createVerticalStrut(8));
+
+        form.add(syncCheck);
+
+        JScrollPane formScroll = new JScrollPane(form);
+        formScroll.setBorder(BorderFactory.createEmptyBorder());
+        formScroll.getVerticalScrollBar().setUnitIncrement(12);
+
+        mainPanel.add(formScroll, BorderLayout.CENTER);
+
+        // Bottom Actions
+        JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 14));
+        bottomBar.setBackground(lightBackground);
+        bottomBar.setBorder(new CompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(225, 230, 238)),
+                new EmptyBorder(0, 15, 0, 15)
+        ));
+
+        JButton cancelBtn = new JButton("Cancel");
+        cancelBtn.setFont(new Font("Arial", Font.PLAIN, 12));
+        cancelBtn.setBackground(Color.WHITE);
+        cancelBtn.setForeground(textColor);
+        cancelBtn.setFocusPainted(false);
+        cancelBtn.addActionListener(e -> dialog.dispose());
+
+        JButton submitBtn = new JButton("Post Advance Announcement");
+        submitBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        submitBtn.setBackground(new Color(20, 165, 145));
+        submitBtn.setForeground(Color.WHITE);
+        submitBtn.setFocusPainted(false);
+        submitBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        submitBtn.addActionListener(e -> {
+            String title = titleField.getText().trim();
+            String dateStr = dateField.getText().trim();
+            String descText = descArea.getText().trim();
+
+            if (title.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Please enter an announcement title.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            java.sql.Date sqlDate;
+            try {
+                sqlDate = java.sql.Date.valueOf(dateStr);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Please enter a valid date in YYYY-MM-DD format (e.g., " + defaultFutureDate + ").", "Invalid Date", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            LecturerItem selectedLec = (LecturerItem) lecCombo.getSelectedItem();
+            CourseOfferingItem selectedCourse = (CourseOfferingItem) courseCombo.getSelectedItem();
+            String rawType = (String) typeCombo.getSelectedItem();
+            String typeCategory = "GENERAL";
+            if (rawType != null && rawType.contains("Quiz")) typeCategory = "QUIZ";
+            else if (rawType != null && rawType.contains("Assignment")) typeCategory = "ASSIGNMENT";
+            else if (rawType != null && rawType.contains("Exam")) typeCategory = "MID_EXAM";
+
+            BigDecimal weight = new BigDecimal("10.00");
+            BigDecimal maxMarks = new BigDecimal("100.00");
+            try {
+                weight = new BigDecimal(weightField.getText().trim());
+                maxMarks = new BigDecimal(maxMarksField.getText().trim());
+            } catch (Exception ignored) {}
+
+            Notice n = new Notice();
+            n.setTitle(title);
+            n.setDescription(descText);
+            n.setNoticeDate(new java.sql.Date(System.currentTimeMillis()));
+            n.setEventDate(sqlDate);
+            n.setNoticeType(typeCategory);
+            n.setCreatedBy(selectedLec != null ? selectedLec.userId : "LEC001");
+            n.setAuthorName(selectedLec != null ? selectedLec.name : "Lecturer");
+            if (selectedCourse != null) {
+                n.setCourseCode(selectedCourse.courseCode);
+                n.setCourseName(selectedCourse.courseName);
+                n.setOfferingId(selectedCourse.offeringId);
+            }
+
+            boolean ok = studentDAO.postAnnouncement(
+                    n,
+                    selectedCourse != null ? selectedCourse.offeringId : "OFF001",
+                    typeCategory,
+                    weight,
+                    maxMarks,
+                    syncCheck.isSelected()
+            );
+
+            if (ok) {
+                JOptionPane.showMessageDialog(
+                        dialog,
+                        "Advance Announcement posted successfully!\n\n" +
+                        "• Title: " + title + "\n" +
+                        "• Scheduled Date: " + sqlDate + "\n" +
+                        "• Course: " + (selectedCourse != null ? selectedCourse.courseCode : "N/A") + "\n\n" +
+                        "Students can now view this in their Announcements navigation section in advance.",
+                        "Announcement Posted",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+                dialog.dispose();
+                refreshAnnouncementsData();
+            } else {
+                JOptionPane.showMessageDialog(dialog, "Database error: Could not save announcement.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        bottomBar.add(cancelBtn);
+        bottomBar.add(submitBtn);
+
+        mainPanel.add(bottomBar, BorderLayout.SOUTH);
+
+        dialog.add(mainPanel);
+        dialog.setVisible(true);
+    }
+
+    private static class LecturerItem {
+        final String userId;
+        final String name;
+        final String title;
+
+        LecturerItem(String userId, String name, String title) {
+            this.userId = userId;
+            this.name = name;
+            this.title = title;
+        }
+
+        @Override
+        public String toString() {
+            return name + (title != null && !title.isEmpty() ? " - " + title : "") + " [" + userId + "]";
+        }
+    }
+
+    private static class CourseOfferingItem {
+        final String offeringId;
+        final String courseCode;
+        final String courseName;
+
+        CourseOfferingItem(String offeringId, String courseCode, String courseName) {
+            this.offeringId = offeringId;
+            this.courseCode = courseCode;
+            this.courseName = courseName;
+        }
+
+        @Override
+        public String toString() {
+            return courseCode + " - " + courseName + " (" + offeringId + ")";
+        }
     }
 
     // ==========================================
