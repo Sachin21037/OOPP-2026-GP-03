@@ -277,7 +277,7 @@ public class LecturerProfile extends JFrame {
         idField = addField(
                 fieldsPanel,
                 "Lecturer ID",
-                "LEC001"
+                (lecturerId != null && !lecturerId.trim().isEmpty()) ? lecturerId : "-"
         );
 
         emailField = addField(
