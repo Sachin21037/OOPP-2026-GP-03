@@ -130,6 +130,28 @@ public class StudentDashboard extends JFrame {
         userType.setForeground(new Color(180, 240, 220));
         userType.setFont(new Font("Arial", Font.BOLD, 13));
 
+        JButton announcementsNavBtn = new JButton("📢 Announcements");
+        announcementsNavBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        announcementsNavBtn.setForeground(Color.WHITE);
+        announcementsNavBtn.setBackground(new Color(38, 90, 136));
+        announcementsNavBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(85, 145, 195), 1, true),
+                new EmptyBorder(6, 14, 6, 14)
+        ));
+        announcementsNavBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        announcementsNavBtn.setFocusPainted(false);
+        announcementsNavBtn.setToolTipText("View Faculty Announcements & Advance Notices");
+        announcementsNavBtn.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                announcementsNavBtn.setBackground(new Color(50, 115, 170));
+            }
+            public void mouseExited(MouseEvent e) {
+                announcementsNavBtn.setBackground(new Color(38, 90, 136));
+            }
+        });
+        announcementsNavBtn.addActionListener(e -> navigateToSection("Announcements"));
+
+        headerRight.add(announcementsNavBtn);
         headerRight.add(headerAvatarLabel);
         headerRight.add(studentBadge);
         headerRight.add(userType);
@@ -157,13 +179,13 @@ public class StudentDashboard extends JFrame {
 
         // Menu buttons
         addMenuButton(menuPanel, "Dashboard");
+        addMenuButton(menuPanel, "Announcements");
         addMenuButton(menuPanel, "My Courses");
         addMenuButton(menuPanel, "My Results");
         addMenuButton(menuPanel, "Attendance");
         addMenuButton(menuPanel, "Assignments");
         addMenuButton(menuPanel, "Course Materials");
         addMenuButton(menuPanel, "Medical Submissions");
-        addMenuButton(menuPanel, "Announcements");
         addMenuButton(menuPanel, "My Profile");
 
         sidebar.add(menuPanel, BorderLayout.NORTH);
@@ -344,27 +366,9 @@ public class StudentDashboard extends JFrame {
                 BorderFactory.createEmptyBorder(18, 18, 18, 18)
         ));
 
-        JPanel noticeHeader = new JPanel(new BorderLayout());
-        noticeHeader.setOpaque(false);
-
         JLabel noticeTitle = new JLabel("Faculty Announcements & Notices");
         noticeTitle.setFont(new Font("Arial", Font.BOLD, 15));
         noticeTitle.setForeground(darkBlue);
-
-        JButton viewAllBtn = new JButton("View All Announcements ↗");
-        viewAllBtn.setFont(new Font("Arial", Font.BOLD, 11));
-        viewAllBtn.setForeground(darkBlue);
-        viewAllBtn.setBackground(new Color(240, 245, 252));
-        viewAllBtn.setBorder(new CompoundBorder(
-                new LineBorder(new Color(200, 220, 240), 1, true),
-                new EmptyBorder(4, 10, 4, 10)
-        ));
-        viewAllBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        viewAllBtn.setFocusPainted(false);
-        viewAllBtn.addActionListener(e -> navigateToSection("Announcements"));
-
-        noticeHeader.add(noticeTitle, BorderLayout.WEST);
-        noticeHeader.add(viewAllBtn, BorderLayout.EAST);
 
         JPanel noticeList = new JPanel();
         noticeList.setBackground(Color.WHITE);
@@ -382,7 +386,7 @@ public class StudentDashboard extends JFrame {
             }
         }
 
-        noticePanel.add(noticeHeader, BorderLayout.NORTH);
+        noticePanel.add(noticeTitle, BorderLayout.NORTH);
         noticePanel.add(noticeList, BorderLayout.CENTER);
 
         bottomGrid.add(activityPanel);
@@ -3093,6 +3097,14 @@ public class StudentDashboard extends JFrame {
         item.setLayout(new BoxLayout(item, BoxLayout.Y_AXIS));
         item.setBackground(Color.WHITE);
         item.setBorder(BorderFactory.createEmptyBorder(6, 0, 8, 0));
+        item.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        item.setToolTipText("Click to view full announcement details");
+        item.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                navigateToSection("Announcements");
+            }
+        });
 
         JLabel tLabel = new JLabel("📢  " + title);
         tLabel.setFont(new Font("Arial", Font.BOLD, 12));
