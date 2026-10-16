@@ -431,7 +431,9 @@ public final class LecturerTheme {
             if (answer == JOptionPane.YES_OPTION) {
                 LecturerDashboard.setActiveLecturerId(null);
                 currentFrame.dispose();
-                JOptionPane.showMessageDialog(null, "You have been logged out.");
+                SwingUtilities.invokeLater(() -> {
+                    new ui.login.LoginFrame().setVisible(true);
+                });
             }
         });
 
