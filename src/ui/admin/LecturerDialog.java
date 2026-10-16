@@ -101,7 +101,7 @@ public class LecturerDialog extends JDialog {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, PRIMARY_NAVY, getWidth(), 0, new Color(79, 70, 229));
+                GradientPaint gp = new GradientPaint(0, 0, PRIMARY_NAVY, getWidth(), 0, SECONDARY_BLUE);
                 g2.setPaint(gp);
                 g2.fillRect(0, 0, getWidth(), getHeight());
                 g2.dispose();

@@ -3,6 +3,7 @@ package ui.admin;
 import model.AdminDashboardStats;
 import model.RecentActivityItem;
 import service.AdminDashboardService;
+import ui.util.UIAnimationHelper;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -10,7 +11,12 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.net.URL;
 import java.util.List;
+import javax.imageio.ImageIO;
+
 
 public class AdminDashboard extends JFrame {
 
@@ -57,6 +63,8 @@ public class AdminDashboard extends JFrame {
     private JLabel headerBreadcrumb;
     private JLabel headerTitle;
     private JLabel headerSubtitle;
+    private JPanel topHeaderPanel;
+    private JPanel titleSubPanel;
 
     // Navigation tracking
     private static class NavItemEntry {
@@ -98,16 +106,16 @@ public class AdminDashboard extends JFrame {
 
         // 1. Left Sidebar
         JPanel sidebar = createSidebar();
-        sidebar.setPreferredSize(new Dimension(250, 800));
+        sidebar.setPreferredSize(new Dimension(270, 800));
         rootPanel.add(sidebar, BorderLayout.WEST);
 
         // 2. Right Workspace (Header + Dynamic CardLayout Center)
         JPanel workspacePanel = new JPanel(new BorderLayout());
         workspacePanel.setBackground(MAIN_BG);
 
-        JPanel header = createHeader();
-        header.setPreferredSize(new Dimension(1000, 88));
-        workspacePanel.add(header, BorderLayout.NORTH);
+        topHeaderPanel = createHeader();
+        topHeaderPanel.setPreferredSize(new Dimension(1000, 88));
+        workspacePanel.add(topHeaderPanel, BorderLayout.NORTH);
 
         cardLayout = new CardLayout();
         cardsContainer = new JPanel(cardLayout);
@@ -192,21 +200,30 @@ public class AdminDashboard extends JFrame {
         JPanel brandPanel = new JPanel();
         brandPanel.setOpaque(false);
         brandPanel.setLayout(new BoxLayout(brandPanel, BoxLayout.Y_AXIS));
-        brandPanel.setBorder(new EmptyBorder(26, 20, 20, 20));
+        brandPanel.setBorder(new EmptyBorder(18, 16, 12, 16));
 
         JLabel titleLine1 = new JLabel("Faculty Academic");
-        titleLine1.setFont(getModernFont(Font.BOLD, 17));
+        titleLine1.setFont(getModernFont(Font.BOLD, 16));
         titleLine1.setForeground(Color.WHITE);
-        titleLine1.setAlignmentX(Component.LEFT_ALIGNMENT);
+        titleLine1.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JLabel titleLine2 = new JLabel("Management System");
-        titleLine2.setFont(getModernFont(Font.BOLD, 17));
+        titleLine2.setFont(getModernFont(Font.BOLD, 16));
         titleLine2.setForeground(Color.WHITE);
-        titleLine2.setAlignmentX(Component.LEFT_ALIGNMENT);
+        titleLine2.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         brandPanel.add(titleLine1);
         brandPanel.add(Box.createVerticalStrut(2));
         brandPanel.add(titleLine2);
+        brandPanel.add(Box.createVerticalStrut(14));
+        brandPanel.add(createLargeProfileSection());
+        brandPanel.add(Box.createVerticalStrut(12));
+
+        JSeparator sep = new JSeparator();
+        sep.setForeground(new Color(255, 255, 255, 22));
+        sep.setMaximumSize(new Dimension(230, 1));
+        sep.setAlignmentX(Component.CENTER_ALIGNMENT);
+        brandPanel.add(sep);
 
         sidebar.add(brandPanel, BorderLayout.NORTH);
 
@@ -214,104 +231,43 @@ public class AdminDashboard extends JFrame {
         JPanel navPanel = new JPanel();
         navPanel.setOpaque(false);
         navPanel.setLayout(new BoxLayout(navPanel, BoxLayout.Y_AXIS));
-        navPanel.setBorder(new EmptyBorder(6, 14, 10, 14));
+        navPanel.setBorder(new EmptyBorder(4, 12, 6, 12));
 
         JLabel navLabel = new JLabel("MAIN MENU");
         navLabel.setFont(getModernFont(Font.BOLD, 10));
         navLabel.setForeground(new Color(148, 163, 184));
-        navLabel.setBorder(new EmptyBorder(0, 12, 10, 0));
+        navLabel.setBorder(new EmptyBorder(0, 12, 8, 0));
         navLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         navPanel.add(navLabel);
 
         navPanel.add(createNavItem("Dashboard", "dashboard", true));
-        navPanel.add(Box.createVerticalStrut(4));
+        navPanel.add(Box.createVerticalStrut(3));
         navPanel.add(createNavItem("Student Management", "students", false));
-        navPanel.add(Box.createVerticalStrut(4));
+        navPanel.add(Box.createVerticalStrut(3));
         navPanel.add(createNavItem("Lecturer Management", "lecturers", false));
-        navPanel.add(Box.createVerticalStrut(4));
+        navPanel.add(Box.createVerticalStrut(3));
         navPanel.add(createNavItem("Technical Officer Management", "officers", false));
-        navPanel.add(Box.createVerticalStrut(4));
+        navPanel.add(Box.createVerticalStrut(3));
         navPanel.add(createNavItem("User Management", "users", false));
-        navPanel.add(Box.createVerticalStrut(4));
+        navPanel.add(Box.createVerticalStrut(3));
         navPanel.add(createNavItem("Course Management", "courses", false));
-        navPanel.add(Box.createVerticalStrut(4));
+        navPanel.add(Box.createVerticalStrut(3));
         navPanel.add(createNavItem("Notice Management", "notices", false));
-        navPanel.add(Box.createVerticalStrut(4));
+        navPanel.add(Box.createVerticalStrut(3));
         navPanel.add(createNavItem("Timetable Management", "timetable", false));
-        navPanel.add(Box.createVerticalStrut(4));
-        navPanel.add(createNavItem("Reports", "reports", false));
+        navPanel.add(Box.createVerticalGlue());
 
         sidebar.add(navPanel, BorderLayout.CENTER);
 
-        // Bottom Admin Profile & Logout
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setOpaque(false);
-        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
-        bottomPanel.setBorder(new EmptyBorder(14, 16, 20, 16));
-
-        // Profile Section
-        JPanel profileCard = new JPanel(new BorderLayout(10, 0));
-        profileCard.setOpaque(false);
-        profileCard.setBorder(new EmptyBorder(6, 4, 10, 4));
-        profileCard.setAlignmentX(Component.LEFT_ALIGNMENT);
-        profileCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 54));
-
-        JPanel avatar = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(SECONDARY_BLUE);
-                g2.fillOval(0, 0, 36, 36);
-                g2.setColor(Color.WHITE);
-                g2.setFont(getModernFont(Font.BOLD, 13));
-                FontMetrics fm = g2.getFontMetrics();
-                String initials = getInitials(adminDisplayName);
-                int tx = (36 - fm.stringWidth(initials)) / 2;
-                int ty = ((36 - fm.getHeight()) / 2) + fm.getAscent();
-                g2.drawString(initials, tx, ty);
-                g2.dispose();
-            }
-        };
-        avatar.setOpaque(false);
-        avatar.setPreferredSize(new Dimension(36, 36));
-
-        JPanel namePanel = new JPanel();
-        namePanel.setOpaque(false);
-        namePanel.setLayout(new BoxLayout(namePanel, BoxLayout.Y_AXIS));
-
-        JLabel adminName = new JLabel(adminDisplayName);
-        adminName.setFont(getModernFont(Font.BOLD, 13));
-        adminName.setForeground(Color.WHITE);
-
-        JLabel adminRole = new JLabel("System Admin");
-        adminRole.setFont(getModernFont(Font.PLAIN, 11));
-        adminRole.setForeground(new Color(147, 197, 253));
-
-        namePanel.add(adminName);
-        namePanel.add(Box.createVerticalStrut(2));
-        namePanel.add(adminRole);
-
-        profileCard.add(avatar, BorderLayout.WEST);
-        profileCard.add(namePanel, BorderLayout.CENTER);
-
-        // Logout Button - Placed directly under admin user, filling the width
-        JButton logoutBtn = createLogoutButton();
-        logoutBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        logoutBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
-        logoutBtn.setPreferredSize(new Dimension(218, 38));
-
-        bottomPanel.add(profileCard);
-        bottomPanel.add(Box.createVerticalStrut(6));
-        bottomPanel.add(logoutBtn);
-
-        sidebar.add(bottomPanel, BorderLayout.SOUTH);
+        // Bottom Centered Logout Panel (Clean, pattern removed)
+        sidebar.add(createBottomPanel(), BorderLayout.SOUTH);
         return sidebar;
     }
 
     private JPanel createNavItem(String name, String type, boolean initialActive) {
-        final boolean[] isHovered = {false};
+        final float[] hoverAnim = {0f};
+        final Timer[] timer = {null};
+
         JPanel item = new JPanel(new BorderLayout(10, 0)) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -319,20 +275,24 @@ public class AdminDashboard extends JFrame {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 boolean isActive = isNavActive(name);
+                int w = getWidth();
+                int h = getHeight();
+
                 if (isActive) {
                     g2.setColor(SECONDARY_BLUE);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                } else if (isHovered[0]) {
-                    g2.setColor(new Color(255, 255, 255, 18));
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                    g2.fillRoundRect(0, 0, w, h, 16, 16);
+                } else if (hoverAnim[0] > 0.01f) {
+                    Color hoverBg = new Color(255, 255, 255, (int) (26 * hoverAnim[0]));
+                    g2.setColor(hoverBg);
+                    g2.fillRoundRect(0, 0, w, h, 16, 16);
                 }
                 g2.dispose();
             }
         };
         item.setOpaque(false);
         item.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        item.setPreferredSize(new Dimension(220, 40));
-        item.setBorder(new EmptyBorder(8, 12, 8, 12));
+        item.setPreferredSize(new Dimension(246, 40));
+        item.setBorder(new EmptyBorder(8, 12, 8, 10));
         item.setAlignmentX(Component.LEFT_ALIGNMENT);
         item.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
@@ -344,7 +304,7 @@ public class AdminDashboard extends JFrame {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 boolean isActive = isNavActive(name);
-                g2.setColor(isActive ? Color.WHITE : (isHovered[0] ? Color.WHITE : new Color(148, 163, 184)));
+                g2.setColor(isActive ? Color.WHITE : (hoverAnim[0] > 0.01f ? Color.WHITE : new Color(148, 163, 184)));
                 drawNavIcon(g2, type, 0, 0);
                 g2.dispose();
             }
@@ -353,29 +313,27 @@ public class AdminDashboard extends JFrame {
 
         JLabel label = new JLabel(name);
         boolean isActive = isNavActive(name);
-        label.setFont(getModernFont(isActive ? Font.BOLD : Font.PLAIN, 13));
+        label.setFont(getModernFont(isActive ? Font.BOLD : Font.PLAIN, 12));
         label.setForeground(isActive ? Color.WHITE : new Color(203, 213, 225));
 
         item.add(iconComp, BorderLayout.WEST);
         item.add(label, BorderLayout.CENTER);
 
-        // Hover & Click Interactions
+        // Hover & Click Interactions with animated transitions
         item.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
                 if (!isNavActive(name)) {
-                    isHovered[0] = true;
                     label.setForeground(Color.WHITE);
-                    item.repaint();
+                    startProgressTimer(item, hoverAnim, timer, true);
                 }
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
                 if (!isNavActive(name)) {
-                    isHovered[0] = false;
                     label.setForeground(new Color(203, 213, 225));
-                    item.repaint();
+                    startProgressTimer(item, hoverAnim, timer, false);
                 }
             }
 
@@ -403,19 +361,27 @@ public class AdminDashboard extends JFrame {
     private void updateNavSelection() {
         for (NavItemEntry entry : navItemEntries) {
             boolean active = isNavActive(entry.name);
-            entry.label.setFont(getModernFont(active ? Font.BOLD : Font.PLAIN, 13));
+            entry.label.setFont(getModernFont(active ? Font.BOLD : Font.PLAIN, 12));
             entry.label.setForeground(active ? Color.WHITE : new Color(203, 213, 225));
             entry.panel.repaint();
         }
     }
 
     public void showView(String name) {
+        boolean isDashboard = "Dashboard".equalsIgnoreCase(name) || name == null;
+        if (titleSubPanel != null) {
+            titleSubPanel.setVisible(isDashboard);
+        }
+        if (topHeaderPanel != null) {
+            topHeaderPanel.setPreferredSize(new Dimension(1000, 88));
+            topHeaderPanel.revalidate();
+            topHeaderPanel.repaint();
+        }
+
         if ("Student Management".equalsIgnoreCase(name)) {
             activeNavName = "Student Management";
             cardLayout.show(cardsContainer, "STUDENTS");
             if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / Student Management");
-            if (headerTitle != null) headerTitle.setText("Student Management");
-            if (headerSubtitle != null) headerSubtitle.setText("Manage undergraduate records, academic status, and system access.");
             if (studentPanel != null) {
                 studentPanel.loadStudentsAsync();
             }
@@ -423,8 +389,6 @@ public class AdminDashboard extends JFrame {
             activeNavName = "Lecturer Management";
             cardLayout.show(cardsContainer, "LECTURERS");
             if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / Lecturer Management");
-            if (headerTitle != null) headerTitle.setText("Lecturer Management");
-            if (headerSubtitle != null) headerSubtitle.setText("Manage academic staff profiles, department assignments, and system access.");
             if (lecturerPanel != null) {
                 lecturerPanel.loadLecturersAsync();
             }
@@ -432,8 +396,6 @@ public class AdminDashboard extends JFrame {
             activeNavName = "Technical Officer Management";
             cardLayout.show(cardsContainer, "OFFICERS");
             if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / Technical Officer Management");
-            if (headerTitle != null) headerTitle.setText("Technical Officer Management");
-            if (headerSubtitle != null) headerSubtitle.setText("Manage technical staff profiles, laboratory assignments, and system access.");
             if (officerPanel != null) {
                 officerPanel.loadOfficersAsync();
             }
@@ -441,8 +403,6 @@ public class AdminDashboard extends JFrame {
             activeNavName = "User Management";
             cardLayout.show(cardsContainer, "USERS");
             if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / User Management");
-            if (headerTitle != null) headerTitle.setText("USER MANAGEMENT");
-            if (headerSubtitle != null) headerSubtitle.setText("Manage System Login Accounts");
             if (userPanel != null) {
                 userPanel.loadUsersAsync();
             }
@@ -450,8 +410,6 @@ public class AdminDashboard extends JFrame {
             activeNavName = "Course Management";
             cardLayout.show(cardsContainer, "COURSES");
             if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / Course Management");
-            if (headerTitle != null) headerTitle.setText("COURSE MANAGEMENT");
-            if (headerSubtitle != null) headerSubtitle.setText("Manage Academic Courses");
             if (coursePanel != null) {
                 coursePanel.loadCoursesAsync();
             }
@@ -459,8 +417,6 @@ public class AdminDashboard extends JFrame {
             activeNavName = "Notice Management";
             cardLayout.show(cardsContainer, "NOTICES");
             if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / Notice Management");
-            if (headerTitle != null) headerTitle.setText("NOTICE MANAGEMENT");
-            if (headerSubtitle != null) headerSubtitle.setText("Manage Faculty Announcements & Circulars");
             if (noticePanel != null) {
                 noticePanel.loadNoticesAsync();
             }
@@ -468,8 +424,6 @@ public class AdminDashboard extends JFrame {
             activeNavName = "Timetable Management";
             cardLayout.show(cardsContainer, "TIMETABLE");
             if (headerBreadcrumb != null) headerBreadcrumb.setText("Home / Timetable Management");
-            if (headerTitle != null) headerTitle.setText("TIMETABLE MANAGEMENT");
-            if (headerSubtitle != null) headerSubtitle.setText("Manage Faculty Academic Schedules & Venues");
             if (timetablePanel != null) {
                 timetablePanel.loadTimetablesAsync();
             }
@@ -540,23 +494,33 @@ public class AdminDashboard extends JFrame {
     }
 
     private JButton createLogoutButton() {
-        final boolean[] isHovered = {false};
-        JButton logoutBtn = new JButton("Log Out") {
+        final float[] hoverAnim = {0f};
+        final Timer[] timer = {null};
+
+        JButton logoutBtn = new JButton("⎋  Log Out") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (isHovered[0]) {
-                    g2.setColor(new Color(220, 38, 38, 35));
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                    g2.setColor(new Color(248, 113, 113, 100));
-                } else {
-                    g2.setColor(new Color(255, 255, 255, 18));
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                    g2.setColor(new Color(255, 255, 255, 40));
-                }
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+                int w = getWidth();
+                int h = getHeight();
+
+                Color normalBg = new Color(255, 255, 255, 14);
+                Color hoverBg = new Color(220, 38, 38, 48);
+                Color currentBg = UIAnimationHelper.interpolateColor(normalBg, hoverBg, hoverAnim[0]);
+
+                g2.setColor(currentBg);
+                g2.fillRoundRect(0, 0, w, h, 20, 20);
+
+                Color normalBorder = new Color(255, 255, 255, 28);
+                Color hoverBorder = new Color(248, 113, 113, 150);
+                Color currentBorder = UIAnimationHelper.interpolateColor(normalBorder, hoverBorder, hoverAnim[0]);
+
+                g2.setColor(currentBorder);
                 g2.setStroke(new BasicStroke(1.0f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                g2.drawRoundRect(0, 0, w - 1, h - 1, 20, 20);
                 g2.dispose();
                 super.paintComponent(g);
             }
@@ -567,25 +531,183 @@ public class AdminDashboard extends JFrame {
         logoutBtn.setBorderPainted(false);
         logoutBtn.setFocusPainted(false);
         logoutBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        logoutBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
-        logoutBtn.setPreferredSize(new Dimension(218, 38));
+        logoutBtn.setMaximumSize(new Dimension(238, 40));
+        logoutBtn.setPreferredSize(new Dimension(238, 40));
+        logoutBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         logoutBtn.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                isHovered[0] = true;
-                logoutBtn.repaint();
+                startProgressTimer(logoutBtn, hoverAnim, timer, true);
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                isHovered[0] = false;
-                logoutBtn.repaint();
+                startProgressTimer(logoutBtn, hoverAnim, timer, false);
             }
         });
 
         logoutBtn.addActionListener(e -> handleLogout());
         return logoutBtn;
+    }
+
+    private JPanel createLargeProfileSection() {
+        JPanel section = new JPanel();
+        section.setOpaque(false);
+        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+        section.setAlignmentX(Component.CENTER_ALIGNMENT);
+        section.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        section.setToolTipText("System Administrator Account Profile");
+
+        // 1. Large Circular Avatar Icon (64px diameter with Rose to Violet gradient halo ring)
+        final int d = 64;
+        JPanel avatar = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int w = getWidth();
+                int h = getHeight();
+                int x = (w - d) / 2;
+                int y = (h - d) / 2;
+
+                // Vibrant Gradient Halo Ring (Rose #F43F5E to Violet #8B5CF6)
+                GradientPaint ring = new GradientPaint(x, y, new Color(244, 63, 94), x + d, y + d, new Color(139, 92, 246));
+                g2.setPaint(ring);
+                g2.fillOval(x, y, d, d);
+
+                // Inner avatar circle
+                g2.setColor(new Color(24, 34, 53));
+                g2.fillOval(x + 3, y + 3, d - 6, d - 6);
+
+                // Initials
+                g2.setColor(Color.WHITE);
+                g2.setFont(getModernFont(Font.BOLD, 20));
+                FontMetrics fm = g2.getFontMetrics();
+                String initials = getInitials(adminDisplayName);
+                int tx = x + (d - fm.stringWidth(initials)) / 2;
+                int ty = y + ((d - fm.getHeight()) / 2) + fm.getAscent();
+                g2.drawString(initials, tx, ty);
+
+                // Green Active Dot
+                int dotD = 14;
+                int dotX = x + d - dotD - 1;
+                int dotY = y + d - dotD - 1;
+                g2.setColor(new Color(16, 185, 129));
+                g2.fillOval(dotX, dotY, dotD, dotD);
+                g2.setColor(Color.WHITE);
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawOval(dotX, dotY, dotD, dotD);
+
+                g2.dispose();
+            }
+        };
+        avatar.setOpaque(false);
+        avatar.setPreferredSize(new Dimension(240, 68));
+        avatar.setMaximumSize(new Dimension(240, 68));
+        avatar.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // 2. Name directly under that large icon (Centered)
+        JLabel lblName = new JLabel(adminDisplayName != null && !adminDisplayName.isBlank() ? adminDisplayName : "System Administrator");
+        lblName.setFont(getModernFont(Font.BOLD, 14));
+        lblName.setForeground(Color.WHITE);
+        lblName.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // 3. Role & Active Status Badge (Centered)
+        JPanel badge = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(255, 255, 255, 18));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
+                g2.setColor(new Color(147, 197, 253, 50));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
+                g2.dispose();
+            }
+        };
+        badge.setOpaque(false);
+        badge.setLayout(new FlowLayout(FlowLayout.CENTER, 4, 3));
+        badge.setAlignmentX(Component.CENTER_ALIGNMENT);
+        badge.setMaximumSize(new Dimension(170, 24));
+        badge.setPreferredSize(new Dimension(165, 24));
+
+        JLabel lblRole = new JLabel("System Admin");
+        lblRole.setFont(getModernFont(Font.BOLD, 10));
+        lblRole.setForeground(new Color(147, 197, 253));
+
+        JLabel lblDot = new JLabel("•");
+        lblDot.setFont(getModernFont(Font.BOLD, 10));
+        lblDot.setForeground(new Color(16, 185, 129));
+
+        JLabel lblStatus = new JLabel("Active");
+        lblStatus.setFont(getModernFont(Font.PLAIN, 10));
+        lblStatus.setForeground(new Color(203, 213, 225));
+
+        badge.add(lblRole);
+        badge.add(lblDot);
+        badge.add(lblStatus);
+
+        // 4. Email / Account details underneath (Centered)
+        JLabel lblEmail = new JLabel("admin@fams.uor.lk");
+        lblEmail.setFont(getModernFont(Font.PLAIN, 11));
+        lblEmail.setForeground(new Color(148, 163, 184));
+        lblEmail.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        section.add(avatar);
+        section.add(Box.createVerticalStrut(8));
+        section.add(lblName);
+        section.add(Box.createVerticalStrut(6));
+        section.add(badge);
+        section.add(Box.createVerticalStrut(6));
+        section.add(lblEmail);
+
+        // Click to view/manage users smoothly (NO dropdown popup)
+        section.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                handleNavigationClick("User Management");
+            }
+        });
+
+        return section;
+    }
+
+    private JPanel createBottomPanel() {
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 18));
+        bottomPanel.setOpaque(false);
+        bottomPanel.setPreferredSize(new Dimension(270, 76));
+
+        JButton logoutBtn = createLogoutButton();
+        bottomPanel.add(logoutBtn);
+        return bottomPanel;
+    }
+
+    private void startProgressTimer(JComponent comp, float[] progress, Timer[] timer, boolean targetIn) {
+        if (timer[0] != null && timer[0].isRunning()) {
+            timer[0].stop();
+        }
+        final float step = 0.16f;
+        timer[0] = new Timer(16, ev -> {
+            if (targetIn) {
+                progress[0] += step;
+                if (progress[0] >= 1.0f) {
+                    progress[0] = 1.0f;
+                    timer[0].stop();
+                }
+            } else {
+                progress[0] -= step;
+                if (progress[0] <= 0.0f) {
+                    progress[0] = 0.0f;
+                    timer[0].stop();
+                }
+            }
+            comp.repaint();
+        });
+        timer[0].start();
     }
 
     private void handleLogout() {
@@ -669,12 +791,6 @@ public class AdminDashboard extends JFrame {
                 g2.drawLine(x + 5, y + 1, x + 5, y + 3);
                 g2.drawLine(x + 12, y + 1, x + 12, y + 3);
                 break;
-            case "reports":
-                g2.drawLine(x + 1, y + 15, x + 16, y + 15);
-                g2.drawLine(x + 4, y + 15, x + 4, y + 9);
-                g2.drawLine(x + 8, y + 15, x + 8, y + 4);
-                g2.drawLine(x + 12, y + 15, x + 12, y + 7);
-                break;
         }
     }
 
@@ -712,11 +828,18 @@ public class AdminDashboard extends JFrame {
         headerSubtitle.setFont(getModernFont(Font.PLAIN, 12));
         headerSubtitle.setForeground(TEXT_SECONDARY);
 
+        titlePanel.add(Box.createVerticalGlue());
         titlePanel.add(headerBreadcrumb);
-        titlePanel.add(Box.createVerticalStrut(3));
-        titlePanel.add(headerTitle);
-        titlePanel.add(Box.createVerticalStrut(3));
-        titlePanel.add(headerSubtitle);
+
+        titleSubPanel = new JPanel();
+        titleSubPanel.setOpaque(false);
+        titleSubPanel.setLayout(new BoxLayout(titleSubPanel, BoxLayout.Y_AXIS));
+        titleSubPanel.add(Box.createVerticalStrut(3));
+        titleSubPanel.add(headerTitle);
+        titleSubPanel.add(Box.createVerticalStrut(3));
+        titleSubPanel.add(headerSubtitle);
+        titlePanel.add(titleSubPanel);
+        titlePanel.add(Box.createVerticalGlue());
 
         header.add(titlePanel, BorderLayout.WEST);
 
@@ -784,7 +907,14 @@ public class AdminDashboard extends JFrame {
             }
         };
         adminPill.setOpaque(false);
-        adminPill.setBorder(new EmptyBorder(2, 6, 2, 10));
+        adminPill.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        adminPill.setToolTipText("System Administrator Account Profile");
+        adminPill.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                handleNavigationClick("User Management");
+            }
+        });
 
         JPanel miniAvatar = new JPanel() {
             @Override
@@ -792,13 +922,20 @@ public class AdminDashboard extends JFrame {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(PRIMARY_NAVY);
+
+                // Gradient Ring (matching the reference image)
+                GradientPaint ring = new GradientPaint(0, 0, new Color(244, 63, 94), 26, 26, new Color(139, 92, 246));
+                g2.setPaint(ring);
                 g2.fillOval(0, 0, 26, 26);
+
+                g2.setColor(PRIMARY_NAVY);
+                g2.fillOval(2, 2, 22, 22);
+
                 g2.setColor(Color.WHITE);
-                g2.setFont(getModernFont(Font.BOLD, 10));
+                g2.setFont(getModernFont(Font.BOLD, 9));
                 FontMetrics fm = g2.getFontMetrics();
                 String t = getInitials(adminDisplayName);
-                g2.drawString(t, (26 - fm.stringWidth(t)) / 2, 17);
+                g2.drawString(t, (26 - fm.stringWidth(t)) / 2, 16);
                 g2.dispose();
             }
         };
@@ -837,50 +974,10 @@ public class AdminDashboard extends JFrame {
 
     // WELCOME BANNER
     private JPanel createWelcomeBanner() {
-        JPanel banner = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                GradientPaint gp = new GradientPaint(
-                        0, 0, PRIMARY_NAVY,
-                        getWidth(), getHeight(), SECONDARY_BLUE
-                );
-                g2.setPaint(gp);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
-
-                // Subtle modern background arcs on right
-                g2.setColor(new Color(255, 255, 255, 14));
-                g2.fillOval(getWidth() - 170, -40, 210, 210);
-                g2.fillOval(getWidth() - 250, 15, 140, 140);
-                g2.dispose();
-            }
-        };
-        banner.setOpaque(false);
-        banner.setLayout(new BorderLayout());
-        banner.setBorder(new EmptyBorder(20, 26, 20, 26));
-        banner.setMaximumSize(new Dimension(Integer.MAX_VALUE, 105));
-
-        JPanel textPanel = new JPanel();
-        textPanel.setOpaque(false);
-        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
-
-        JLabel welcomeTitle = new JLabel("Welcome to FAMS");
-        welcomeTitle.setFont(getModernFont(Font.BOLD, 22));
-        welcomeTitle.setForeground(Color.WHITE);
-
-        JLabel welcomeSub = new JLabel("Manage academic activities and keep your faculty connected through one centralized platform.");
-        welcomeSub.setFont(getModernFont(Font.PLAIN, 13));
-        welcomeSub.setForeground(new Color(224, 234, 254));
-
-        textPanel.add(welcomeTitle);
-        textPanel.add(Box.createVerticalStrut(5));
-        textPanel.add(welcomeSub);
-
-        banner.add(textPanel, BorderLayout.CENTER);
-        return banner;
+        return new PageHeaderBanner(
+                "Welcome to FAMS",
+                "Manage academic activities and keep your faculty connected through one centralized platform."
+        );
     }
 
     // STATISTICS CARDS ROW
@@ -965,10 +1062,10 @@ public class AdminDashboard extends JFrame {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setColor(BORDER_COLOR);
                 g2.setStroke(new BasicStroke(1.0f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
 
                 g2.setColor(accentColor);
                 g2.fillRoundRect(0, 0, getWidth(), 4, 4, 4);
@@ -1101,10 +1198,10 @@ public class AdminDashboard extends JFrame {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(isHovered[0] ? new Color(224, 237, 255) : LIGHT_BLUE);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
                 g2.setColor(isHovered[0] ? SECONDARY_BLUE : new Color(219, 234, 254));
                 g2.setStroke(new BasicStroke(1.0f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
                 g2.dispose();
             }
         };

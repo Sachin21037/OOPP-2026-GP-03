@@ -13,6 +13,7 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableRowSorter;
+import ui.util.UIAnimationHelper;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -62,6 +63,9 @@ public class StudentManagementPanel extends JPanel {
     private JLabel lblRepeatStudents;
     private JLabel lblActiveStudents;
 
+    // Standardized Blue Header Banner
+    private PageHeaderBanner headerBanner;
+
     // Callback on data changes (e.g. to refresh AdminDashboard stats)
     private Runnable dataChangedCallback;
 
@@ -84,9 +88,23 @@ public class StudentManagementPanel extends JPanel {
         setBackground(MAIN_BG);
         setBorder(new EmptyBorder(20, 28, 24, 28));
 
-        // 1. Top Summary Cards (Quick overview of student metrics)
-        JPanel topSummary = createSummaryCards();
-        add(topSummary, BorderLayout.NORTH);
+        // 1. Top Section: Standardized Header Banner & Summary Cards
+        JPanel topContainer = new JPanel();
+        topContainer.setOpaque(false);
+        topContainer.setLayout(new BoxLayout(topContainer, BoxLayout.Y_AXIS));
+
+        headerBanner = new PageHeaderBanner(
+                "Student Management",
+                "Manage undergraduate records, academic status, and system access.",
+                null,
+                "↻ Refresh",
+                () -> loadStudentsAsync()
+        );
+        topContainer.add(headerBanner);
+        topContainer.add(Box.createVerticalStrut(14));
+        topContainer.add(createSummaryCards());
+
+        add(topContainer, BorderLayout.NORTH);
 
         // 2. Main Content Card (Toolbar + Table + Pagination Footer)
         JPanel mainCard = createMainCard();
@@ -120,11 +138,11 @@ public class StudentManagementPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setColor(BORDER_COLOR);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
                 g2.setColor(accent);
-                g2.fillRoundRect(0, 0, getWidth(), 3, 3, 3);
+                g2.fillRoundRect(0, 0, getWidth(), 4, 4, 4);
                 g2.dispose();
             }
         };
@@ -159,9 +177,9 @@ public class StudentManagementPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setColor(BORDER_COLOR);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
                 g2.dispose();
             }
         };
@@ -169,51 +187,45 @@ public class StudentManagementPanel extends JPanel {
         card.setLayout(new BorderLayout(0, 12));
         card.setBorder(new EmptyBorder(18, 20, 16, 20));
 
-        // 1. Action Toolbar + Title
-        JPanel topBar = createTopActionBar();
-        // 2. Search & Filter Bar
-        JPanel filterBar = createFilterBar();
+        // 1. Toolbar (Search, Filters, Action Buttons)
+        JPanel toolbar = createToolbar();
+        card.add(toolbar, BorderLayout.NORTH);
 
-        JPanel northGroup = new JPanel(new BorderLayout(0, 12));
-        northGroup.setOpaque(false);
-        northGroup.add(topBar, BorderLayout.NORTH);
-        northGroup.add(filterBar, BorderLayout.SOUTH);
-
-        card.add(northGroup, BorderLayout.NORTH);
-
-        // 3. Table with scroll
+        // 2. Table with scroll
         JScrollPane scrollPane = createTableScrollPane();
         card.add(scrollPane, BorderLayout.CENTER);
 
-        // 4. Footer Status Bar
+        // 3. Footer Status Bar
         JPanel footer = createFooterBar();
         card.add(footer, BorderLayout.SOUTH);
 
         return card;
     }
 
-    private JPanel createTopActionBar() {
-        JPanel bar = new JPanel(new BorderLayout(14, 0));
-        bar.setOpaque(false);
+    private JPanel createToolbar() {
+        JPanel toolbar = new JPanel();
+        toolbar.setOpaque(false);
+        toolbar.setLayout(new BoxLayout(toolbar, BoxLayout.Y_AXIS));
 
-        // Left Header Titles
-        JPanel titles = new JPanel();
-        titles.setOpaque(false);
-        titles.setLayout(new BoxLayout(titles, BoxLayout.Y_AXIS));
+        // ROW 1: Search Field (Left) & Action Buttons (Right)
+        JPanel row1 = new JPanel(new BorderLayout(12, 0));
+        row1.setOpaque(false);
+        row1.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
 
-        JLabel titleLbl = new JLabel("Undergraduate Student Directory");
-        titleLbl.setFont(AdminDashboard.getModernFont(Font.BOLD, 17));
-        titleLbl.setForeground(TEXT_PRIMARY);
+        // Left Search Field with animated focus glow and pill shape
+        txtSearch = new JTextField();
+        txtSearch.putClientProperty("JTextField.placeholderText", "Search by ID, index, name, email...");
 
-        JLabel subLbl = new JLabel("View, search, register, modify, and manage student records and portal access.");
-        subLbl.setFont(AdminDashboard.getModernFont(Font.PLAIN, 11));
-        subLbl.setForeground(TEXT_SECONDARY);
+        // Real-time search listening
+        txtSearch.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { applyFilters(); }
+            @Override public void removeUpdate(DocumentEvent e) { applyFilters(); }
+            @Override public void changedUpdate(DocumentEvent e) { applyFilters(); }
+        });
 
-        titles.add(titleLbl);
-        titles.add(Box.createVerticalStrut(2));
-        titles.add(subLbl);
-
-        bar.add(titles, BorderLayout.WEST);
+        JPanel searchPanel = UIAnimationHelper.createPillSearchBox(txtSearch, 280, 36, 20);
+        row1.add(searchPanel, BorderLayout.WEST);
 
         // Right Action Buttons
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
@@ -242,77 +254,47 @@ public class StudentManagementPanel extends JPanel {
         actions.add(btnEdit);
         actions.add(btnAdd);
 
-        bar.add(actions, BorderLayout.EAST);
-        return bar;
-    }
+        row1.add(actions, BorderLayout.EAST);
+        toolbar.add(row1);
+        toolbar.add(Box.createVerticalStrut(10));
 
-    private JPanel createFilterBar() {
-        JPanel bar = new JPanel(new BorderLayout(12, 0));
-        bar.setOpaque(false);
+        // ROW 2: Filter Controls
+        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        row2.setOpaque(false);
+        row2.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
 
-        // Left Search Field
-        JPanel searchPanel = new JPanel(new BorderLayout(6, 0));
-        searchPanel.setOpaque(false);
-        searchPanel.setPreferredSize(new Dimension(320, 36));
-
-        txtSearch = new JTextField();
-        txtSearch.setFont(AdminDashboard.getModernFont(Font.PLAIN, 12));
-        txtSearch.setBorder(new CompoundBorder(
-                new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(6, 10, 6, 10)
-        ));
-        txtSearch.putClientProperty("JTextField.placeholderText", "Search by ID, index, name, email...");
-
-        // Real-time search listening
-        txtSearch.getDocument().addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e) { applyFilters(); }
-            @Override public void removeUpdate(DocumentEvent e) { applyFilters(); }
-            @Override public void changedUpdate(DocumentEvent e) { applyFilters(); }
-        });
-
-        searchPanel.add(txtSearch, BorderLayout.CENTER);
-        bar.add(searchPanel, BorderLayout.WEST);
-
-        // Right Filter Dropdowns
-        JPanel filters = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        filters.setOpaque(false);
+        JLabel filterLbl = new JLabel("Filter by:");
+        filterLbl.setFont(AdminDashboard.getModernFont(Font.BOLD, 11));
+        filterLbl.setForeground(TEXT_SECONDARY);
+        row2.add(filterLbl);
 
         cmbFilterAcademicStatus = new JComboBox<>(new String[]{"All Academic Statuses", "REGULAR", "REPEAT", "BATCH_MISSED"});
-        styleFilterComboBox(cmbFilterAcademicStatus);
+        styleFilterComboBox(cmbFilterAcademicStatus, 175);
         cmbFilterAcademicStatus.addActionListener(e -> applyFilters());
+        row2.add(cmbFilterAcademicStatus);
 
         cmbFilterAccountStatus = new JComboBox<>(new String[]{"All Account Statuses", "ACTIVE", "INACTIVE"});
-        styleFilterComboBox(cmbFilterAccountStatus);
+        styleFilterComboBox(cmbFilterAccountStatus, 165);
         cmbFilterAccountStatus.addActionListener(e -> applyFilters());
+        row2.add(cmbFilterAccountStatus);
 
         cmbFilterBatch = new JComboBox<>(new String[]{"All Batches", "2024/2025", "2023/2024", "2022/2023"});
-        styleFilterComboBox(cmbFilterBatch);
+        styleFilterComboBox(cmbFilterBatch, 130);
         cmbFilterBatch.addActionListener(e -> applyFilters());
+        row2.add(cmbFilterBatch);
 
-        JButton btnClear = new JButton("Clear Filters");
-        btnClear.setFont(AdminDashboard.getModernFont(Font.PLAIN, 11));
-        btnClear.setForeground(TEXT_SECONDARY);
-        btnClear.setBackground(Color.WHITE);
-        btnClear.setFocusPainted(false);
-        btnClear.setBorder(new LineBorder(BORDER_COLOR, 1, true));
-        btnClear.setPreferredSize(new Dimension(85, 34));
-        btnClear.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnClear.addActionListener(e -> clearFilters());
+        JButton btnClear = UIAnimationHelper.createAnimatedSecondaryButton("Clear Filters", TEXT_SECONDARY, BORDER_COLOR, 18, e -> clearFilters());
+        row2.add(btnClear);
 
-        filters.add(new JLabel("Filter:"));
-        filters.add(cmbFilterAcademicStatus);
-        filters.add(cmbFilterAccountStatus);
-        filters.add(cmbFilterBatch);
-        filters.add(btnClear);
-
-        bar.add(filters, BorderLayout.EAST);
-        return bar;
+        toolbar.add(row2);
+        return toolbar;
     }
 
-    private void styleFilterComboBox(JComboBox<String> box) {
+    private void styleFilterComboBox(JComboBox<String> box, int width) {
         box.setFont(AdminDashboard.getModernFont(Font.PLAIN, 11));
         box.setBackground(Color.WHITE);
-        box.setPreferredSize(new Dimension(145, 34));
+        box.setPreferredSize(new Dimension(width, 34));
     }
 
     private JScrollPane createTableScrollPane() {
@@ -337,7 +319,7 @@ public class StudentManagementPanel extends JPanel {
         ((DefaultTableCellRenderer) header.getDefaultRenderer()).setHorizontalAlignment(JLabel.LEFT);
 
         // Column widths
-        studentTable.getColumnModel().getColumn(0).setPreferredWidth(80);  // ID
+        studentTable.getColumnModel().getColumn(0).setPreferredWidth(95);  // ID
         studentTable.getColumnModel().getColumn(1).setPreferredWidth(105); // Index No
         studentTable.getColumnModel().getColumn(2).setPreferredWidth(140); // Full Name
         studentTable.getColumnModel().getColumn(3).setPreferredWidth(170); // Email
@@ -345,7 +327,8 @@ public class StudentManagementPanel extends JPanel {
         studentTable.getColumnModel().getColumn(5).setPreferredWidth(85);  // Batch
         studentTable.getColumnModel().getColumn(6).setPreferredWidth(75);  // Year
         studentTable.getColumnModel().getColumn(7).setPreferredWidth(180); // Dept
-        studentTable.getColumnModel().getColumn(8).setPreferredWidth(110); // Status
+        studentTable.getColumnModel().getColumn(8).setPreferredWidth(130); // Status
+        studentTable.getColumnModel().getColumn(9).setPreferredWidth(85);  // Account
         studentTable.getColumnModel().getColumn(9).setPreferredWidth(85);  // Account
 
         // Custom Cell Renderers for Badges
@@ -434,25 +417,40 @@ public class StudentManagementPanel extends JPanel {
     }
 
     private JButton createButton(String text, String icon, boolean primary, Color color) {
+        final float[] animProgress = {0f};
+        final Timer[] animTimer = {null};
+
         JButton btn = new JButton((icon != null ? icon + "  " : "") + text) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+                int w = getWidth();
+                int h = getHeight();
 
                 if (!isEnabled()) {
                     g2.setColor(new Color(241, 245, 249));
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                    g2.fillRoundRect(0, 0, w, h, 20, 20);
                     g2.setColor(new Color(203, 213, 225));
-                    g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                    g2.drawRoundRect(0, 0, w - 1, h - 1, 20, 20);
                 } else if (primary) {
-                    g2.setColor(color);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                    Color hoverCol = UIAnimationHelper.lighten(color, 1.15f);
+                    Color curCol = UIAnimationHelper.interpolateColor(color, hoverCol, animProgress[0]);
+                    if (getModel().isPressed()) curCol = UIAnimationHelper.darken(color, 0.88f);
+                    g2.setColor(curCol);
+                    g2.fillRoundRect(0, 0, w, h, 20, 20);
                 } else {
-                    g2.setColor(Color.WHITE);
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                    g2.setColor(BORDER_COLOR);
-                    g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                    Color bgHover = new Color(241, 245, 249);
+                    Color curBg = UIAnimationHelper.interpolateColor(Color.WHITE, bgHover, animProgress[0]);
+                    g2.setColor(curBg);
+                    g2.fillRoundRect(0, 0, w, h, 20, 20);
+                    Color borderHover = color;
+                    Color curBorder = UIAnimationHelper.interpolateColor(BORDER_COLOR, borderHover, animProgress[0]);
+                    g2.setColor(curBorder);
+                    g2.setStroke(new BasicStroke(1.2f));
+                    g2.drawRoundRect(0, 0, w - 1, h - 1, 20, 20);
                 }
                 g2.dispose();
                 super.paintComponent(g);
@@ -465,7 +463,29 @@ public class StudentManagementPanel extends JPanel {
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(btn.getPreferredSize().width + 12, 36));
+        btn.setPreferredSize(new Dimension(btn.getPreferredSize().width + 16, 36));
+
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (btn.isEnabled()) startAnim(true);
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                startAnim(false);
+            }
+            private void startAnim(boolean in) {
+                if (animTimer[0] != null && animTimer[0].isRunning()) animTimer[0].stop();
+                animTimer[0] = new Timer(16, evt -> {
+                    animProgress[0] += in ? 0.15f : -0.15f;
+                    if (animProgress[0] >= 1f) { animProgress[0] = 1f; animTimer[0].stop(); }
+                    else if (animProgress[0] <= 0f) { animProgress[0] = 0f; animTimer[0].stop(); }
+                    btn.repaint();
+                });
+                animTimer[0].start();
+            }
+        });
+
         return btn;
     }
 
@@ -520,6 +540,10 @@ public class StudentManagementPanel extends JPanel {
         lblRegularStudents.setText(String.valueOf(regular));
         lblRepeatStudents.setText(String.valueOf(repeat));
         lblActiveStudents.setText(String.valueOf(active));
+
+        if (headerBanner != null) {
+            headerBanner.setBadgeText(total + " Undergraduates");
+        }
     }
 
     private void applyFilters() {

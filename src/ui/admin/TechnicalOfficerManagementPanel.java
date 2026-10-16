@@ -13,6 +13,7 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableRowSorter;
+import ui.util.UIAnimationHelper;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -63,6 +64,9 @@ public class TechnicalOfficerManagementPanel extends JPanel {
     private JLabel lblIctOfficers;
     private JLabel lblInactiveOfficers;
 
+    // Standardized Blue Header Banner
+    private PageHeaderBanner headerBanner;
+
     // Callback on data changes
     private Runnable dataChangedCallback;
 
@@ -85,9 +89,23 @@ public class TechnicalOfficerManagementPanel extends JPanel {
         setBackground(MAIN_BG);
         setBorder(new EmptyBorder(20, 28, 24, 28));
 
-        // 1. Top Summary Cards (Quick overview of technical staff metrics)
-        JPanel topSummary = createSummaryCards();
-        add(topSummary, BorderLayout.NORTH);
+        // 1. Top Section: Standardized Header Banner & Summary Cards
+        JPanel topContainer = new JPanel();
+        topContainer.setOpaque(false);
+        topContainer.setLayout(new BoxLayout(topContainer, BoxLayout.Y_AXIS));
+
+        headerBanner = new PageHeaderBanner(
+                "Technical Officer Management",
+                "Manage technical staff profiles, laboratory assignments, and system access.",
+                null,
+                "↻ Refresh",
+                () -> loadOfficersAsync()
+        );
+        topContainer.add(headerBanner);
+        topContainer.add(Box.createVerticalStrut(14));
+        topContainer.add(createSummaryCards());
+
+        add(topContainer, BorderLayout.NORTH);
 
         // 2. Main Content Card (Toolbar + Table + Pagination Footer)
         JPanel mainCard = createMainCard();
@@ -121,11 +139,11 @@ public class TechnicalOfficerManagementPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setColor(BORDER_COLOR);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
                 g2.setColor(accent);
-                g2.fillRoundRect(0, 0, getWidth(), 3, 3, 3);
+                g2.fillRoundRect(0, 0, getWidth(), 4, 4, 4);
                 g2.dispose();
             }
         };
@@ -184,9 +202,9 @@ public class TechnicalOfficerManagementPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setColor(BORDER_COLOR);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
                 g2.dispose();
             }
         };
@@ -256,30 +274,18 @@ public class TechnicalOfficerManagementPanel extends JPanel {
     }
 
     private JPanel createToolbar() {
-        JPanel toolbar = new JPanel(new BorderLayout(12, 10));
+        JPanel toolbar = new JPanel();
         toolbar.setOpaque(false);
+        toolbar.setLayout(new BoxLayout(toolbar, BoxLayout.Y_AXIS));
 
-        // Left Controls: Search Bar & Filters
-        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        leftPanel.setOpaque(false);
+        // ROW 1: Search Field (Left) & Action Buttons (Right)
+        JPanel row1 = new JPanel(new BorderLayout(12, 0));
+        row1.setOpaque(false);
+        row1.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row1.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
 
-        // Search Input
-        JPanel searchBox = new JPanel(new BorderLayout(6, 0));
-        searchBox.setBackground(Color.WHITE);
-        searchBox.setBorder(new CompoundBorder(
-                new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(6, 10, 6, 10)
-        ));
-        searchBox.setPreferredSize(new Dimension(240, 36));
-
-        JLabel searchIcon = new JLabel("🔍");
-        searchIcon.setForeground(TEXT_SECONDARY);
-        searchBox.add(searchIcon, BorderLayout.WEST);
-
+        // Search Input with animated focus glow and pill shape
         txtSearch = new JTextField();
-        txtSearch.setBorder(null);
-        txtSearch.setFont(AdminDashboard.getModernFont(Font.PLAIN, 12));
-        txtSearch.setForeground(TEXT_PRIMARY);
         txtSearch.setToolTipText("Search by ID, staff no, name, email, department...");
         txtSearch.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -289,35 +295,8 @@ public class TechnicalOfficerManagementPanel extends JPanel {
             @Override
             public void changedUpdate(DocumentEvent e) { filterOfficers(); }
         });
-        searchBox.add(txtSearch, BorderLayout.CENTER);
-        leftPanel.add(searchBox);
-
-        // Department Filter
-        String[] deptOptions = {"All Departments", "Information and Communication Technology", "Engineering Technology", "Biosystems Technology"};
-        cmbFilterDepartment = new JComboBox<>(deptOptions);
-        styleFilterCombo(cmbFilterDepartment, 170);
-        cmbFilterDepartment.addActionListener(e -> filterOfficers());
-        leftPanel.add(cmbFilterDepartment);
-
-        // Account Status Filter
-        String[] accOptions = {"All Status", "ACTIVE", "INACTIVE"};
-        cmbFilterAccountStatus = new JComboBox<>(accOptions);
-        styleFilterCombo(cmbFilterAccountStatus, 110);
-        cmbFilterAccountStatus.addActionListener(e -> filterOfficers());
-        leftPanel.add(cmbFilterAccountStatus);
-
-        // Clear Filters Button
-        JButton btnClear = new JButton("Reset");
-        btnClear.setFont(AdminDashboard.getModernFont(Font.PLAIN, 11));
-        btnClear.setForeground(TEXT_SECONDARY);
-        btnClear.setBackground(Color.WHITE);
-        btnClear.setBorder(new CompoundBorder(new LineBorder(BORDER_COLOR, 1, true), new EmptyBorder(6, 10, 6, 10)));
-        btnClear.setFocusPainted(false);
-        btnClear.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnClear.addActionListener(e -> resetFilters());
-        leftPanel.add(btnClear);
-
-        toolbar.add(leftPanel, BorderLayout.WEST);
+        JPanel searchBox = UIAnimationHelper.createPillSearchBox(txtSearch, 260, 36, 20);
+        row1.add(searchBox, BorderLayout.WEST);
 
         // Right Controls: Action Buttons (Add, Edit, Delete, Status Toggle, Refresh)
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
@@ -341,7 +320,40 @@ public class TechnicalOfficerManagementPanel extends JPanel {
         btnAdd = createPrimaryButton("+ Add Officer", new Color(180, 83, 9), e -> onAddOfficer());
         rightPanel.add(btnAdd);
 
-        toolbar.add(rightPanel, BorderLayout.EAST);
+        row1.add(rightPanel, BorderLayout.EAST);
+        toolbar.add(row1);
+        toolbar.add(Box.createVerticalStrut(10));
+
+        // ROW 2: Filter Dropdowns & Reset
+        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        row2.setOpaque(false);
+        row2.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+
+        JLabel filterLbl = new JLabel("Filter by:");
+        filterLbl.setFont(AdminDashboard.getModernFont(Font.BOLD, 11));
+        filterLbl.setForeground(TEXT_SECONDARY);
+        row2.add(filterLbl);
+
+        // Department Filter
+        String[] deptOptions = {"All Departments", "Information and Communication Technology", "Engineering Technology", "Biosystems Technology"};
+        cmbFilterDepartment = new JComboBox<>(deptOptions);
+        styleFilterCombo(cmbFilterDepartment, 210);
+        cmbFilterDepartment.addActionListener(e -> filterOfficers());
+        row2.add(cmbFilterDepartment);
+
+        // Account Status Filter
+        String[] accOptions = {"All Status", "ACTIVE", "INACTIVE"};
+        cmbFilterAccountStatus = new JComboBox<>(accOptions);
+        styleFilterCombo(cmbFilterAccountStatus, 120);
+        cmbFilterAccountStatus.addActionListener(e -> filterOfficers());
+        row2.add(cmbFilterAccountStatus);
+
+        // Clear Filters Button
+        JButton btnClear = UIAnimationHelper.createAnimatedSecondaryButton("Reset Filters", TEXT_SECONDARY, BORDER_COLOR, 18, e -> resetFilters());
+        row2.add(btnClear);
+
+        toolbar.add(row2);
         return toolbar;
     }
 
@@ -370,58 +382,19 @@ public class TechnicalOfficerManagementPanel extends JPanel {
     }
 
     private JButton createPrimaryButton(String text, Color bg, java.awt.event.ActionListener al) {
-        JButton btn = new JButton(text) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getModel().isPressed() ? new Color(120, 53, 15)
-                        : (getModel().isRollover() ? new Color(217, 119, 6) : bg));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        btn.setFont(AdminDashboard.getModernFont(Font.BOLD, 12));
-        btn.setForeground(Color.WHITE);
-        btn.setContentAreaFilled(false);
-        btn.setFocusPainted(false);
-        btn.setBorder(new EmptyBorder(8, 16, 8, 16));
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.addActionListener(al);
-        return btn;
+        return UIAnimationHelper.createAnimatedPillButton(text, bg, 20, al);
     }
 
     private JButton createActionButton(String text, Color color, java.awt.event.ActionListener al) {
-        JButton btn = new JButton(text);
-        btn.setFont(AdminDashboard.getModernFont(Font.BOLD, 12));
-        btn.setForeground(color);
-        btn.setBackground(Color.WHITE);
-        btn.setBorder(new CompoundBorder(
-                new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(7, 14, 7, 14)
-        ));
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.addActionListener(al);
-        return btn;
+        return UIAnimationHelper.createAnimatedSecondaryButton(text, color, BORDER_COLOR, 20, al);
     }
 
     private JButton createIconButton(String icon, String tooltip, java.awt.event.ActionListener al) {
-        JButton btn = new JButton(icon);
-        btn.setFont(AdminDashboard.getModernFont(Font.BOLD, 14));
-        btn.setForeground(TEXT_PRIMARY);
-        btn.setBackground(Color.WHITE);
-        btn.setBorder(new CompoundBorder(new LineBorder(BORDER_COLOR, 1, true), new EmptyBorder(6, 12, 6, 12)));
-        btn.setFocusPainted(false);
-        btn.setToolTipText(tooltip);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.addActionListener(al);
-        return btn;
+        return UIAnimationHelper.createAnimatedIconButton(icon, tooltip, TEXT_PRIMARY, new Color(241, 245, 249), 20, al);
     }
 
     private void setupTableColumns() {
-        int[] columnWidths = {85, 115, 175, 220, 190, 120, 95};
+        int[] columnWidths = {95, 115, 175, 220, 190, 120, 95};
         for (int i = 0; i < columnWidths.length && i < officerTable.getColumnCount(); i++) {
             officerTable.getColumnModel().getColumn(i).setPreferredWidth(columnWidths[i]);
         }
@@ -509,6 +482,10 @@ public class TechnicalOfficerManagementPanel extends JPanel {
         lblActiveOfficers.setText(String.valueOf(active));
         lblIctOfficers.setText(String.valueOf(ict));
         lblInactiveOfficers.setText(String.valueOf(inactive));
+
+        if (headerBanner != null) {
+            headerBanner.setBadgeText(total + " Technical Staff");
+        }
     }
 
     private void onAddOfficer() {

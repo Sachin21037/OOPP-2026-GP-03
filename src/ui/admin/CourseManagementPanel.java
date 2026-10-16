@@ -14,6 +14,7 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableRowSorter;
+import ui.util.UIAnimationHelper;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -79,6 +80,9 @@ public class CourseManagementPanel extends JPanel {
     private JButton btnClear;
     private JButton btnRefresh;
 
+    // Standardized Blue Header Banner
+    private PageHeaderBanner headerBanner;
+
     private Course selectedCourse = null;
 
     public CourseManagementPanel() {
@@ -97,13 +101,22 @@ public class CourseManagementPanel extends JPanel {
         setBackground(MAIN_BG);
         setBorder(new EmptyBorder(16, 24, 20, 24));
 
-        // 1. Top Section: Page Header & Summary Cards
+        // 1. Top Section: Standardized Page Header Banner & Summary Cards
         JPanel topContainer = new JPanel();
         topContainer.setOpaque(false);
         topContainer.setLayout(new BoxLayout(topContainer, BoxLayout.Y_AXIS));
 
-        topContainer.add(createPageHeader());
-        topContainer.add(Box.createVerticalStrut(12));
+        headerBanner = new PageHeaderBanner(
+                "Course Management",
+                "Manage Academic Courses and Curriculum Modules",
+                null,
+                "↻ Refresh",
+                () -> loadCoursesAsync()
+        );
+        btnRefresh = headerBanner.getActionButton();
+
+        topContainer.add(headerBanner);
+        topContainer.add(Box.createVerticalStrut(14));
         topContainer.add(createSummaryCards());
         topContainer.add(Box.createVerticalStrut(14));
 
@@ -112,41 +125,6 @@ public class CourseManagementPanel extends JPanel {
         // 2. Center Section: Master-Detail (Left: Course Table, Right: Course Details Form)
         JPanel masterDetailPanel = createMasterDetailSection();
         add(masterDetailPanel, BorderLayout.CENTER);
-    }
-
-
-    // SECTION A: PAGE HEADER
-
-    private JPanel createPageHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
-
-        JPanel titles = new JPanel();
-        titles.setOpaque(false);
-        titles.setLayout(new BoxLayout(titles, BoxLayout.Y_AXIS));
-
-        JLabel titleLbl = new JLabel("COURSE MANAGEMENT");
-        titleLbl.setFont(AdminDashboard.getModernFont(Font.BOLD, 20));
-        titleLbl.setForeground(TEXT_PRIMARY);
-
-        JLabel subLbl = new JLabel("Manage Academic Courses and Curriculum Modules");
-        subLbl.setFont(AdminDashboard.getModernFont(Font.PLAIN, 12));
-        subLbl.setForeground(TEXT_SECONDARY);
-
-        titles.add(titleLbl);
-        titles.add(Box.createVerticalStrut(3));
-        titles.add(subLbl);
-        header.add(titles, BorderLayout.WEST);
-
-        // Right side: Quick Refresh Button
-        JPanel rightHeader = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        rightHeader.setOpaque(false);
-
-        btnRefresh = createIconButton("↻", "Refresh Courses", e -> loadCoursesAsync());
-        rightHeader.add(btnRefresh);
-
-        header.add(rightHeader, BorderLayout.EAST);
-        return header;
     }
 
 
@@ -179,11 +157,11 @@ public class CourseManagementPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setColor(BORDER_COLOR);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
                 g2.setColor(accent);
-                g2.fillRoundRect(0, 0, getWidth(), 3, 3, 3);
+                g2.fillRoundRect(0, 0, getWidth(), 4, 4, 4);
                 g2.dispose();
             }
         };
@@ -252,9 +230,9 @@ public class CourseManagementPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setColor(BORDER_COLOR);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
                 g2.dispose();
             }
         };
@@ -329,15 +307,9 @@ public class CourseManagementPanel extends JPanel {
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         leftPanel.setOpaque(false);
 
-        // Search Input
+        // Search Input with animated focus glow and pill shape
         txtSearch = new JTextField();
-        txtSearch.setPreferredSize(new Dimension(210, 34));
-        txtSearch.setFont(AdminDashboard.getModernFont(Font.PLAIN, 12));
         txtSearch.putClientProperty("JTextField.placeholderText", "Search course code or name...");
-        txtSearch.setBorder(new CompoundBorder(
-                new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(4, 10, 4, 10)
-        ));
         txtSearch.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) { filterCourses(); }
@@ -346,7 +318,8 @@ public class CourseManagementPanel extends JPanel {
             @Override
             public void changedUpdate(DocumentEvent e) { filterCourses(); }
         });
-        leftPanel.add(txtSearch);
+        JPanel searchBox = UIAnimationHelper.createPillSearchBox(txtSearch, 220, 34, 20);
+        leftPanel.add(searchBox);
 
         // Status Filter Dropdown (Active Courses / Inactive Courses)
         String[] statuses = {"All Status", "ACTIVE", "UNOFFERED"};
@@ -363,14 +336,7 @@ public class CourseManagementPanel extends JPanel {
         leftPanel.add(cmbDeptFilter);
 
         // Reset Button
-        JButton btnReset = new JButton("Reset");
-        btnReset.setFont(AdminDashboard.getModernFont(Font.PLAIN, 11));
-        btnReset.setForeground(TEXT_SECONDARY);
-        btnReset.setBackground(Color.WHITE);
-        btnReset.setBorder(new CompoundBorder(new LineBorder(BORDER_COLOR, 1, true), new EmptyBorder(6, 10, 6, 10)));
-        btnReset.setFocusPainted(false);
-        btnReset.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnReset.addActionListener(e -> resetFilters());
+        JButton btnReset = UIAnimationHelper.createAnimatedSecondaryButton("Reset", TEXT_SECONDARY, BORDER_COLOR, 18, e -> resetFilters());
         leftPanel.add(btnReset);
 
         toolbar.add(leftPanel, BorderLayout.CENTER);
@@ -502,9 +468,9 @@ public class CourseManagementPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setColor(BORDER_COLOR);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
                 g2.dispose();
             }
         };
@@ -673,56 +639,24 @@ public class CourseManagementPanel extends JPanel {
     }
 
     private JTextField createStyledTextField() {
-        JTextField tf = new JTextField();
+        JTextField tf = UIAnimationHelper.createPillTextField(18);
         tf.setFont(AdminDashboard.getModernFont(Font.PLAIN, 12));
         tf.setForeground(TEXT_PRIMARY);
         tf.setCaretColor(TEXT_PRIMARY);
-        tf.setBorder(new CompoundBorder(
-                new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(5, 8, 5, 8)
-        ));
         tf.setPreferredSize(new Dimension(100, 34));
         return tf;
     }
 
     private JButton createPrimaryButton(String text, Color bg, java.awt.event.ActionListener l) {
-        JButton btn = new JButton(text);
-        btn.setFont(AdminDashboard.getModernFont(Font.BOLD, 12));
-        btn.setForeground(Color.WHITE);
-        btn.setBackground(bg);
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setOpaque(true);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(120, 36));
-        btn.addActionListener(l);
-        return btn;
+        return UIAnimationHelper.createAnimatedPillButton(text, bg, 20, l);
     }
 
     private JButton createOutlineButton(String text, Color color, java.awt.event.ActionListener l) {
-        JButton btn = new JButton(text);
-        btn.setFont(AdminDashboard.getModernFont(Font.BOLD, 11));
-        btn.setForeground(color);
-        btn.setBackground(Color.WHITE);
-        btn.setFocusPainted(false);
-        btn.setBorder(new CompoundBorder(new LineBorder(color, 1, true), new EmptyBorder(6, 10, 6, 10)));
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(100, 34));
-        btn.addActionListener(l);
-        return btn;
+        return UIAnimationHelper.createAnimatedSecondaryButton(text, color, color, 20, l);
     }
 
     private JButton createIconButton(String iconText, String tooltip, java.awt.event.ActionListener l) {
-        JButton btn = new JButton(iconText);
-        btn.setFont(new Font("Segoe UI Symbol", Font.BOLD, 16));
-        btn.setToolTipText(tooltip);
-        btn.setForeground(TEXT_SECONDARY);
-        btn.setBackground(Color.WHITE);
-        btn.setBorder(new CompoundBorder(new LineBorder(BORDER_COLOR, 1, true), new EmptyBorder(4, 10, 4, 10)));
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.addActionListener(l);
-        return btn;
+        return UIAnimationHelper.createAnimatedIconButton(iconText, tooltip, TEXT_SECONDARY, new Color(241, 245, 249), 20, l);
     }
 
     // DATA OPERATIONS & HANDLERS
@@ -751,6 +685,9 @@ public class CourseManagementPanel extends JPanel {
                     tableModel.setCourses(courses);
                     filterCourses();
                     updateSummaryCards(summaryCounts);
+                    if (headerBanner != null) {
+                        headerBanner.setBadgeText(courses.size() + " Courses");
+                    }
                     lblTableStatus.setText("Showing " + courses.size() + " academic courses.");
 
                     if (selectedCourse == null) {
@@ -774,6 +711,9 @@ public class CourseManagementPanel extends JPanel {
         tableModel.setCourses(courses);
         filterCourses();
         updateSummaryCards(courseService.getCourseSummaryCounts());
+        if (headerBanner != null) {
+            headerBanner.setBadgeText(courses.size() + " Courses");
+        }
         if (selectedCourse == null) {
             clearForm();
         }

@@ -13,6 +13,7 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableRowSorter;
+import ui.util.UIAnimationHelper;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -100,6 +101,9 @@ public class TimetableManagementPanel extends JPanel {
     // Currently selected timetable entry
     private TimetableEntry selectedEntry = null;
 
+    // Standardized Blue Header Banner
+    private PageHeaderBanner headerBanner;
+
     public TimetableManagementPanel() {
         this("ADMIN", "ADM001", null);
     }
@@ -123,12 +127,27 @@ public class TimetableManagementPanel extends JPanel {
         setBackground(MAIN_BG);
         setBorder(new EmptyBorder(20, 24, 24, 24));
 
-        // 1. Top Section: Header + (Summary Cards if Admin)
+        // 1. Top Section: Standardized Header Banner + (Summary Cards if Admin)
         JPanel topContainer = new JPanel();
         topContainer.setOpaque(false);
         topContainer.setLayout(new BoxLayout(topContainer, BoxLayout.Y_AXIS));
 
-        topContainer.add(createHeaderPanel());
+        headerBanner = new PageHeaderBanner(
+                isAdmin ? "Timetable Management" : "Academic Timetable",
+                isAdmin ? "Manage faculty lecture sessions, laboratory practicals, and venue assignments."
+                        : "Official academic schedules, lectures, and laboratory practical sessions.",
+                "0 Sessions",
+                "↻ Refresh",
+                () -> {
+                    loadTimetablesAsync();
+                    if (onTimetableChangedCallback != null) {
+                        onTimetableChangedCallback.run();
+                    }
+                }
+        );
+        btnRefresh = headerBanner.getActionButton();
+
+        topContainer.add(headerBanner);
         topContainer.add(Box.createVerticalStrut(14));
 
         if (isAdmin) {
@@ -156,69 +175,6 @@ public class TimetableManagementPanel extends JPanel {
 
         // Initial async data load
         loadTimetablesAsync();
-    }
-
-    // SECTION A: PAGE HEADER
-
-    private JPanel createHeaderPanel() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setOpaque(false);
-
-        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        titlePanel.setOpaque(false);
-
-        JLabel title = new JLabel(isAdmin ? "TIMETABLE MANAGEMENT" : "ACADEMIC TIMETABLE");
-        title.setFont(AdminDashboard.getModernFont(Font.BOLD, 20));
-        title.setForeground(PRIMARY_NAVY);
-        titlePanel.add(title);
-
-        lblHeaderCount = new JLabel("0 Sessions");
-        lblHeaderCount.setFont(AdminDashboard.getModernFont(Font.BOLD, 11));
-        lblHeaderCount.setForeground(SECONDARY_BLUE);
-        lblHeaderCount.setOpaque(true);
-        lblHeaderCount.setBackground(LIGHT_BLUE);
-        lblHeaderCount.setBorder(new EmptyBorder(3, 8, 3, 8));
-        titlePanel.add(lblHeaderCount);
-
-        JPanel leftContainer = new JPanel();
-        leftContainer.setOpaque(false);
-        leftContainer.setLayout(new BoxLayout(leftContainer, BoxLayout.Y_AXIS));
-        leftContainer.add(titlePanel);
-
-        JLabel subtitle = new JLabel(isAdmin
-                ? "Manage faculty lecture sessions, laboratory practicals, and venue assignments."
-                : "Official academic schedules, lectures, and laboratory practical sessions.");
-        subtitle.setFont(AdminDashboard.getModernFont(Font.PLAIN, 12));
-        subtitle.setForeground(TEXT_SECONDARY);
-        subtitle.setBorder(new EmptyBorder(4, 10, 0, 0));
-        leftContainer.add(subtitle);
-
-        header.add(leftContainer, BorderLayout.WEST);
-
-        // Right Actions (Refresh button)
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        actionPanel.setOpaque(false);
-
-        btnRefresh = new JButton("↻ Refresh");
-        btnRefresh.setFont(AdminDashboard.getModernFont(Font.BOLD, 12));
-        btnRefresh.setForeground(PRIMARY_NAVY);
-        btnRefresh.setBackground(Color.WHITE);
-        btnRefresh.setBorder(new CompoundBorder(
-                new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(7, 14, 7, 14)
-        ));
-        btnRefresh.setFocusPainted(false);
-        btnRefresh.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnRefresh.addActionListener(e -> {
-            loadTimetablesAsync();
-            if (onTimetableChangedCallback != null) {
-                onTimetableChangedCallback.run();
-            }
-        });
-        actionPanel.add(btnRefresh);
-
-        header.add(actionPanel, BorderLayout.EAST);
-        return header;
     }
 
 
@@ -249,11 +205,11 @@ public class TimetableManagementPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setColor(BORDER_COLOR);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
                 g2.setColor(accent);
-                g2.fillRoundRect(0, 0, getWidth(), 3, 3, 3);
+                g2.fillRoundRect(0, 0, getWidth(), 4, 4, 4);
                 g2.dispose();
             }
         };
@@ -295,9 +251,9 @@ public class TimetableManagementPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setColor(BORDER_COLOR);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
                 g2.dispose();
             }
         };
@@ -352,21 +308,16 @@ public class TimetableManagementPanel extends JPanel {
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         leftPanel.setOpaque(false);
 
-        // Search Input
+        // Search Input with animated focus glow and pill shape
         txtSearch = new JTextField();
-        txtSearch.setPreferredSize(new Dimension(170, 34));
-        txtSearch.setFont(AdminDashboard.getModernFont(Font.PLAIN, 12));
         txtSearch.putClientProperty("JTextField.placeholderText", "Search course, venue...");
-        txtSearch.setBorder(new CompoundBorder(
-                new LineBorder(BORDER_COLOR, 1, true),
-                new EmptyBorder(4, 8, 4, 8)
-        ));
         txtSearch.getDocument().addDocumentListener(new DocumentListener() {
             @Override public void insertUpdate(DocumentEvent e) { filterTimetables(); }
             @Override public void removeUpdate(DocumentEvent e) { filterTimetables(); }
             @Override public void changedUpdate(DocumentEvent e) { filterTimetables(); }
         });
-        leftPanel.add(txtSearch);
+        JPanel searchBox = UIAnimationHelper.createPillSearchBox(txtSearch, 175, 34, 20);
+        leftPanel.add(searchBox);
 
         // Day of Week Filter
         String[] days = {"All Days", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"};
@@ -383,14 +334,7 @@ public class TimetableManagementPanel extends JPanel {
         leftPanel.add(cmbBatchFilter);
 
         // Reset Button
-        JButton btnReset = new JButton("Reset");
-        btnReset.setFont(AdminDashboard.getModernFont(Font.PLAIN, 11));
-        btnReset.setForeground(TEXT_SECONDARY);
-        btnReset.setBackground(Color.WHITE);
-        btnReset.setBorder(new CompoundBorder(new LineBorder(BORDER_COLOR, 1, true), new EmptyBorder(6, 10, 6, 10)));
-        btnReset.setFocusPainted(false);
-        btnReset.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnReset.addActionListener(e -> resetFilters());
+        JButton btnReset = UIAnimationHelper.createAnimatedSecondaryButton("Reset", TEXT_SECONDARY, BORDER_COLOR, 18, e -> resetFilters());
         leftPanel.add(btnReset);
 
         toolbar.add(leftPanel, BorderLayout.CENTER);
@@ -483,9 +427,9 @@ public class TimetableManagementPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setColor(BORDER_COLOR);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
                 g2.dispose();
             }
         };
@@ -501,14 +445,7 @@ public class TimetableManagementPanel extends JPanel {
         lblFormMode.setForeground(PRIMARY_NAVY);
         formHeader.add(lblFormMode, BorderLayout.WEST);
 
-        btnClear = new JButton("Clear");
-        btnClear.setFont(AdminDashboard.getModernFont(Font.PLAIN, 11));
-        btnClear.setForeground(TEXT_SECONDARY);
-        btnClear.setBackground(Color.WHITE);
-        btnClear.setBorder(new CompoundBorder(new LineBorder(BORDER_COLOR, 1, true), new EmptyBorder(4, 10, 4, 10)));
-        btnClear.setFocusPainted(false);
-        btnClear.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnClear.addActionListener(e -> clearForm());
+        btnClear = UIAnimationHelper.createAnimatedSecondaryButton("Clear", TEXT_SECONDARY, BORDER_COLOR, 16, e -> clearForm());
         formHeader.add(btnClear, BorderLayout.EAST);
 
         card.add(formHeader, BorderLayout.NORTH);
@@ -600,21 +537,15 @@ public class TimetableManagementPanel extends JPanel {
         JPanel actionRow = new JPanel(new GridLayout(1, 3, 8, 0));
         actionRow.setOpaque(false);
 
-        btnAdd = new JButton("Add Slot");
-        styleActionButton(btnAdd, SECONDARY_BLUE, Color.WHITE);
-        btnAdd.addActionListener(e -> performAddTimetable());
+        btnAdd = UIAnimationHelper.createAnimatedPillButton("Add Slot", SECONDARY_BLUE, 20, e -> performAddTimetable());
         actionRow.add(btnAdd);
 
-        btnUpdate = new JButton("Update");
-        styleActionButton(btnUpdate, SUCCESS_COLOR, Color.WHITE);
+        btnUpdate = UIAnimationHelper.createAnimatedPillButton("Update", SUCCESS_COLOR, 20, e -> performUpdateTimetable());
         btnUpdate.setEnabled(false);
-        btnUpdate.addActionListener(e -> performUpdateTimetable());
         actionRow.add(btnUpdate);
 
-        btnDelete = new JButton("Delete");
-        styleActionButton(btnDelete, DANGER_COLOR, Color.WHITE);
+        btnDelete = UIAnimationHelper.createAnimatedPillButton("Delete", DANGER_COLOR, 20, e -> performDeleteTimetable());
         btnDelete.setEnabled(false);
-        btnDelete.addActionListener(e -> performDeleteTimetable());
         actionRow.add(btnDelete);
 
         card.add(actionRow, BorderLayout.SOUTH);
@@ -685,9 +616,9 @@ public class TimetableManagementPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(CARD_BG);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
                 g2.setColor(BORDER_COLOR);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 12, 12);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 20, 20);
                 g2.dispose();
             }
         };
@@ -797,7 +728,9 @@ public class TimetableManagementPanel extends JPanel {
                         }
                     }
 
-                    lblHeaderCount.setText(entries.size() + " Sessions");
+                    if (headerBanner != null) {
+                        headerBanner.setBadgeText(entries.size() + " Sessions");
+                    }
                     lblTableStatus.setText("Showing " + entries.size() + " scheduled sessions.");
                 } catch (Exception e) {
                     lblTableStatus.setText("Error loading timetable: " + e.getMessage());
@@ -829,7 +762,9 @@ public class TimetableManagementPanel extends JPanel {
                 clearForm();
             }
         }
-        lblHeaderCount.setText(entries.size() + " Sessions");
+        if (headerBanner != null) {
+            headerBanner.setBadgeText(entries.size() + " Sessions");
+        }
         lblTableStatus.setText("Showing " + entries.size() + " scheduled sessions.");
     }
 
