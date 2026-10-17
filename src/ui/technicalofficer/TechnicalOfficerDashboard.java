@@ -37,6 +37,7 @@ public class TechnicalOfficerDashboard extends JFrame {
     private JPanel contentContainer;
     private AttendanceManagementPage attendancePage;
     private MedicalManagementPage medicalPage;
+    private LabMaintenancePage labMaintenancePage;
     private final Map<String, SidebarMenuButton> menuButtons = new HashMap<>();
     private String currentView = "Dashboard";
 
@@ -141,8 +142,8 @@ public class TechnicalOfficerDashboard extends JFrame {
         contentContainer.add(medicalPage, "Medical Certificates");
 
         // D. Lab Maintenance Page
-        JPanel maintenancePage = createLabMaintenancePanel();
-        contentContainer.add(maintenancePage, "Lab Maintenance");
+        labMaintenancePage = new LabMaintenancePage();
+        contentContainer.add(labMaintenancePage, "Lab Maintenance");
 
         // E. Notices Page
         JPanel noticesPage = createNoticesPanel();
@@ -348,6 +349,14 @@ public class TechnicalOfficerDashboard extends JFrame {
                     navigateTo("Medical Certificates");
                 }
             });
+        } else if (title.contains("LABS") || title.contains("EQUIPMENT") || title.contains("MAINTENANCE")) {
+            card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            card.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    navigateTo("Lab Maintenance");
+                }
+            });
         }
 
         return card;
@@ -362,6 +371,9 @@ public class TechnicalOfficerDashboard extends JFrame {
     }
 
     private void navigateTo(String viewName) {
+        if ("Lab Maintenance".equalsIgnoreCase(viewName) && labMaintenancePage != null) {
+            labMaintenancePage.refreshAllData();
+        }
         cardLayout.show(contentContainer, viewName);
         highlightActiveMenu(viewName);
     }
