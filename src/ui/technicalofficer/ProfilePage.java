@@ -16,10 +16,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * ProfilePage UI Class
- * Package: ui.technicalofficer
- * Complete Technical Officer Profile & Account Settings view for FAMS.
- * Follows the established design language of FAMS (Segoe UI, Dark Navy theme, clean cards, responsive layout).
+ * Technical Officer profile and account management view.
+ * Displays employment details, assigned labs, security settings, and activity logs.
  */
 public class ProfilePage extends JPanel {
 
@@ -144,9 +142,7 @@ public class ProfilePage extends JPanel {
         add(rootScroll, BorderLayout.CENTER);
     }
 
-    // =========================================================================
-    // HEADER & HERO CARD
-    // =========================================================================
+    // --- Header & Profile Card ---
 
     private JPanel createPageHeader() {
         JPanel header = new JPanel(new BorderLayout());
@@ -159,7 +155,8 @@ public class ProfilePage extends JPanel {
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(textDark);
 
-        JLabel subtitle = new JLabel("View employment records, manage assigned laboratory infrastructure, update security credentials, and review activity logs.");
+        JLabel subtitle = new JLabel(
+                "View employment records, manage assigned laboratory infrastructure, update security credentials, and review activity logs.");
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subtitle.setForeground(textMuted);
 
@@ -252,7 +249,8 @@ public class ProfilePage extends JPanel {
         heroDeptLabel.setForeground(textDark);
         heroDeptLabel.setBorder(new EmptyBorder(0, 4, 3, 0));
 
-        heroContactLabel = new JLabel("Email: dinesh.to@uor.lk   |   Phone: 0710000007   |   Office: Room A-204, IT Technical Office");
+        heroContactLabel = new JLabel(
+                "Email: dinesh.to@uor.lk   |   Phone: 0710000007   |   Office: Room A-204, IT Technical Office");
         heroContactLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         heroContactLabel.setForeground(textMuted);
         heroContactLabel.setBorder(new EmptyBorder(0, 4, 0, 0));
@@ -279,9 +277,12 @@ public class ProfilePage extends JPanel {
         kpiTicketsValueLabel = new JLabel("12 Handled");
 
         panel.add(createSummaryCard("ASSIGNED LABS", kpiLabsValueLabel, "Under primary officer supervision", darkNavy));
-        panel.add(createSummaryCard("WORKSTATIONS MANAGED", kpiWorkstationsValueLabel, "Active computer fleet across labs", primaryBlue));
-        panel.add(createSummaryCard("LAB FLEET HEALTH", kpiUptimeValueLabel, "Average operational equipment uptime", successGreen));
-        panel.add(createSummaryCard("MAINTENANCE TICKETS", kpiTicketsValueLabel, "Service & fault tickets processed", warningAmber));
+        panel.add(createSummaryCard("WORKSTATIONS MANAGED", kpiWorkstationsValueLabel,
+                "Active computer fleet across labs", primaryBlue));
+        panel.add(createSummaryCard("LAB FLEET HEALTH", kpiUptimeValueLabel, "Average operational equipment uptime",
+                successGreen));
+        panel.add(createSummaryCard("MAINTENANCE TICKETS", kpiTicketsValueLabel, "Service & fault tickets processed",
+                warningAmber));
 
         return panel;
     }
@@ -368,13 +369,13 @@ public class ProfilePage extends JPanel {
     }
 
     private void updateTabButtonStyle(JButton btn, boolean active) {
+        btn.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 12));
+        btn.setForeground(Color.BLACK);
         if (active) {
-            btn.setBackground(darkNavy);
-            btn.setForeground(Color.WHITE);
-            btn.setBorder(new LineBorder(darkNavy, 1));
+            btn.setBackground(Color.WHITE);
+            btn.setBorder(new LineBorder(darkNavy, 2));
         } else {
             btn.setBackground(Color.WHITE);
-            btn.setForeground(textDark);
             btn.setBorder(new LineBorder(borderColor, 1));
         }
     }
@@ -398,9 +399,7 @@ public class ProfilePage extends JPanel {
         }
     }
 
-    // =========================================================================
-    // TAB 1: PERSONAL & EMPLOYMENT DETAILS
-    // =========================================================================
+    // --- Tab 1: Personal & Employment Details ---
 
     private JPanel createPersonalDetailsTab() {
         JPanel panel = new JPanel(new BorderLayout(0, 14));
@@ -526,9 +525,7 @@ public class ProfilePage extends JPanel {
         return badge;
     }
 
-    // =========================================================================
-    // TAB 2: ASSIGNED LABORATORIES & FLEET
-    // =========================================================================
+    // --- Tab 2: Assigned Laboratories & Fleet ---
 
     private JPanel createAssignedLabsTab() {
         JPanel panel = new JPanel(new BorderLayout(0, 12));
@@ -537,12 +534,16 @@ public class ProfilePage extends JPanel {
         // Header info banner
         JPanel noteCard = createCardPanel();
         noteCard.setLayout(new BorderLayout());
-        noteCard.setBorder(new CompoundBorder(new LineBorder(new Color(191, 219, 254), 1), new EmptyBorder(12, 16, 12, 16)));
+        noteCard.setBorder(
+                new CompoundBorder(new LineBorder(new Color(191, 219, 254), 1), new EmptyBorder(12, 16, 12, 16)));
         noteCard.setBackground(new Color(239, 246, 255));
 
-        JLabel noteText = new JLabel("<html><b>Primary Laboratory Fleet Assignment:</b> Officer <b>TO001 (Dinesh Kumara)</b> is designated as the officer-in-charge " +
-                "for all academic computing, networking, and hardware facilities under the Department of Information and Communication Technology. " +
-                "Direct all equipment maintenance tickets and practical timetable setups through this module.</html>");
+        JLabel noteText = new JLabel(
+                "<html><b>Primary Laboratory Fleet Assignment:</b> Officer <b>TO001 (Dinesh Kumara)</b> is designated as the officer-in-charge "
+                        +
+                        "for all academic computing, networking, and hardware facilities under the Department of Information and Communication Technology. "
+                        +
+                        "Direct all equipment maintenance tickets and practical timetable setups through this module.</html>");
         noteText.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         noteText.setForeground(darkNavy);
         noteCard.add(noteText, BorderLayout.CENTER);
@@ -585,12 +586,13 @@ public class ProfilePage extends JPanel {
     }
 
     private void loadAssignedLabsTable() {
-        if (assignedLabsTableModel == null) return;
+        if (assignedLabsTableModel == null)
+            return;
         assignedLabsTableModel.setRowCount(0);
 
         List<LabFacility> labs = service.getAssignedLabs();
         for (LabFacility lab : labs) {
-            assignedLabsTableModel.addRow(new Object[]{
+            assignedLabsTableModel.addRow(new Object[] {
                     lab.getLabId(),
                     lab.getLabName(),
                     lab.getLocation(),
@@ -604,9 +606,7 @@ public class ProfilePage extends JPanel {
         }
     }
 
-    // =========================================================================
-    // TAB 3: ACCOUNT SECURITY & CREDENTIALS
-    // =========================================================================
+    // --- Tab 3: Account Security & Credentials ---
 
     private JPanel createSecurityTab() {
         JPanel panel = new JPanel(new GridLayout(1, 2, 14, 0));
@@ -641,11 +641,14 @@ public class ProfilePage extends JPanel {
 
         JPanel tipBox = new JPanel(new BorderLayout());
         tipBox.setBackground(new Color(254, 243, 199));
-        tipBox.setBorder(new CompoundBorder(new LineBorder(new Color(245, 158, 11), 1), new EmptyBorder(10, 12, 10, 12)));
+        tipBox.setBorder(
+                new CompoundBorder(new LineBorder(new Color(245, 158, 11), 1), new EmptyBorder(10, 12, 10, 12)));
 
-        JLabel tipText = new JLabel("<html><b>Security Notice:</b> Technical Officer credentials grant direct access to " +
-                "examination attendance records, lab workstation settings, and medical certificate verifications. " +
-                "Never share your password or leave your terminal unlocked.</html>");
+        JLabel tipText = new JLabel(
+                "<html><b>Security Notice:</b> Technical Officer credentials grant direct access to " +
+                        "examination attendance records, lab workstation settings, and medical certificate verifications. "
+                        +
+                        "Never share your password or leave your terminal unlocked.</html>");
         tipText.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         tipText.setForeground(new Color(146, 64, 14));
         tipBox.add(tipText, BorderLayout.CENTER);
@@ -680,14 +683,23 @@ public class ProfilePage extends JPanel {
         stylePasswordField(confirmPasswordField);
 
         int y = 0;
-        gbc.gridx = 0; gbc.gridy = y++; formGrid.add(createLabeledField("Current System Password:", currentPasswordField), gbc);
-        gbc.gridx = 0; gbc.gridy = y++; formGrid.add(createLabeledField("New Secure Password (min 6 characters):", newPasswordField), gbc);
-        gbc.gridx = 0; gbc.gridy = y++; formGrid.add(createLabeledField("Confirm New Password:", confirmPasswordField), gbc);
+        gbc.gridx = 0;
+        gbc.gridy = y++;
+        formGrid.add(createLabeledField("Current System Password:", currentPasswordField), gbc);
+        gbc.gridx = 0;
+        gbc.gridy = y++;
+        formGrid.add(createLabeledField("New Secure Password (min 6 characters):", newPasswordField), gbc);
+        gbc.gridx = 0;
+        gbc.gridy = y++;
+        formGrid.add(createLabeledField("Confirm New Password:", confirmPasswordField), gbc);
 
-        JLabel pwdHint = new JLabel("<html>• Must be at least 6 characters long<br>• Cannot match your current password<br>• Stored securely with immediate synchronization</html>");
+        JLabel pwdHint = new JLabel(
+                "<html>• Must be at least 6 characters long<br>• Cannot match your current password<br>• Stored securely with immediate synchronization</html>");
         pwdHint.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         pwdHint.setForeground(textMuted);
-        gbc.gridx = 0; gbc.gridy = y++; formGrid.add(pwdHint, gbc);
+        gbc.gridx = 0;
+        gbc.gridy = y++;
+        formGrid.add(pwdHint, gbc);
 
         JButton savePassBtn = createStyledButton("Update Account Password", darkNavy, Color.WHITE);
         savePassBtn.addActionListener(e -> handleChangePassword());
@@ -755,9 +767,7 @@ public class ProfilePage extends JPanel {
         }
     }
 
-    // =========================================================================
-    // TAB 4: ACTIVITY & SYSTEM AUDIT TRAIL
-    // =========================================================================
+    // --- Tab 4: Activity & System Audit Trail ---
 
     private JPanel createAuditTrailTab() {
         JPanel panel = new JPanel(new BorderLayout(0, 12));
@@ -771,7 +781,7 @@ public class ProfilePage extends JPanel {
         title.setFont(new Font("Segoe UI", Font.BOLD, 14));
         title.setForeground(darkNavy);
 
-        String[] cols = {"Timestamp", "Action Category", "Activity Description", "Result Status"};
+        String[] cols = { "Timestamp", "Action Category", "Activity Description", "Result Status" };
         auditTableModel = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
@@ -803,7 +813,8 @@ public class ProfilePage extends JPanel {
     }
 
     private void loadAuditTable() {
-        if (auditTableModel == null) return;
+        if (auditTableModel == null)
+            return;
         auditTableModel.setRowCount(0);
 
         List<String[]> logs = service.getAuditLogs();
@@ -812,9 +823,7 @@ public class ProfilePage extends JPanel {
         }
     }
 
-    // =========================================================================
-    // EDIT PROFILE DIALOG
-    // =========================================================================
+    // --- Edit Profile Dialog ---
 
     private void showEditProfileDialog() {
         if (currentOfficer == null) {
@@ -858,13 +867,27 @@ public class ProfilePage extends JPanel {
         styleTextField(addressField);
 
         int y = 0;
-        gbc.gridx = 0; gbc.gridy = y++; form.add(createLabeledField("First Name:", fnField), gbc);
-        gbc.gridx = 0; gbc.gridy = y++; form.add(createLabeledField("Last Name:", lnField), gbc);
-        gbc.gridx = 0; gbc.gridy = y++; form.add(createLabeledField("University Email Address:", emailField), gbc);
-        gbc.gridx = 0; gbc.gridy = y++; form.add(createLabeledField("Official Contact Phone:", phoneField), gbc);
-        gbc.gridx = 0; gbc.gridy = y++; form.add(createLabeledField("Assigned Department:", deptField), gbc);
-        gbc.gridx = 0; gbc.gridy = y++; form.add(createLabeledField("Campus Office / Room:", roomField), gbc);
-        gbc.gridx = 0; gbc.gridy = y++; form.add(createLabeledField("Residential Address:", addressField), gbc);
+        gbc.gridx = 0;
+        gbc.gridy = y++;
+        form.add(createLabeledField("First Name:", fnField), gbc);
+        gbc.gridx = 0;
+        gbc.gridy = y++;
+        form.add(createLabeledField("Last Name:", lnField), gbc);
+        gbc.gridx = 0;
+        gbc.gridy = y++;
+        form.add(createLabeledField("University Email Address:", emailField), gbc);
+        gbc.gridx = 0;
+        gbc.gridy = y++;
+        form.add(createLabeledField("Official Contact Phone:", phoneField), gbc);
+        gbc.gridx = 0;
+        gbc.gridy = y++;
+        form.add(createLabeledField("Assigned Department:", deptField), gbc);
+        gbc.gridx = 0;
+        gbc.gridy = y++;
+        form.add(createLabeledField("Campus Office / Room:", roomField), gbc);
+        gbc.gridx = 0;
+        gbc.gridy = y++;
+        form.add(createLabeledField("Residential Address:", addressField), gbc);
 
         JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 12));
         btnRow.setBackground(new Color(245, 247, 250));
@@ -881,12 +904,14 @@ public class ProfilePage extends JPanel {
             String ph = phoneField.getText().trim();
 
             if (fn.isEmpty() || ln.isEmpty()) {
-                JOptionPane.showMessageDialog(dialog, "First Name and Last Name are required.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(dialog, "First Name and Last Name are required.", "Validation Error",
+                        JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
             if (em.isEmpty() || !em.contains("@")) {
-                JOptionPane.showMessageDialog(dialog, "Please enter a valid email address.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(dialog, "Please enter a valid email address.", "Validation Error",
+                        JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
@@ -900,11 +925,13 @@ public class ProfilePage extends JPanel {
 
             boolean ok = service.updateProfile(currentOfficer);
             if (ok) {
-                JOptionPane.showMessageDialog(dialog, "Profile details updated successfully.", "Saved", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(dialog, "Profile details updated successfully.", "Saved",
+                        JOptionPane.INFORMATION_MESSAGE);
                 dialog.dispose();
                 refreshProfile();
             } else {
-                JOptionPane.showMessageDialog(dialog, "Could not save profile details.", "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(dialog, "Could not save profile details.", "Error",
+                        JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -916,13 +943,12 @@ public class ProfilePage extends JPanel {
         dialog.setVisible(true);
     }
 
-    // =========================================================================
-    // REFRESH DATA & LIVE BINDING
-    // =========================================================================
+    // --- Refresh Data & State Binding ---
 
     public void refreshProfile() {
         currentOfficer = service.getProfile(currentOfficerId);
-        if (currentOfficer == null) return;
+        if (currentOfficer == null)
+            return;
 
         // Update Avatar initials
         String initials = "";
@@ -932,7 +958,8 @@ public class ProfilePage extends JPanel {
         if (currentOfficer.getLastName() != null && !currentOfficer.getLastName().isEmpty()) {
             initials += currentOfficer.getLastName().substring(0, 1).toUpperCase();
         }
-        if (initials.isEmpty()) initials = "TO";
+        if (initials.isEmpty())
+            initials = "TO";
         avatarLabel.setText(initials);
 
         // Update Hero Card
@@ -941,7 +968,8 @@ public class ProfilePage extends JPanel {
         sysIdPillLabel.setText("ID: " + currentOfficer.getTechnicalOfficerId());
         heroRoleLabel.setText(currentOfficer.getDesignation() + " • " + currentOfficer.getFaculty());
         heroDeptLabel.setText(currentOfficer.getDepartment());
-        heroContactLabel.setText("Email: " + currentOfficer.getEmail() + "   |   Phone: " + currentOfficer.getPhone() + "   |   Office: " + currentOfficer.getOfficeRoom());
+        heroContactLabel.setText("Email: " + currentOfficer.getEmail() + "   |   Phone: " + currentOfficer.getPhone()
+                + "   |   Office: " + currentOfficer.getOfficeRoom());
 
         // Update Tab 1 Details
         detStaffNoLabel.setText(currentOfficer.getStaffNo());
@@ -973,9 +1001,7 @@ public class ProfilePage extends JPanel {
         loadAuditTable();
     }
 
-    // =========================================================================
-    // UI COMPONENT HELPERS & STYLING
-    // =========================================================================
+    // --- UI Helpers & Styling ---
 
     private JPanel createCardPanel() {
         JPanel card = new JPanel();
@@ -1052,7 +1078,7 @@ public class ProfilePage extends JPanel {
     private class AlternateRowRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-                                                       boolean hasFocus, int row, int column) {
+                boolean hasFocus, int row, int column) {
             Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
             if (!isSelected) {

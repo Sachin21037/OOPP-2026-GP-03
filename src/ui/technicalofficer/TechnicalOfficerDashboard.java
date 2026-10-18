@@ -13,14 +13,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * TechnicalOfficerDashboard Class
- * Package: ui.technicalofficer
- * Master dashboard frame for the Technical Officer role in the Faculty Academic Management System.
- * Matches the official modern Faculty Academic Management System UI design standard.
+ * Main dashboard window for Technical Officers.
+ * Provides sidebar navigation for attendance, medical records, lab maintenance, and profile.
  */
 public class TechnicalOfficerDashboard extends JFrame {
 
-    // Theme Colors matching official Faculty UI Design
+    // Theme Colors
     private final Color darkNavy = new Color(27, 66, 104);       // #1B4268
     private final Color contentBg = new Color(248, 250, 252);     // #F8FAFC
     private final Color sidebarBg = Color.WHITE;
@@ -38,6 +36,7 @@ public class TechnicalOfficerDashboard extends JFrame {
     private AttendanceManagementPage attendancePage;
     private MedicalManagementPage medicalPage;
     private LabMaintenancePage labMaintenancePage;
+    private ProfilePage profilePage;
     private final Map<String, SidebarMenuButton> menuButtons = new HashMap<>();
     private String currentView = "Dashboard";
 
@@ -93,7 +92,6 @@ public class TechnicalOfficerDashboard extends JFrame {
         addMenuButton(menuPanel, "Attendance");
         addMenuButton(menuPanel, "Medical Certificates");
         addMenuButton(menuPanel, "Lab Maintenance");
-        addMenuButton(menuPanel, "Notices");
         addMenuButton(menuPanel, "Profile");
 
         sidebar.add(menuPanel, BorderLayout.NORTH);
@@ -145,12 +143,8 @@ public class TechnicalOfficerDashboard extends JFrame {
         labMaintenancePage = new LabMaintenancePage();
         contentContainer.add(labMaintenancePage, "Lab Maintenance");
 
-        // E. Notices Page
-        JPanel noticesPage = createNoticesPanel();
-        contentContainer.add(noticesPage, "Notices");
-
-        // F. Profile Page
-        JPanel profilePage = createProfilePanel();
+        // E. Profile Page
+        profilePage = new ProfilePage();
         contentContainer.add(profilePage, "Profile");
 
         // Assemble Layout
@@ -373,6 +367,8 @@ public class TechnicalOfficerDashboard extends JFrame {
     private void navigateTo(String viewName) {
         if ("Lab Maintenance".equalsIgnoreCase(viewName) && labMaintenancePage != null) {
             labMaintenancePage.refreshAllData();
+        } else if ("Profile".equalsIgnoreCase(viewName) && profilePage != null) {
+            profilePage.refreshProfile();
         }
         cardLayout.show(contentContainer, viewName);
         highlightActiveMenu(viewName);
@@ -386,96 +382,6 @@ public class TechnicalOfficerDashboard extends JFrame {
         }
     }
 
-    private JPanel createLabMaintenancePanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 16));
-        panel.setBackground(contentBg);
-        panel.setBorder(BorderFactory.createEmptyBorder(24, 28, 24, 28));
-
-        JLabel title = new JLabel("Laboratory Maintenance & Status");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        title.setForeground(textDark);
-
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(Color.WHITE);
-        card.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(22, 22, 22, 22)));
-
-        JLabel sub = new JLabel("<html><b>Lab Facilities Assigned to Technical Officer TO001:</b><br><br>" +
-                "• <b>Computer Lab 01</b> (Level I) - 50 Workstations [Operational]<br>" +
-                "• <b>Software Engineering Lab 02</b> (Level II) - 45 Workstations [Operational - Active Session]<br>" +
-                "• <b>Networking & Systems Lab 03</b> (Level III) - 40 Workstations [2 Router equipment maintenance underway]<br><br>" +
-                "All maintenance schedules adhere to Faculty of Technology IT Infrastructure Guidelines.</html>");
-        sub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        sub.setForeground(textDark);
-        card.add(sub, BorderLayout.CENTER);
-
-        panel.add(title, BorderLayout.NORTH);
-        panel.add(card, BorderLayout.CENTER);
-        return panel;
-    }
-
-    private JPanel createNoticesPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 16));
-        panel.setBackground(contentBg);
-        panel.setBorder(BorderFactory.createEmptyBorder(24, 28, 24, 28));
-
-        JLabel title = new JLabel("Faculty Academic Notices");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        title.setForeground(textDark);
-
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(Color.WHITE);
-        card.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(22, 22, 22, 22)));
-
-        JLabel sub = new JLabel("<html><b>Official Notices (Notices Table - database/fams.sql):</b><br><br>" +
-                "1. <b>Continuous Assessment Attendance Threshold:</b> Minimum 80.0% attendance strictly required for end-semester exams.<br>" +
-                "2. <b>Medical Submissions:</b> Students must submit authentic medical certificates within 7 days of absence to the Technical Officer.<br>" +
-                "3. <b>Laboratory Schedule 2026/2027:</b> All Level II practical sessions will be held in Lab 02.</html>");
-        sub.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        sub.setForeground(textDark);
-        card.add(sub, BorderLayout.CENTER);
-
-        panel.add(title, BorderLayout.NORTH);
-        panel.add(card, BorderLayout.CENTER);
-        return panel;
-    }
-
-    private JPanel createProfilePanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 16));
-        panel.setBackground(contentBg);
-        panel.setBorder(BorderFactory.createEmptyBorder(24, 28, 24, 28));
-
-        JLabel title = new JLabel("Technical Officer Profile");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        title.setForeground(textDark);
-
-        JPanel card = new JPanel(new GridLayout(6, 2, 10, 12));
-        card.setBackground(Color.WHITE);
-        card.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(24, 24, 24, 24)));
-
-        addProfileField(card, "Officer ID:", "TO001");
-        addProfileField(card, "Staff No:", "TO-STF-001");
-        addProfileField(card, "Full Name:", "Dinesh Kumara");
-        addProfileField(card, "Department:", "Information and Communication Technology");
-        addProfileField(card, "Email:", "dinesh.to@uor.lk");
-        addProfileField(card, "Phone:", "0710000007");
-
-        panel.add(title, BorderLayout.NORTH);
-        panel.add(card, BorderLayout.CENTER);
-        return panel;
-    }
-
-    private void addProfileField(JPanel panel, String label, String value) {
-        JLabel l = new JLabel(label);
-        l.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        l.setForeground(darkNavy);
-
-        JLabel v = new JLabel(value);
-        v.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        v.setForeground(textDark);
-
-        panel.add(l);
-        panel.add(v);
-    }
 
     /**
      * Circular colored indicator dot for the top right of each stat card.

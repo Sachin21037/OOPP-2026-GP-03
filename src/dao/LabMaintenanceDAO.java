@@ -10,10 +10,7 @@ import java.util.*;
 import java.util.Date;
 
 /**
- * LabMaintenanceDAO Class
- * Accesses lab facilities, maintenance records, and preventive tasks from MySQL
- * or aligned local in-memory storage for resilient offline/online operation.
- * Package: dao
+ * Data access object for laboratory facilities, maintenance tickets, and preventive schedules.
  */
 public class LabMaintenanceDAO {
 

@@ -1,10 +1,7 @@
 package model;
 
 /**
- * LabFacility Model Class
- * Represents a laboratory facility managed by a Technical Officer.
- * Package: model
- * Mapped to FAMS lab infrastructure and timetables.
+ * Represents a laboratory facility and its workstations.
  */
 public class LabFacility {
 

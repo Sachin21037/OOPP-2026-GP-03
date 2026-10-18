@@ -4,9 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
- * LabMaintenanceRecord Model Class
- * Represents an equipment breakdown, maintenance ticket, or servicing record.
- * Package: model
+ * Represents a laboratory equipment maintenance record or fault ticket.
  */
 public class LabMaintenanceRecord {
 

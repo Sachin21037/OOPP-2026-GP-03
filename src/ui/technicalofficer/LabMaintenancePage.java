@@ -24,14 +24,12 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * LabMaintenancePage UI Class
- * Package: ui.technicalofficer
- * Complete Laboratory Maintenance & Equipment Management view for Technical Officer.
- * Follows the established design language of FAMS (Segoe UI/Arial, Dark Navy theme).
+ * Lab maintenance dashboard for Technical Officers.
+ * Handles workstation status tracking, maintenance tickets, and preventive schedules.
  */
 public class LabMaintenancePage extends JPanel {
 
-    // Theme color palette matching TechnicalOfficerDashboard
+    // Theme colors
     private final Color darkNavy = new Color(27, 67, 103);
     private final Color lightBackground = new Color(245, 247, 250);
     private final Color cardWhite = Color.WHITE;
@@ -48,28 +46,27 @@ public class LabMaintenancePage extends JPanel {
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     private final DecimalFormat currencyFormat = new DecimalFormat("#,##0.00");
 
-    // Business service
     private final LabMaintenanceService service = new LabMaintenanceService();
 
-    // Top Summary KPI Labels
+    // KPI labels
     private JLabel totalLabsValueLabel;
     private JLabel workstationHealthValueLabel;
     private JLabel activeIssuesValueLabel;
     private JLabel scheduledTasksValueLabel;
 
-    // Navigation Tabs
+    // Tab buttons & container
     private CardLayout tabCardLayout;
     private JPanel tabContentContainer;
     private JButton tab1Btn;
     private JButton tab2Btn;
     private JButton tab3Btn;
 
-    // === TAB 1: Facilities Overview Components ===
+    // Facilities tab components
     private JPanel facilityCardsGrid;
     private JTable facilitiesTable;
     private DefaultTableModel facilitiesTableModel;
 
-    // === TAB 2: Maintenance Issues Components ===
+    // Maintenance tickets tab components
     private JTextField searchField;
     private JComboBox<String> labFilterCombo;
     private JComboBox<String> statusFilterCombo;
@@ -78,14 +75,14 @@ public class LabMaintenancePage extends JPanel {
     private DefaultTableModel maintenanceTableModel;
     private TableRowSorter<DefaultTableModel> maintenanceRowSorter;
 
-    // Maintenance Footer Badges
+    // Summary footer counters
     private JLabel totalRecordsLabel;
     private JLabel pendingRecordsLabel;
     private JLabel inProgressRecordsLabel;
     private JLabel resolvedRecordsLabel;
     private JLabel totalCostLabel;
 
-    // === TAB 3: Preventive Schedules Components ===
+    // Preventive schedules tab components
     private JTable schedulesTable;
     private DefaultTableModel schedulesTableModel;
 
@@ -102,7 +99,7 @@ public class LabMaintenancePage extends JPanel {
         mainContainer.setBackground(lightBackground);
         mainContainer.setBorder(new EmptyBorder(16, 20, 16, 20));
 
-        // 1. Header Title & KPI Cards
+        // Top section with title and stats
         JPanel headerSection = new JPanel(new BorderLayout(0, 12));
         headerSection.setOpaque(false);
 
@@ -125,11 +122,11 @@ public class LabMaintenancePage extends JPanel {
         headerSection.add(titlePanel, BorderLayout.NORTH);
         headerSection.add(createKpiCardsPanel(), BorderLayout.CENTER);
 
-        // 2. Tab Navigation Bar
+        // Navigation tab bar
         JPanel navTabBar = createTabNavigationBar();
         headerSection.add(navTabBar, BorderLayout.SOUTH);
 
-        // 3. Tab Contents
+        // Tab views container
         tabCardLayout = new CardLayout();
         tabContentContainer = new JPanel(tabCardLayout);
         tabContentContainer.setOpaque(false);
@@ -144,9 +141,7 @@ public class LabMaintenancePage extends JPanel {
         add(mainContainer, BorderLayout.CENTER);
     }
 
-    /**
-     * Top 4 KPI Summary Cards
-     */
+    // Top summary cards showing quick metrics
     private JPanel createKpiCardsPanel() {
         JPanel panel = new JPanel(new GridLayout(1, 4, 14, 0));
         panel.setOpaque(false);
@@ -208,9 +203,7 @@ public class LabMaintenancePage extends JPanel {
         return card;
     }
 
-    /**
-     * Top Tab Navigation Bar
-     */
+    // Navigation bar for switching tabs
     private JPanel createTabNavigationBar() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         panel.setOpaque(false);
@@ -242,13 +235,13 @@ public class LabMaintenancePage extends JPanel {
     }
 
     private void updateTabButtonStyle(JButton btn, boolean active) {
+        btn.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 12));
+        btn.setForeground(Color.BLACK);
         if (active) {
-            btn.setBackground(darkNavy);
-            btn.setForeground(Color.WHITE);
-            btn.setBorder(new LineBorder(darkNavy, 1));
+            btn.setBackground(Color.WHITE);
+            btn.setBorder(new LineBorder(darkNavy, 2));
         } else {
             btn.setBackground(Color.WHITE);
-            btn.setForeground(textDark);
             btn.setBorder(new LineBorder(borderColor, 1));
         }
     }
@@ -267,20 +260,18 @@ public class LabMaintenancePage extends JPanel {
         }
     }
 
-    // =========================================================================
-    // TAB 1: LAB FACILITIES & WORKSTATIONS
-    // =========================================================================
+    // --- Tab 1: Lab Facilities & Workstations ---
 
     private JPanel createFacilitiesTabPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 12));
         panel.setOpaque(false);
 
-        // Top: Interactive Facility Cards Grid
+        // Facility cards grid
         facilityCardsGrid = new JPanel(new GridLayout(2, 2, 12, 12));
         facilityCardsGrid.setOpaque(false);
         facilityCardsGrid.setPreferredSize(new Dimension(800, 240));
 
-        // Bottom: Detailed Facilities Summary Table
+        // Facilities summary table
         JPanel tableCard = createCardPanel();
         tableCard.setLayout(new BorderLayout(0, 8));
 
@@ -326,7 +317,6 @@ public class LabMaintenancePage extends JPanel {
         facilitiesTable = new JTable(facilitiesTableModel);
         styleTable(facilitiesTable);
 
-        // Custom status & availability renderers
         facilitiesTable.getColumnModel().getColumn(8).setCellRenderer(new LabStatusCellRenderer());
         facilitiesTable.getColumnModel().getColumn(7).setCellRenderer(new AvailabilityCellRenderer());
 
@@ -352,7 +342,6 @@ public class LabMaintenancePage extends JPanel {
             card.setLayout(new BorderLayout(0, 6));
             card.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(12, 14, 12, 14)));
 
-            // Top row
             JPanel topRow = new JPanel(new BorderLayout());
             topRow.setOpaque(false);
 
@@ -364,7 +353,6 @@ public class LabMaintenancePage extends JPanel {
             topRow.add(nameLbl, BorderLayout.WEST);
             topRow.add(statusPill, BorderLayout.EAST);
 
-            // Middle body: location + capacity bar
             JPanel centerBox = new JPanel();
             centerBox.setLayout(new BoxLayout(centerBox, BoxLayout.Y_AXIS));
             centerBox.setOpaque(false);
@@ -398,7 +386,6 @@ public class LabMaintenancePage extends JPanel {
             centerBox.add(Box.createVerticalStrut(4));
             centerBox.add(equipSummary);
 
-            // Bottom actions
             JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
             btnRow.setOpaque(false);
 
@@ -422,15 +409,13 @@ public class LabMaintenancePage extends JPanel {
         facilityCardsGrid.repaint();
     }
 
-    // =========================================================================
-    // TAB 2: MAINTENANCE & ISSUE REGISTER
-    // =========================================================================
+    // --- Tab 2: Maintenance Issues & Fault Register ---
 
     private JPanel createMaintenanceIssuesTabPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 12));
         panel.setOpaque(false);
 
-        // Search & Filter Card
+        // Filters and search bar
         JPanel filterCard = createCardPanel();
         filterCard.setLayout(new BorderLayout(0, 8));
 
@@ -501,7 +486,7 @@ public class LabMaintenancePage extends JPanel {
         filterCard.add(filterTitle, BorderLayout.NORTH);
         filterCard.add(filterGrid, BorderLayout.CENTER);
 
-        // Table Card
+        // Tickets table card
         JPanel tableCard = createCardPanel();
         tableCard.setLayout(new BorderLayout(0, 8));
 
@@ -558,7 +543,6 @@ public class LabMaintenancePage extends JPanel {
         maintenanceRowSorter = new TableRowSorter<>(maintenanceTableModel);
         maintenanceTable.setRowSorter(maintenanceRowSorter);
 
-        // Custom renderers
         maintenanceTable.getColumnModel().getColumn(5).setCellRenderer(new PriorityBadgeRenderer());
         maintenanceTable.getColumnModel().getColumn(6).setCellRenderer(new StatusBadgeRenderer());
 
@@ -600,15 +584,13 @@ public class LabMaintenancePage extends JPanel {
         return footer;
     }
 
-    // =========================================================================
-    // TAB 3: PREVENTIVE MAINTENANCE SCHEDULES
-    // =========================================================================
+    // --- Tab 3: Preventive Maintenance Schedules ---
 
     private JPanel createPreventiveSchedulesTabPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 12));
         panel.setOpaque(false);
 
-        // Top SOP & Guidelines Card
+        // Guidelines banner
         JPanel sopCard = createCardPanel();
         sopCard.setLayout(new BorderLayout(0, 6));
         sopCard.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(12, 16, 12, 16)));
@@ -626,7 +608,7 @@ public class LabMaintenancePage extends JPanel {
         sopCard.add(sopTitle, BorderLayout.NORTH);
         sopCard.add(sopText, BorderLayout.CENTER);
 
-        // Schedules Table Card
+        // Schedules table card
         JPanel tableCard = createCardPanel();
         tableCard.setLayout(new BorderLayout(0, 8));
 
@@ -690,25 +672,17 @@ public class LabMaintenancePage extends JPanel {
         return panel;
     }
 
-    // =========================================================================
-    // DATA LOADING & REFRESH LOGIC
-    // =========================================================================
+    // --- Data Loading & Refresh ---
 
     public void refreshAllData() {
-        // 1. Update KPI counters
         totalLabsValueLabel.setText(String.valueOf(service.getTotalLabs()));
         workstationHealthValueLabel.setText(String.format("%.0f%%", service.getWorkstationHealthPercentage()));
         activeIssuesValueLabel.setText(String.valueOf(service.getActiveIssuesCount()));
         scheduledTasksValueLabel.setText(String.valueOf(service.getAllScheduleTasks().size()));
 
-        // 2. Render Cards & Facilities Table
         renderFacilityCards();
         loadFacilitiesTable();
-
-        // 3. Load Maintenance Issues Table
         applyFilters();
-
-        // 4. Load Schedules Table
         loadSchedulesTable();
     }
 
@@ -804,9 +778,7 @@ public class LabMaintenancePage extends JPanel {
         }
     }
 
-    // =========================================================================
-    // ACTIONS & MODAL DIALOGS
-    // =========================================================================
+    // --- Action Handlers & Dialogs ---
 
     private void showAddMaintenanceDialog(LabFacility preselectedLab) {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Log New Equipment Maintenance Ticket", true);
@@ -1362,9 +1334,7 @@ public class LabMaintenancePage extends JPanel {
         }
     }
 
-    // =========================================================================
-    // UI HELPERS, BADGES & RENDERERS
-    // =========================================================================
+    // --- UI Helpers & Component Factories ---
 
     private JPanel createCardPanel() {
         JPanel card = new JPanel();
@@ -1468,9 +1438,7 @@ public class LabMaintenancePage extends JPanel {
         header.setPreferredSize(new Dimension(header.getWidth(), 34));
     }
 
-    // =========================================================================
-    // CELL RENDERERS
-    // =========================================================================
+    // --- Table Cell Renderers ---
 
     private class AlternateRowRenderer extends DefaultTableCellRenderer {
         @Override
