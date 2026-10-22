@@ -23,7 +23,9 @@ public class AttendanceManagementPage extends JPanel {
     private final Color borderColor = new Color(225, 228, 232);
     private final Color textDark = new Color(35, 45, 55);
     private final Color textMuted = new Color(110, 120, 130);
-    private final Color tableStripe = new Color(249, 251, 253);
+    private final Color tableStripe = new Color(240, 244, 249);
+    private final Color tableGridColor = new Color(218, 224, 233);
+    private final Color tableSelectionBg = new Color(193, 218, 243);
 
     // session configuration fields
     private JComboBox<String> courseOfferingCombo;
@@ -214,11 +216,11 @@ public class AttendanceManagementPage extends JPanel {
         attendanceTable = new JTable(tableModel);
         attendanceTable.setRowHeight(34);
         attendanceTable.setFont(new Font("Arial", Font.PLAIN, 13));
-        attendanceTable.setGridColor(new Color(230, 235, 240));
+        attendanceTable.setGridColor(tableGridColor);
         attendanceTable.setShowGrid(true);
         attendanceTable.setShowHorizontalLines(true);
         attendanceTable.setShowVerticalLines(true);
-        attendanceTable.setSelectionBackground(new Color(225, 237, 248));
+        attendanceTable.setSelectionBackground(tableSelectionBg);
         attendanceTable.setSelectionForeground(darkNavy);
         attendanceTable.setFillsViewportHeight(true);
 
@@ -619,17 +621,17 @@ public class AttendanceManagementPage extends JPanel {
 
             String status = value != null ? value.toString() : "";
             if ("Present".equalsIgnoreCase(status)) {
-                label.setForeground(new Color(15, 125, 110));
-                label.setBackground(isSelected ? new Color(205, 235, 230) : new Color(230, 247, 244));
+                label.setForeground(new Color(13, 125, 110));
+                label.setBackground(isSelected ? tableSelectionBg : new Color(220, 246, 240));
             } else if ("Absent".equalsIgnoreCase(status)) {
-                label.setForeground(new Color(190, 40, 40));
-                label.setBackground(isSelected ? new Color(250, 215, 215) : new Color(254, 237, 237));
+                label.setForeground(new Color(185, 28, 28));
+                label.setBackground(isSelected ? tableSelectionBg : new Color(254, 226, 226));
             } else if ("Medical".equalsIgnoreCase(status)) {
-                label.setForeground(new Color(115, 75, 180));
-                label.setBackground(isSelected ? new Color(235, 225, 250) : new Color(245, 238, 255));
+                label.setForeground(new Color(109, 40, 217));
+                label.setBackground(isSelected ? tableSelectionBg : new Color(237, 228, 255));
             } else {
                 label.setForeground(textDark);
-                label.setBackground(isSelected ? new Color(225, 237, 248) : Color.WHITE);
+                label.setBackground(isSelected ? tableSelectionBg : Color.WHITE);
             }
 
             label.setBorder(new EmptyBorder(3, 8, 3, 8));
@@ -654,7 +656,7 @@ public class AttendanceManagementPage extends JPanel {
                 }
             } else {
                 c.setForeground(darkNavy);
-                c.setBackground(new Color(225, 237, 248));
+                c.setBackground(tableSelectionBg);
             }
 
             if (column == 0 || column == 1 || column == 2) {

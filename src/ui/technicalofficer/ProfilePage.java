@@ -32,7 +32,9 @@ public class ProfilePage extends JPanel {
     private final Color borderColor = new Color(225, 228, 232);
     private final Color textDark = new Color(35, 45, 55);
     private final Color textMuted = new Color(110, 120, 130);
-    private final Color tableStripe = new Color(249, 251, 253);
+    private final Color tableStripe = new Color(240, 244, 249);
+    private final Color tableGridColor = new Color(218, 224, 233);
+    private final Color tableSelectionBg = new Color(193, 218, 243);
 
     // Business service
     private final TechnicalOfficerService service = new TechnicalOfficerService();
@@ -1059,19 +1061,48 @@ public class ProfilePage extends JPanel {
         table.setRowHeight(32);
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         table.setForeground(textDark);
-        table.setGridColor(new Color(240, 242, 245));
+        table.setGridColor(tableGridColor);
+        table.setShowGrid(true);
         table.setShowHorizontalLines(true);
-        table.setShowVerticalLines(false);
-        table.setSelectionBackground(new Color(225, 237, 248));
-        table.setSelectionForeground(textDark);
+        table.setShowVerticalLines(true);
+        table.setSelectionBackground(tableSelectionBg);
+        table.setSelectionForeground(darkNavy);
         table.setDefaultRenderer(Object.class, new AlternateRowRenderer());
 
         JTableHeader header = table.getTableHeader();
-        header.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        header.setBackground(darkNavy);
-        header.setForeground(Color.WHITE);
+        header.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        header.setPreferredSize(new Dimension(header.getWidth(), 36));
         header.setReorderingAllowed(false);
-        header.setPreferredSize(new Dimension(header.getWidth(), 34));
+        header.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                JLabel label = new JLabel(value != null ? value.toString() : "");
+                label.setOpaque(true);
+                label.setBackground(darkNavy);
+                label.setForeground(Color.WHITE);
+                label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                label.setHorizontalAlignment(SwingConstants.CENTER);
+                label.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 0, 1, 1, new Color(45, 90, 135)),
+                        BorderFactory.createEmptyBorder(6, 10, 6, 10)
+                ));
+
+                if (table.getRowSorter() != null) {
+                    java.util.List<? extends RowSorter.SortKey> sortKeys = table.getRowSorter().getSortKeys();
+                    if (!sortKeys.isEmpty() && sortKeys.get(0).getColumn() == table.convertColumnIndexToModel(column)) {
+                        SortOrder order = sortKeys.get(0).getSortOrder();
+                        if (order == SortOrder.ASCENDING) {
+                            label.setText(label.getText() + " ▲");
+                        } else if (order == SortOrder.DESCENDING) {
+                            label.setText(label.getText() + " ▼");
+                        }
+                    }
+                }
+                return label;
+            }
+        });
     }
 
     // Striped Row Renderer
@@ -1090,7 +1121,7 @@ public class ProfilePage extends JPanel {
                 }
             } else {
                 c.setForeground(darkNavy);
-                c.setBackground(new Color(225, 237, 248));
+                c.setBackground(tableSelectionBg);
             }
 
             if (c instanceof JLabel) {

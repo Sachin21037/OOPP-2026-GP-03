@@ -42,7 +42,9 @@ public class MedicalManagementPage extends JPanel {
     private final Color borderColor = new Color(225, 228, 232);
     private final Color textDark = new Color(35, 45, 55);
     private final Color textMuted = new Color(110, 120, 130);
-    private final Color tableStripe = new Color(249, 251, 253);
+    private final Color tableStripe = new Color(240, 244, 249);
+    private final Color tableGridColor = new Color(218, 224, 233);
+    private final Color tableSelectionBg = new Color(193, 218, 243);
 
     // Business services
     private final MedicalService medicalService = new MedicalService();
@@ -259,11 +261,11 @@ public class MedicalManagementPage extends JPanel {
         medicalTable = new JTable(tableModel);
         medicalTable.setRowHeight(34);
         medicalTable.setFont(new Font("Arial", Font.PLAIN, 13));
-        medicalTable.setGridColor(new Color(230, 235, 240));
+        medicalTable.setGridColor(tableGridColor);
         medicalTable.setShowGrid(true);
         medicalTable.setShowHorizontalLines(true);
         medicalTable.setShowVerticalLines(true);
-        medicalTable.setSelectionBackground(new Color(225, 237, 248));
+        medicalTable.setSelectionBackground(tableSelectionBg);
         medicalTable.setSelectionForeground(darkNavy);
         medicalTable.setFillsViewportHeight(true);
 
@@ -271,11 +273,39 @@ public class MedicalManagementPage extends JPanel {
         medicalTable.setRowSorter(rowSorter);
 
         JTableHeader tableHeader = medicalTable.getTableHeader();
-        tableHeader.setFont(new Font("Arial", Font.BOLD, 12));
+        tableHeader.setFont(new Font("Segoe UI", Font.BOLD, 12));
         tableHeader.setPreferredSize(new Dimension(tableHeader.getWidth(), 36));
-        tableHeader.setBackground(new Color(240, 244, 248));
-        tableHeader.setForeground(darkNavy);
         tableHeader.setReorderingAllowed(false);
+        tableHeader.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                JLabel label = new JLabel(value != null ? value.toString() : "");
+                label.setOpaque(true);
+                label.setBackground(darkNavy);
+                label.setForeground(Color.WHITE);
+                label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                label.setHorizontalAlignment(SwingConstants.CENTER);
+                label.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 0, 1, 1, new Color(45, 90, 135)),
+                        BorderFactory.createEmptyBorder(6, 10, 6, 10)
+                ));
+
+                if (table.getRowSorter() != null) {
+                    java.util.List<? extends RowSorter.SortKey> sortKeys = table.getRowSorter().getSortKeys();
+                    if (!sortKeys.isEmpty() && sortKeys.get(0).getColumn() == table.convertColumnIndexToModel(column)) {
+                        SortOrder order = sortKeys.get(0).getSortOrder();
+                        if (order == SortOrder.ASCENDING) {
+                            label.setText(label.getText() + " ▲");
+                        } else if (order == SortOrder.DESCENDING) {
+                            label.setText(label.getText() + " ▼");
+                        }
+                    }
+                }
+                return label;
+            }
+        });
 
         setColumnWidth(0, 40, 50);
         setColumnWidth(1, 80, 95);
@@ -789,21 +819,21 @@ public class MedicalManagementPage extends JPanel {
             JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             label.setOpaque(true);
             label.setHorizontalAlignment(SwingConstants.CENTER);
-            label.setFont(new Font("Arial", Font.BOLD, 12));
+            label.setFont(new Font("Segoe UI", Font.BOLD, 12));
 
             String status = value != null ? value.toString() : "";
             if ("Approved".equalsIgnoreCase(status)) {
-                label.setForeground(new Color(15, 125, 110));
-                label.setBackground(isSelected ? new Color(205, 235, 230) : new Color(230, 247, 244));
+                label.setForeground(new Color(13, 125, 110));
+                label.setBackground(isSelected ? tableSelectionBg : new Color(220, 246, 240));
             } else if ("Rejected".equalsIgnoreCase(status) || "Not Approved".equalsIgnoreCase(status)) {
-                label.setForeground(new Color(190, 40, 40));
-                label.setBackground(isSelected ? new Color(250, 215, 215) : new Color(254, 237, 237));
+                label.setForeground(new Color(185, 28, 28));
+                label.setBackground(isSelected ? tableSelectionBg : new Color(254, 226, 226));
             } else if ("Pending".equalsIgnoreCase(status)) {
-                label.setForeground(pendingPurple);
-                label.setBackground(isSelected ? new Color(235, 225, 250) : new Color(245, 238, 255));
+                label.setForeground(new Color(109, 40, 217));
+                label.setBackground(isSelected ? tableSelectionBg : new Color(237, 228, 255));
             } else {
                 label.setForeground(textDark);
-                label.setBackground(isSelected ? new Color(225, 237, 248) : Color.WHITE);
+                label.setBackground(isSelected ? tableSelectionBg : Color.WHITE);
             }
 
             label.setBorder(new EmptyBorder(3, 8, 3, 8));
@@ -828,7 +858,7 @@ public class MedicalManagementPage extends JPanel {
                 }
             } else {
                 c.setForeground(darkNavy);
-                c.setBackground(new Color(225, 237, 248));
+                c.setBackground(tableSelectionBg);
             }
 
             if (column == 0 || column == 1 || column == 2 || column == 3 || column == 5 || column == 10) {

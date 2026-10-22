@@ -41,7 +41,9 @@ public class LabMaintenancePage extends JPanel {
     private final Color borderColor = new Color(225, 228, 232);
     private final Color textDark = new Color(35, 45, 55);
     private final Color textMuted = new Color(110, 120, 130);
-    private final Color tableStripe = new Color(249, 251, 253);
+    private final Color tableStripe = new Color(240, 244, 249);
+    private final Color tableGridColor = new Color(218, 224, 233);
+    private final Color tableSelectionBg = new Color(193, 218, 243);
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     private final DecimalFormat currencyFormat = new DecimalFormat("#,##0.00");
@@ -1423,19 +1425,48 @@ public class LabMaintenancePage extends JPanel {
         table.setRowHeight(32);
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         table.setForeground(textDark);
-        table.setGridColor(new Color(240, 242, 245));
+        table.setGridColor(tableGridColor);
+        table.setShowGrid(true);
         table.setShowHorizontalLines(true);
-        table.setShowVerticalLines(false);
-        table.setSelectionBackground(new Color(225, 237, 248));
-        table.setSelectionForeground(textDark);
+        table.setShowVerticalLines(true);
+        table.setSelectionBackground(tableSelectionBg);
+        table.setSelectionForeground(darkNavy);
         table.setDefaultRenderer(Object.class, new AlternateRowRenderer());
 
         JTableHeader header = table.getTableHeader();
-        header.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        header.setBackground(darkNavy);
-        header.setForeground(Color.WHITE);
+        header.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        header.setPreferredSize(new Dimension(header.getWidth(), 36));
         header.setReorderingAllowed(false);
-        header.setPreferredSize(new Dimension(header.getWidth(), 34));
+        header.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                JLabel label = new JLabel(value != null ? value.toString() : "");
+                label.setOpaque(true);
+                label.setBackground(darkNavy);
+                label.setForeground(Color.WHITE);
+                label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                label.setHorizontalAlignment(SwingConstants.CENTER);
+                label.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 0, 1, 1, new Color(45, 90, 135)),
+                        BorderFactory.createEmptyBorder(6, 10, 6, 10)
+                ));
+
+                if (table.getRowSorter() != null) {
+                    java.util.List<? extends RowSorter.SortKey> sortKeys = table.getRowSorter().getSortKeys();
+                    if (!sortKeys.isEmpty() && sortKeys.get(0).getColumn() == table.convertColumnIndexToModel(column)) {
+                        SortOrder order = sortKeys.get(0).getSortOrder();
+                        if (order == SortOrder.ASCENDING) {
+                            label.setText(label.getText() + " ▲");
+                        } else if (order == SortOrder.DESCENDING) {
+                            label.setText(label.getText() + " ▼");
+                        }
+                    }
+                }
+                return label;
+            }
+        });
     }
 
     // --- Table Cell Renderers ---
@@ -1455,7 +1486,7 @@ public class LabMaintenancePage extends JPanel {
                 }
             } else {
                 c.setForeground(darkNavy);
-                c.setBackground(new Color(225, 237, 248));
+                c.setBackground(tableSelectionBg);
             }
 
             if (c instanceof JLabel) {
@@ -1476,12 +1507,15 @@ public class LabMaintenancePage extends JPanel {
 
             if (!isSelected) {
                 if ("Operational".equalsIgnoreCase(st)) {
-                    setForeground(successGreen);
-                    setBackground(new Color(240, 252, 250));
+                    setForeground(new Color(13, 125, 110));
+                    setBackground(new Color(220, 246, 240));
                 } else {
-                    setForeground(warningAmber);
-                    setBackground(new Color(254, 250, 238));
+                    setForeground(new Color(180, 83, 9));
+                    setBackground(new Color(254, 238, 204));
                 }
+            } else {
+                setForeground(darkNavy);
+                setBackground(tableSelectionBg);
             }
             setFont(new Font("Segoe UI", Font.BOLD, 11));
             return c;
@@ -1498,6 +1532,9 @@ public class LabMaintenancePage extends JPanel {
             if (!isSelected) {
                 setForeground(darkNavy);
                 setBackground(row % 2 == 0 ? Color.WHITE : tableStripe);
+            } else {
+                setForeground(darkNavy);
+                setBackground(tableSelectionBg);
             }
             return c;
         }
@@ -1514,18 +1551,21 @@ public class LabMaintenancePage extends JPanel {
 
             if (!isSelected) {
                 if ("Critical".equalsIgnoreCase(p)) {
-                    setForeground(alertRed);
-                    setBackground(new Color(254, 242, 242));
+                    setForeground(new Color(185, 28, 28));
+                    setBackground(new Color(254, 226, 226));
                 } else if ("High".equalsIgnoreCase(p)) {
-                    setForeground(warningAmber);
-                    setBackground(new Color(254, 243, 199));
+                    setForeground(new Color(180, 83, 9));
+                    setBackground(new Color(254, 235, 190));
                 } else if ("Medium".equalsIgnoreCase(p)) {
-                    setForeground(primaryBlue);
-                    setBackground(new Color(239, 246, 255));
+                    setForeground(new Color(29, 78, 137));
+                    setBackground(new Color(224, 238, 255));
                 } else {
-                    setForeground(textMuted);
-                    setBackground(new Color(241, 245, 249));
+                    setForeground(new Color(51, 65, 85));
+                    setBackground(new Color(226, 232, 240));
                 }
+            } else {
+                setForeground(darkNavy);
+                setBackground(tableSelectionBg);
             }
             return c;
         }
@@ -1542,18 +1582,21 @@ public class LabMaintenancePage extends JPanel {
 
             if (!isSelected) {
                 if ("Pending".equalsIgnoreCase(s)) {
-                    setForeground(pendingPurple);
-                    setBackground(new Color(243, 238, 255));
+                    setForeground(new Color(109, 40, 217));
+                    setBackground(new Color(237, 228, 255));
                 } else if ("In Progress".equalsIgnoreCase(s)) {
-                    setForeground(warningAmber);
-                    setBackground(new Color(254, 243, 199));
+                    setForeground(new Color(180, 83, 9));
+                    setBackground(new Color(254, 235, 190));
                 } else if ("Resolved".equalsIgnoreCase(s)) {
-                    setForeground(successGreen);
-                    setBackground(new Color(230, 247, 244));
+                    setForeground(new Color(13, 125, 110));
+                    setBackground(new Color(220, 246, 240));
                 } else {
                     setForeground(darkNavy);
-                    setBackground(new Color(237, 243, 248));
+                    setBackground(new Color(224, 235, 245));
                 }
+            } else {
+                setForeground(darkNavy);
+                setBackground(tableSelectionBg);
             }
             return c;
         }
@@ -1570,15 +1613,18 @@ public class LabMaintenancePage extends JPanel {
 
             if (!isSelected) {
                 if ("Completed".equalsIgnoreCase(s)) {
-                    setForeground(successGreen);
-                    setBackground(new Color(230, 247, 244));
+                    setForeground(new Color(13, 125, 110));
+                    setBackground(new Color(220, 246, 240));
                 } else if ("Due Soon".equalsIgnoreCase(s)) {
-                    setForeground(warningAmber);
-                    setBackground(new Color(254, 243, 199));
+                    setForeground(new Color(180, 83, 9));
+                    setBackground(new Color(254, 235, 190));
                 } else {
-                    setForeground(alertRed);
-                    setBackground(new Color(254, 242, 242));
+                    setForeground(new Color(185, 28, 28));
+                    setBackground(new Color(254, 226, 226));
                 }
+            } else {
+                setForeground(darkNavy);
+                setBackground(tableSelectionBg);
             }
             return c;
         }
