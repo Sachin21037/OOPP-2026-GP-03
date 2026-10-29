@@ -419,6 +419,18 @@ public final class LecturerTheme {
         }));
         menu.add(Box.createVerticalStrut(4));
 
+        menu.add(createNavItem("Medical Records", "Medical Records".equalsIgnoreCase(activePage), () -> {
+            new MedicalRecords(safeLecturerId).setVisible(true);
+            currentFrame.dispose();
+        }));
+        menu.add(Box.createVerticalStrut(4));
+
+        menu.add(createNavItem("Notices", "Notices".equalsIgnoreCase(activePage), () -> {
+            new Notices(safeLecturerId).setVisible(true);
+            currentFrame.dispose();
+        }));
+        menu.add(Box.createVerticalStrut(4));
+
         menu.add(createNavItem("Profile", "Profile".equalsIgnoreCase(activePage), () -> {
             new LecturerProfile(safeLecturerId).setVisible(true);
             currentFrame.dispose();
