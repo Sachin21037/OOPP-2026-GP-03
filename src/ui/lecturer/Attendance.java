@@ -113,6 +113,10 @@ public class Attendance extends JFrame {
                 ? lecturerId.trim()
                 : null;
 
+        if (this.lecturerId != null) {
+            LecturerDashboard.setActiveLecturerId(this.lecturerId);
+        }
+
         setTitle("Faculty Academic Management System - Attendance Management");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1250, 780);
