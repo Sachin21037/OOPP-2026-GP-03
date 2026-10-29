@@ -37,6 +37,8 @@ public class TechnicalOfficerDashboard extends JFrame {
     private AttendanceManagementPage attendancePage;
     private MedicalManagementPage medicalPage;
     private LabMaintenancePage labMaintenancePage;
+    private TimetablePage timetablePage;
+    private NoticesPage noticesPage;
     private ProfilePage profilePage;
     private final Map<String, SidebarMenuButton> menuButtons = new HashMap<>();
     private String currentView = "Dashboard";
@@ -100,6 +102,8 @@ public class TechnicalOfficerDashboard extends JFrame {
         addMenuButton(menuPanel, "Attendance");
         addMenuButton(menuPanel, "Medical Certificates");
         addMenuButton(menuPanel, "Lab Maintenance");
+        addMenuButton(menuPanel, "Timetables");
+        addMenuButton(menuPanel, "Notices");
         addMenuButton(menuPanel, "Profile");
 
         sidebar.add(menuPanel, BorderLayout.NORTH);
@@ -163,7 +167,23 @@ public class TechnicalOfficerDashboard extends JFrame {
         labMaintenancePage = new LabMaintenancePage();
         contentContainer.add(labMaintenancePage, "Lab Maintenance");
 
-        // E. Profile Page
+        // E. Timetable Page (Department schedule)
+        String officerDepartment = "Information and Communication Technology";
+        try {
+            dao.TechnicalOfficerDAO toDao = new dao.TechnicalOfficerDAO();
+            model.TechnicalOfficer officer = toDao.getOfficerById(this.officerId);
+            if (officer != null && officer.getDepartment() != null && !officer.getDepartment().isBlank()) {
+                officerDepartment = officer.getDepartment();
+            }
+        } catch (Exception ignored) {}
+        timetablePage = new TimetablePage(officerDepartment);
+        contentContainer.add(timetablePage, "Timetables");
+
+        // F. Notices Page
+        noticesPage = new NoticesPage();
+        contentContainer.add(noticesPage, "Notices");
+
+        // G. Profile Page
         profilePage = new ProfilePage();
         contentContainer.add(profilePage, "Profile");
 
@@ -347,7 +367,15 @@ public class TechnicalOfficerDashboard extends JFrame {
         card.add(contentBox, BorderLayout.CENTER);
 
         // Interactivity
-        if (title.contains("SESSIONS") || title.contains("ATTENDANCE")) {
+        if (title.contains("SESSIONS")) {
+            card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            card.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    navigateTo("Timetables");
+                }
+            });
+        } else if (title.contains("ATTENDANCE")) {
             card.setCursor(new Cursor(Cursor.HAND_CURSOR));
             card.addMouseListener(new MouseAdapter() {
                 @Override
@@ -389,6 +417,10 @@ public class TechnicalOfficerDashboard extends JFrame {
             labMaintenancePage.refreshAllData();
         } else if ("Profile".equalsIgnoreCase(viewName) && profilePage != null) {
             profilePage.refreshProfile();
+        } else if ("Timetables".equalsIgnoreCase(viewName) && timetablePage != null) {
+            timetablePage.refreshTimetable();
+        } else if ("Notices".equalsIgnoreCase(viewName) && noticesPage != null) {
+            noticesPage.refreshNotices();
         }
         cardLayout.show(contentContainer, viewName);
         highlightActiveMenu(viewName);
