@@ -5,11 +5,15 @@ import model.Course;
 import model.Student;
 
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 
 public class MyCoursesFrame extends JFrame {
@@ -149,12 +153,29 @@ public class MyCoursesFrame extends JFrame {
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         bottomPanel.setBackground(lightBackground);
 
-        JButton closeBtn = new JButton("Close");
+        JButton closeBtn = new JButton("Close Window");
         closeBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        closeBtn.setBackground(darkBlue);
+        closeBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        closeBtn.setOpaque(true);
+        closeBtn.setBackground(new Color(29, 78, 216));
         closeBtn.setForeground(Color.WHITE);
+        closeBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(7, 18, 7, 18)
+        ));
         closeBtn.setFocusPainted(false);
         closeBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        closeBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                closeBtn.setBackground(new Color(37, 99, 235));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                closeBtn.setBackground(new Color(29, 78, 216));
+            }
+        });
         closeBtn.addActionListener(e -> dispose());
         bottomPanel.add(closeBtn);
 

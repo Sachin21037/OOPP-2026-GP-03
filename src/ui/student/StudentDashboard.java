@@ -403,14 +403,27 @@ public class StudentDashboard extends JFrame {
 
         JButton openWindowBtn = new JButton("Open in Window ↗");
         openWindowBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        openWindowBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        openWindowBtn.setOpaque(true);
         openWindowBtn.setBackground(new Color(29, 78, 216));
         openWindowBtn.setForeground(Color.WHITE);
         openWindowBtn.setBorder(new CompoundBorder(
                 new LineBorder(new Color(30, 64, 175), 1, true),
-                new EmptyBorder(6, 14, 6, 14)
+                new EmptyBorder(7, 16, 7, 16)
         ));
         openWindowBtn.setFocusPainted(false);
         openWindowBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        openWindowBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                openWindowBtn.setBackground(new Color(37, 99, 235));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                openWindowBtn.setBackground(new Color(29, 78, 216));
+            }
+        });
         openWindowBtn.addActionListener(e -> new MyCoursesFrame(currentStudent).setVisible(true));
 
         topBar.add(sectionTitle, BorderLayout.WEST);
