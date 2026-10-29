@@ -1544,11 +1544,11 @@ public class MarksGrades extends JFrame {
                     }
                 }
 
-                // CA Eligibility: student must obtain at least 50% of the total CA weight component
+                // CA Eligibility: student must obtain at least 40% of the total CA weight component
                 boolean caEligible = false;
                 if (totalCaWeight > 0 && hasAnyCaMark) {
-                    double caPercentage = (caMark / totalCaWeight) * 100.0;
-                    caEligible = (caPercentage >= 50.0);
+                    double caPercentage = Math.round(((caMark / totalCaWeight) * 100.0) * 10000.0) / 10000.0;
+                    caEligible = (caPercentage >= 40.0);
                 } else {
                     // Missing or 0 CA data: safe handling, cannot mark eligible
                     caEligible = false;
@@ -1787,12 +1787,10 @@ public class MarksGrades extends JFrame {
     }
 
     /**
-     * Synchronizes all records in the results table:
+     * Synchronizes CA and Final eligibility in the results table:
      * - Recalculates attendance from attendance sessions where sessions exist
-     * - Evaluates CA eligibility (>= 50% of CA weight)
+     * - Evaluates CA eligibility (>= 40% of CA weight)
      * - Evaluates Final Exam eligibility (Attendance >= 80% AND CA Eligible)
-     * - Sets Grade 'F' (0.0 GP) for ineligible students
-     * - Computes SGPA per semester and CGPA across all courses
      */
     public static void syncAllResultsAndGpa(Connection conn) throws SQLException {
         // 1. Synchronize attendance percentage from attendance sessions for offerings that have session data
@@ -1811,7 +1809,7 @@ public class MarksGrades extends JFrame {
             st.executeUpdate(updateAttSql);
         }
 
-        // 2. Synchronize ca_eligible and final_eligible
+        // 2. Synchronize ca_eligible and final_eligible with official 40% CA threshold
         String updateEligibilitySql =
                 "UPDATE results r " +
                 "LEFT JOIN ( " +
@@ -1821,14 +1819,14 @@ public class MarksGrades extends JFrame {
                 "    GROUP BY a.offering_id " +
                 ") aw ON r.offering_id = aw.offering_id " +
                 "SET r.ca_eligible = CASE " +
-                "    WHEN r.ca_mark IS NOT NULL AND aw.total_ca_weight > 0 AND (r.ca_mark / aw.total_ca_weight) * 100.0 >= 50.0 THEN 1 " +
-                "    WHEN r.ca_mark IS NOT NULL AND (aw.total_ca_weight IS NULL OR aw.total_ca_weight = 0) AND r.ca_mark >= 20.0 THEN 1 " +
+                "    WHEN r.ca_mark IS NOT NULL AND aw.total_ca_weight > 0 AND ROUND((r.ca_mark / aw.total_ca_weight) * 100.0, 4) >= 40.0 THEN 1 " +
+                "    WHEN r.ca_mark IS NOT NULL AND (aw.total_ca_weight IS NULL OR aw.total_ca_weight = 0) AND r.ca_mark >= 16.0 THEN 1 " +
                 "    ELSE 0 " +
                 "END, " +
                 "r.final_eligible = CASE " +
                 "    WHEN (CASE " +
-                "        WHEN r.ca_mark IS NOT NULL AND aw.total_ca_weight > 0 AND (r.ca_mark / aw.total_ca_weight) * 100.0 >= 50.0 THEN 1 " +
-                "        WHEN r.ca_mark IS NOT NULL AND (aw.total_ca_weight IS NULL OR aw.total_ca_weight = 0) AND r.ca_mark >= 20.0 THEN 1 " +
+                "        WHEN r.ca_mark IS NOT NULL AND aw.total_ca_weight > 0 AND ROUND((r.ca_mark / aw.total_ca_weight) * 100.0, 4) >= 40.0 THEN 1 " +
+                "        WHEN r.ca_mark IS NOT NULL AND (aw.total_ca_weight IS NULL OR aw.total_ca_weight = 0) AND r.ca_mark >= 16.0 THEN 1 " +
                 "        ELSE 0 " +
                 "    END) = 1 AND r.attendance_percentage IS NOT NULL AND r.attendance_percentage >= 80.0 THEN 1 " +
                 "    ELSE 0 " +
@@ -1836,50 +1834,6 @@ public class MarksGrades extends JFrame {
 
         try (Statement st = conn.createStatement()) {
             st.executeUpdate(updateEligibilitySql);
-        }
-
-        // 3. Ineligible students receive grade 'F' and grade_point 0.0
-        String updateIneligibleGradesSql =
-                "UPDATE results SET grade = 'F', grade_point = 0.0 WHERE final_eligible = 0 AND (grade != 'F' OR grade IS NULL OR grade_point != 0.0)";
-        try (Statement st = conn.createStatement()) {
-            st.executeUpdate(updateIneligibleGradesSql);
-        }
-
-        // 4. Update SGPA for all students per semester
-        String updateSgpaSql =
-                "UPDATE results r " +
-                "JOIN course_offerings co ON r.offering_id = co.offering_id " +
-                "JOIN ( " +
-                "    SELECT r2.student_id, co2.academic_year, co2.semester, " +
-                "           ROUND(SUM(c2.credits * r2.grade_point) / SUM(c2.credits), 2) AS calc_sgpa " +
-                "    FROM results r2 " +
-                "    JOIN course_offerings co2 ON r2.offering_id = co2.offering_id " +
-                "    JOIN courses c2 ON co2.course_id = c2.course_id " +
-                "    WHERE r2.grade_point IS NOT NULL " +
-                "    GROUP BY r2.student_id, co2.academic_year, co2.semester " +
-                ") sg ON r.student_id = sg.student_id AND co.academic_year = sg.academic_year AND co.semester = sg.semester " +
-                "SET r.sgpa = sg.calc_sgpa";
-
-        try (Statement st = conn.createStatement()) {
-            st.executeUpdate(updateSgpaSql);
-        }
-
-        // 5. Update CGPA for all students cumulatively
-        String updateCgpaSql =
-                "UPDATE results r " +
-                "JOIN ( " +
-                "    SELECT r2.student_id, " +
-                "           ROUND(SUM(c2.credits * r2.grade_point) / SUM(c2.credits), 2) AS calc_cgpa " +
-                "    FROM results r2 " +
-                "    JOIN course_offerings co2 ON r2.offering_id = co2.offering_id " +
-                "    JOIN courses c2 ON co2.course_id = c2.course_id " +
-                "    WHERE r2.grade_point IS NOT NULL " +
-                "    GROUP BY r2.student_id " +
-                ") cg ON r.student_id = cg.student_id " +
-                "SET r.cgpa = cg.calc_cgpa";
-
-        try (Statement st = conn.createStatement()) {
-            st.executeUpdate(updateCgpaSql);
         }
     }
 
