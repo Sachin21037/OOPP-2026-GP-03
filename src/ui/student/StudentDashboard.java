@@ -540,7 +540,7 @@ public class StudentDashboard extends JFrame {
         panel.add(topBar, BorderLayout.NORTH);
 
         List<AttendanceRecord> records = studentDAO.getAttendanceRecords(currentStudent.getUserId());
-        String[] columns = {"Date", "Course", "Session Type", "Session #", "Topic", "Attendance Status"};
+        String[] columns = {"Date", "Course", "Session Type", "Session", "Topic", "Attendance Status"};
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -772,7 +772,7 @@ public class StudentDashboard extends JFrame {
         absentHeader.add(absentActions, BorderLayout.EAST);
         absentCard.add(absentHeader, BorderLayout.NORTH);
 
-        String[] absentColumns = {"Course Code", "Course Name", "Session Date", "Session Type", "Session #", "Lecture Topic", "Attendance", "Medical Status"};
+        String[] absentColumns = {"Course Code", "Course Name", "Session Date", "Session Type", "Session", "Lecture Topic", "Attendance", "Medical Status"};
         DefaultTableModel absentModel = new DefaultTableModel(absentColumns, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -1518,7 +1518,7 @@ public class StudentDashboard extends JFrame {
                 String curReason = reasonArea.getText().trim();
                 if (curReason.isEmpty() || curReason.startsWith("Medical absence for")) {
                     reasonArea.setText("Medical absence for " + rec.getCourseCode() + " " + rec.getSessionType() +
-                            " Session #" + rec.getSessionNumber() + " (" + (rec.getTopic() != null ? rec.getTopic() : "Lecture") + ") due to illness.");
+                            " Session " + rec.getSessionNumber() + " (" + (rec.getTopic() != null ? rec.getTopic() : "Lecture") + ") due to illness.");
                 }
 
                 updateDaysSummary.run();
