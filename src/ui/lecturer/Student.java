@@ -10,6 +10,8 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -51,6 +53,7 @@ public class Student extends JFrame {
 
     // Real student records loaded from database
     private final List<StudentItem> loadedStudents = new ArrayList<>();
+    private final List<StudentItem> displayedStudents = new ArrayList<>();
 
     /**
      * Inner helper class to hold student details retrieved from database.
@@ -62,12 +65,15 @@ public class Student extends JFrame {
         final String courseCode;
         final String courseName;
         final String batch;
+        final String academicYear;
+        final String department;
         final String status;
         final String email;
         final String studentStatus;
 
         StudentItem(String studentId, String indexNumber, String studentName,
                     String courseCode, String courseName, String batch,
+                    String academicYear, String department,
                     String status, String email, String studentStatus) {
             this.studentId = studentId != null ? studentId : "";
             this.indexNumber = indexNumber != null ? indexNumber : "";
@@ -75,6 +81,8 @@ public class Student extends JFrame {
             this.courseCode = courseCode != null ? courseCode : "";
             this.courseName = courseName != null ? courseName : "";
             this.batch = batch != null ? batch : "";
+            this.academicYear = academicYear != null ? academicYear : "";
+            this.department = department != null ? department : "";
             this.status = status != null ? status : "Active";
             this.email = email != null ? email : "";
             this.studentStatus = studentStatus != null ? studentStatus : "";
@@ -101,6 +109,10 @@ public class Student extends JFrame {
         this.lecturerId = (lecturerId != null && !lecturerId.trim().isEmpty())
                 ? lecturerId.trim()
                 : null;
+
+        if (this.lecturerId != null) {
+            LecturerDashboard.setActiveLecturerId(this.lecturerId);
+        }
 
         setTitle(
                 "Faculty Academic Management System - Students"
@@ -351,6 +363,15 @@ public class Student extends JFrame {
         studentTable.setIntercellSpacing(
                 new Dimension(0, 1)
         );
+
+        studentTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2 && studentTable.getSelectedRow() >= 0) {
+                    viewSelectedStudent();
+                }
+            }
+        });
 
         JTableHeader header =
                 studentTable.getTableHeader();
@@ -778,6 +799,7 @@ public class Student extends JFrame {
      */
     private void loadStudents() {
         loadedStudents.clear();
+        displayedStudents.clear();
         tableModel.setRowCount(0);
 
         // Resolve lecturer ID
@@ -799,8 +821,8 @@ public class Student extends JFrame {
 
         String sql =
                 "SELECT ug.student_id, ug.index_no, u.first_name, u.last_name, u.email, " +
-                "       c.course_code, c.course_name, ug.batch, ug.student_status, " +
-                "       u.status AS user_status, e.status AS enrollment_status " +
+                "       c.course_code, c.course_name, ug.batch, ug.academic_year, ug.department, " +
+                "       ug.student_status, u.status AS user_status, e.status AS enrollment_status " +
                 "FROM course_lecturers cl " +
                 "JOIN course_offerings co ON cl.offering_id = co.offering_id " +
                 "JOIN courses c ON co.course_id = c.course_id " +
@@ -826,6 +848,8 @@ public class Student extends JFrame {
                     String courseCode = rs.getString("course_code");
                     String courseName = rs.getString("course_name");
                     String batch = rs.getString("batch");
+                    String academicYear = rs.getString("academic_year");
+                    String department = rs.getString("department");
                     String studentStatus = rs.getString("student_status");
                     String userStatus = rs.getString("user_status");
 
@@ -837,7 +861,7 @@ public class Student extends JFrame {
 
                     loadedStudents.add(new StudentItem(
                             studentId, indexNo, fullName, courseCode, courseName,
-                            batch, displayStatus, email, studentStatus
+                            batch, academicYear, department, displayStatus, email, studentStatus
                     ));
                 }
             }
@@ -862,6 +886,7 @@ public class Student extends JFrame {
             }
 
             for (StudentItem student : loadedStudents) {
+                displayedStudents.add(student);
                 tableModel.addRow(student.toTableRow());
             }
 
@@ -940,6 +965,7 @@ public class Student extends JFrame {
                 (String) batchFilter.getSelectedItem();
 
         tableModel.setRowCount(0);
+        displayedStudents.clear();
 
         for (StudentItem student : loadedStudents) {
 
@@ -969,6 +995,7 @@ public class Student extends JFrame {
                     && matchesCourse
                     && matchesBatch) {
 
+                displayedStudents.add(student);
                 tableModel.addRow(student.toTableRow());
             }
         }
@@ -1059,51 +1086,57 @@ public class Student extends JFrame {
                 selectedRow
         );
 
-        String id =
-                tableModel.getValueAt(row, 0).toString();
+        StudentItem item = (row >= 0 && row < displayedStudents.size())
+                ? displayedStudents.get(row)
+                : null;
 
-        String index =
-                tableModel.getValueAt(row, 1).toString();
+        if (item == null) {
+            String id = tableModel.getValueAt(row, 0).toString();
+            String course = tableModel.getValueAt(row, 3).toString();
+            item = findStudentByIdAndCourse(id, course);
+        }
 
-        String name =
-                tableModel.getValueAt(row, 2).toString();
-
-        String course =
-                tableModel.getValueAt(row, 3).toString();
-
-        String batch =
-                tableModel.getValueAt(row, 4).toString();
-
-        String status =
-                tableModel.getValueAt(row, 5).toString();
-
-        StudentItem item = findStudentByIdAndCourse(id, course);
+        if (item == null) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Unable to load details for the selected student.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
 
         JPanel details = new JPanel(
                 new GridLayout(0, 1, 5, 8)
         );
 
         details.setBorder(
-                new EmptyBorder(10, 10, 10, 10)
+                new EmptyBorder(10, 12, 10, 12)
         );
 
-        details.add(new JLabel("Student ID: " + id));
-        details.add(new JLabel("Index Number: " + index));
-        details.add(new JLabel("Student Name: " + name));
-        if (item != null && !item.email.isEmpty()) {
+        details.add(new JLabel("Student ID: " + item.studentId));
+        details.add(new JLabel("Index Number: " + item.indexNumber));
+        details.add(new JLabel("Student Name: " + item.studentName));
+        if (!item.department.isEmpty()) {
+            details.add(new JLabel("Department: " + item.department));
+        }
+        if (!item.academicYear.isEmpty()) {
+            details.add(new JLabel("Academic Year / Level: " + item.academicYear));
+        }
+        if (!item.email.isEmpty()) {
             details.add(new JLabel("Email Address: " + item.email));
         }
-        details.add(new JLabel("Course Code: " + course + (item != null && !item.courseName.isEmpty() ? " (" + item.courseName + ")" : "")));
-        details.add(new JLabel("Batch: " + batch));
-        details.add(new JLabel("Account Status: " + status));
-        if (item != null && !item.studentStatus.isEmpty()) {
+        details.add(new JLabel("Course Code: " + item.courseCode + (!item.courseName.isEmpty() ? " (" + item.courseName + ")" : "")));
+        details.add(new JLabel("Batch: " + item.batch));
+        details.add(new JLabel("Account Status: " + item.status));
+        if (!item.studentStatus.isEmpty()) {
             details.add(new JLabel("Academic Status: " + item.studentStatus));
         }
 
         JOptionPane.showMessageDialog(
                 this,
                 details,
-                "Student Details",
+                "Student Details - " + item.studentId,
                 JOptionPane.INFORMATION_MESSAGE
         );
     }

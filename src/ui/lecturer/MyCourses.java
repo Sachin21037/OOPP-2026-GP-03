@@ -91,6 +91,10 @@ public class MyCourses extends JFrame {
                 ? lecturerId.trim()
                 : null;
 
+        if (this.lecturerId != null) {
+            LecturerDashboard.setActiveLecturerId(this.lecturerId);
+        }
+
         setTitle(
                 "Faculty Academic Management System - My Courses"
         );
@@ -771,12 +775,22 @@ public class MyCourses extends JFrame {
             }
         }
 
-        JOptionPane.showMessageDialog(
+        Object[] options = {"OK", "Course Materials"};
+        int choice = JOptionPane.showOptionDialog(
                 this,
                 details.toString(),
-                "Course Details",
-                JOptionPane.INFORMATION_MESSAGE
+                "Course Details - " + courseCode,
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.INFORMATION_MESSAGE,
+                null,
+                options,
+                options[0]
         );
+
+        if (choice == 1) {
+            new CourseMaterials(lecturerId, courseCode).setVisible(true);
+            dispose();
+        }
     }
 
     private void showComingSoon(String page) {
