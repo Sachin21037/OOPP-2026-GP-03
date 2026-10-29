@@ -193,6 +193,10 @@ public class Assignments extends JFrame {
                 ? lecturerId.trim()
                 : null;
 
+        if (this.lecturerId != null) {
+            LecturerDashboard.setActiveLecturerId(this.lecturerId);
+        }
+
         setTitle("Faculty Academic Management System - Assignments");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1250, 780);
@@ -218,15 +222,6 @@ public class Assignments extends JFrame {
         String sysProp = System.getProperty("fams.lecturer.id");
         if (sysProp != null && !sysProp.trim().isEmpty()) {
             return sysProp.trim();
-        }
-        // Fallback: query MySQL for first lecturer with assigned courses
-        try (Connection conn = DBConnection.getConnection();
-             Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery("SELECT lecturer_id FROM course_lecturers LIMIT 1")) {
-            if (rs.next()) {
-                return rs.getString("lecturer_id");
-            }
-        } catch (SQLException ignored) {
         }
         return null;
     }
