@@ -13,6 +13,6 @@ public class Main {
         } catch (Exception ignored) {
         }
 
-        SwingUtilities.invokeLater(() -> new TechnicalOfficerDashboard());
+        SwingUtilities.invokeLater(() -> new ui.login.LoginFrame().setVisible(true));
     }
 }

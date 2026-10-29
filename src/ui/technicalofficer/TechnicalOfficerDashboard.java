@@ -21,7 +21,8 @@ public class TechnicalOfficerDashboard extends JFrame {
     // Theme Colors
     private final Color darkNavy = new Color(27, 66, 104);       // #1B4268
     private final Color contentBg = new Color(248, 250, 252);     // #F8FAFC
-    private final Color sidebarBg = Color.WHITE;
+    private final Color sidebarBg = darkNavy;                     // Dark Navy matching reference
+    private final Color sidebarBorder = new Color(20, 50, 82);
     private final Color borderColor = new Color(226, 232, 240);   // #E2E8F0
     private final Color textDark = new Color(30, 41, 59);         // #1E293B
     private final Color textMuted = new Color(100, 116, 139);     // #64748B
@@ -40,7 +41,16 @@ public class TechnicalOfficerDashboard extends JFrame {
     private final Map<String, SidebarMenuButton> menuButtons = new HashMap<>();
     private String currentView = "Dashboard";
 
+    private final String officerId;
+    private final String officerName;
+
     public TechnicalOfficerDashboard() {
+        this("TO001", "Dinesh Kumara");
+    }
+
+    public TechnicalOfficerDashboard(String officerId, String officerName) {
+        this.officerId = (officerId != null && !officerId.isBlank()) ? officerId : "TO001";
+        this.officerName = (officerName != null && !officerName.isBlank()) ? officerName : "Dinesh Kumara";
         setTitle("Faculty Academic Management System - Technical Officer");
         setSize(1180, 720);
         setMinimumSize(new Dimension(1040, 680));
@@ -61,27 +71,25 @@ public class TechnicalOfficerDashboard extends JFrame {
         systemTitle.setFont(new Font("Segoe UI", Font.BOLD, 17));
         systemTitle.setBorder(BorderFactory.createEmptyBorder(0, 24, 0, 0));
 
-        JLabel userType = new JLabel("TECHNICAL OFFICER");
-        userType.setForeground(Color.WHITE);
-        userType.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        userType.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 24));
+        // Right Interactive Profile Header
+        JPanel profileHeaderPanel = createProfileHeaderPanel();
 
         header.add(systemTitle, BorderLayout.WEST);
-        header.add(userType, BorderLayout.EAST);
+        header.add(profileHeaderPanel, BorderLayout.EAST);
 
-        // 2. Left White Sidebar
+        // 2. Left Dark Navy Sidebar matching reference
         JPanel sidebar = new JPanel(new BorderLayout());
         sidebar.setBackground(sidebarBg);
         sidebar.setPreferredSize(new Dimension(210, 660));
-        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, borderColor));
+        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, sidebarBorder));
 
         JPanel menuPanel = new JPanel();
         menuPanel.setBackground(sidebarBg);
         menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
 
         JLabel menuTitle = new JLabel("TECHNICAL OFFICER MENU");
-        menuTitle.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        menuTitle.setForeground(new Color(138, 148, 166));
+        menuTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        menuTitle.setForeground(new Color(140, 185, 220)); // Soft light blue matching screenshot
         menuTitle.setBorder(BorderFactory.createEmptyBorder(22, 22, 14, 0));
         menuTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -96,18 +104,29 @@ public class TechnicalOfficerDashboard extends JFrame {
 
         sidebar.add(menuPanel, BorderLayout.NORTH);
 
-        // Bottom Logout Button
+        // Bottom Logout Button in Coral Red
         JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 22, 18));
         logoutPanel.setBackground(sidebarBg);
 
         JButton logoutButton = new JButton("Logout");
         logoutButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        logoutButton.setForeground(new Color(220, 38, 38)); // #DC2626
+        logoutButton.setForeground(new Color(248, 113, 113)); // Coral red #F87171 matching screenshot
         logoutButton.setBackground(sidebarBg);
         logoutButton.setBorderPainted(false);
         logoutButton.setFocusPainted(false);
         logoutButton.setContentAreaFilled(false);
         logoutButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        logoutButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                logoutButton.setForeground(new Color(254, 178, 178));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                logoutButton.setForeground(new Color(248, 113, 113));
+            }
+        });
         logoutButton.addActionListener(e -> {
             int confirm = JOptionPane.showConfirmDialog(this,
                     "Are you sure you want to log out?",
@@ -116,6 +135,7 @@ public class TechnicalOfficerDashboard extends JFrame {
                     JOptionPane.QUESTION_MESSAGE);
             if (confirm == JOptionPane.YES_OPTION) {
                 dispose();
+                SwingUtilities.invokeLater(() -> new ui.login.LoginFrame().setVisible(true));
             }
         });
 
@@ -382,6 +402,155 @@ public class TechnicalOfficerDashboard extends JFrame {
         }
     }
 
+    /**
+     * Creates the clickable profile section in the top header bar:
+     * [ Circle Avatar with initials ] [ Officer Name (ID) ] [ TECHNICAL OFFICER ]
+     * Clicking anywhere on this section directly accesses and opens the Profile page.
+     */
+    private JPanel createProfileHeaderPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 14)) {
+            private boolean hovered = false;
+
+            {
+                addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseEntered(MouseEvent e) {
+                        hovered = true;
+                        repaint();
+                    }
+
+                    @Override
+                    public void mouseExited(MouseEvent e) {
+                        hovered = false;
+                        repaint();
+                    }
+
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        navigateTo("Profile");
+                    }
+                });
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                if (hovered) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(new Color(255, 255, 255, 22));
+                    g2.fillRoundRect(4, 6, getWidth() - 8, getHeight() - 12, 12, 12);
+                    g2.dispose();
+                }
+                super.paintComponent(g);
+            }
+        };
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 24));
+        panel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        panel.setToolTipText("Click to view & manage your Technical Officer Profile");
+
+        // 1. Circular Avatar with initials
+        String initials = extractInitials(officerName);
+        CircleAvatar avatar = new CircleAvatar(initials);
+
+        // 2. Officer Name & ID label
+        JLabel nameLabel = new JLabel(officerName + " (" + officerId + ")");
+        nameLabel.setForeground(Color.WHITE);
+        nameLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+
+        // 3. Role Label in cyan accent matching student dashboard reference
+        JLabel roleLabel = new JLabel("TECHNICAL OFFICER");
+        roleLabel.setForeground(new Color(180, 240, 220));
+        roleLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+
+        // Forward mouse events from child components to parent panel
+        MouseAdapter forwarder = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                navigateTo("Profile");
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                panel.dispatchEvent(SwingUtilities.convertMouseEvent(e.getComponent(), e, panel));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                panel.dispatchEvent(SwingUtilities.convertMouseEvent(e.getComponent(), e, panel));
+            }
+        };
+
+        avatar.addMouseListener(forwarder);
+        nameLabel.addMouseListener(forwarder);
+        roleLabel.addMouseListener(forwarder);
+
+        panel.add(avatar);
+        panel.add(nameLabel);
+        panel.add(roleLabel);
+
+        return panel;
+    }
+
+    private String extractInitials(String name) {
+        if (name == null || name.trim().isEmpty()) return "TO";
+        String[] parts = name.trim().split("\\s+");
+        if (parts.length >= 2) {
+            return ("" + parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+        } else if (parts[0].length() >= 2) {
+            return parts[0].substring(0, 2).toUpperCase();
+        } else {
+            return parts[0].toUpperCase();
+        }
+    }
+
+    /**
+     * Circular avatar icon displaying user initials with an elegant round border.
+     */
+    private static class CircleAvatar extends JComponent {
+        private final String initials;
+
+        public CircleAvatar(String initials) {
+            this.initials = (initials != null) ? initials : "TO";
+            Dimension dim = new Dimension(32, 32);
+            setPreferredSize(dim);
+            setMinimumSize(dim);
+            setMaximumSize(dim);
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            int size = Math.min(getWidth(), getHeight()) - 2;
+            int x = (getWidth() - size) / 2;
+            int y = (getHeight() - size) / 2;
+
+            // Semi-translucent dark circular fill
+            g2.setColor(new Color(255, 255, 255, 18));
+            g2.fillOval(x, y, size, size);
+
+            // Circular ring outline in cyan/soft-blue
+            g2.setColor(new Color(180, 230, 250, 220));
+            g2.setStroke(new BasicStroke(1.4f));
+            g2.drawOval(x, y, size, size);
+
+            // Centered Initials Text
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            FontMetrics fm = g2.getFontMetrics();
+            int tx = (getWidth() - fm.stringWidth(initials)) / 2;
+            int ty = (getHeight() - fm.getHeight()) / 2 + fm.getAscent() - 1;
+            g2.drawString(initials, tx, ty);
+
+            g2.dispose();
+        }
+    }
+
 
     /**
      * Circular colored indicator dot for the top right of each stat card.
@@ -408,21 +577,25 @@ public class TechnicalOfficerDashboard extends JFrame {
     }
 
     /**
-     * Sidebar Menu Button with 4px left active indicator bar and soft highlight.
+    /**
+     * Sidebar Menu Button with dark navy theme matching the reference design.
      */
     private static class SidebarMenuButton extends JButton {
         private boolean active = false;
-        private final Color activeBg = new Color(237, 243, 248);     // #EDF3F8
-        private final Color activeBorder = new Color(27, 66, 104);   // #1B4268
-        private final Color activeFg = new Color(27, 66, 104);
-        private final Color inactiveFg = new Color(74, 85, 104);      // #4A5568
+        private boolean hovered = false;
+
+        private final Color defaultBg = new Color(27, 66, 104);      // #1B4268
+        private final Color activeBg = new Color(16, 40, 74);        // #10284A (solid dark active background)
+        private final Color hoverBg = new Color(20, 52, 85);         // Subtle hover highlight
+        private final Color activeFg = Color.WHITE;
+        private final Color inactiveFg = new Color(210, 225, 240);   // Soft light blue text #D2E1F0
 
         public SidebarMenuButton(String text) {
             super(text);
             setHorizontalAlignment(SwingConstants.LEFT);
             setFont(new Font("Segoe UI", Font.PLAIN, 13));
             setForeground(inactiveFg);
-            setBackground(Color.WHITE);
+            setBackground(defaultBg);
             setFocusPainted(false);
             setBorderPainted(false);
             setContentAreaFilled(false);
@@ -431,6 +604,20 @@ public class TechnicalOfficerDashboard extends JFrame {
             setBorder(BorderFactory.createEmptyBorder(12, 22, 12, 10));
             setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
             setAlignmentX(Component.LEFT_ALIGNMENT);
+
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    hovered = true;
+                    repaint();
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    hovered = false;
+                    repaint();
+                }
+            });
         }
 
         public void setActive(boolean active) {
@@ -449,17 +636,16 @@ public class TechnicalOfficerDashboard extends JFrame {
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
             if (active) {
-                // Background tint
+                // Dark navy active block spanning full width matching reference image
                 g2.setColor(activeBg);
                 g2.fillRect(0, 0, getWidth(), getHeight());
-                // Left 4px vertical indicator
-                g2.setColor(activeBorder);
-                g2.fillRect(0, 0, 4, getHeight());
-            } else {
-                g2.setColor(Color.WHITE);
+            } else if (hovered) {
+                g2.setColor(hoverBg);
                 g2.fillRect(0, 0, getWidth(), getHeight());
             }
+
             g2.dispose();
             super.paintComponent(g);
         }
