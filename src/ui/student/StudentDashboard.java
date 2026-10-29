@@ -3234,9 +3234,10 @@ public class StudentDashboard extends JFrame {
         panel.add(item);
     }
 
-    // Helper for beautiful consistent tables
+    // Helper for beautiful consistent tables (Strictly non-editable for students)
     private JTable createStandardTable(DefaultTableModel model) {
         JTable table = new JTable(model);
+        table.setDefaultEditor(Object.class, null); // Strictly prevent any in-cell editing
         table.setRowHeight(36);
         table.setFont(new Font("Arial", Font.PLAIN, 13));
         table.setGridColor(new Color(235, 238, 242));
@@ -3244,6 +3245,7 @@ public class StudentDashboard extends JFrame {
         table.setSelectionForeground(textColor);
 
         JTableHeader tableHeader = table.getTableHeader();
+        tableHeader.setReorderingAllowed(false); // Disallow dragging/reordering columns
         tableHeader.setFont(new Font("Arial", Font.BOLD, 13));
         tableHeader.setBackground(new Color(240, 244, 248));
         tableHeader.setForeground(textColor);

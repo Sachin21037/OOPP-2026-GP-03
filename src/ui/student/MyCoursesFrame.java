@@ -117,6 +117,7 @@ public class MyCoursesFrame extends JFrame {
         }
 
         JTable table = new JTable(model);
+        table.setDefaultEditor(Object.class, null); // Strictly prevent editing
         table.setRowHeight(38);
         table.setFont(new Font("Arial", Font.PLAIN, 13));
         table.setGridColor(new Color(235, 238, 242));
@@ -124,6 +125,7 @@ public class MyCoursesFrame extends JFrame {
         table.setSelectionForeground(textColor);
 
         JTableHeader tableHeader = table.getTableHeader();
+        tableHeader.setReorderingAllowed(false);
         tableHeader.setFont(new Font("Arial", Font.BOLD, 13));
         tableHeader.setBackground(new Color(240, 244, 248));
         tableHeader.setForeground(textColor);
