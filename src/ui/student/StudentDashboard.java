@@ -673,6 +673,8 @@ public class StudentDashboard extends JFrame {
 
         JButton submitNewBtn = new JButton("+ Submit Medical Certificate");
         submitNewBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        submitNewBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        submitNewBtn.setOpaque(true);
         submitNewBtn.setForeground(Color.WHITE);
         submitNewBtn.setBackground(new Color(29, 78, 216));
         submitNewBtn.setBorder(new CompoundBorder(
@@ -734,6 +736,8 @@ public class StudentDashboard extends JFrame {
 
         JButton submitSelectedBtn = new JButton("Submit Medical for Selected");
         submitSelectedBtn.setFont(new Font("Arial", Font.BOLD, 11));
+        submitSelectedBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        submitSelectedBtn.setOpaque(true);
         submitSelectedBtn.setBackground(new Color(29, 78, 216));
         submitSelectedBtn.setForeground(Color.WHITE);
         submitSelectedBtn.setBorder(new CompoundBorder(
@@ -743,6 +747,20 @@ public class StudentDashboard extends JFrame {
         submitSelectedBtn.setFocusPainted(false);
         submitSelectedBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         submitSelectedBtn.setEnabled(false);
+        submitSelectedBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (submitSelectedBtn.isEnabled()) {
+                    submitSelectedBtn.setBackground(new Color(37, 99, 235));
+                }
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (submitSelectedBtn.isEnabled()) {
+                    submitSelectedBtn.setBackground(new Color(29, 78, 216));
+                }
+            }
+        });
 
         absentActions.add(absentCountBadge);
         absentActions.add(submitSelectedBtn);
@@ -850,6 +868,8 @@ public class StudentDashboard extends JFrame {
         // Edit Entry button
         JButton editLeaveBtn = new JButton("✏️ Edit Selected Entry");
         editLeaveBtn.setFont(new Font("Arial", Font.BOLD, 11));
+        editLeaveBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        editLeaveBtn.setOpaque(true);
         editLeaveBtn.setBackground(new Color(29, 78, 216));
         editLeaveBtn.setForeground(Color.WHITE);
         editLeaveBtn.setBorder(new CompoundBorder(
@@ -859,6 +879,20 @@ public class StudentDashboard extends JFrame {
         editLeaveBtn.setFocusPainted(false);
         editLeaveBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         editLeaveBtn.setEnabled(false);
+        editLeaveBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (editLeaveBtn.isEnabled()) {
+                    editLeaveBtn.setBackground(new Color(37, 99, 235));
+                }
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (editLeaveBtn.isEnabled()) {
+                    editLeaveBtn.setBackground(new Color(29, 78, 216));
+                }
+            }
+        });
 
         JPanel historyRightBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         historyRightBar.setBackground(Color.WHITE);
@@ -1241,15 +1275,27 @@ public class StudentDashboard extends JFrame {
         for (int i = 0; i < presetDays.length; i++) {
             final int daysCount = presetDays[i];
             JButton pBtn = new JButton(presetNames[i]);
-            pBtn.setFont(new Font("Arial", Font.PLAIN, 11));
-            pBtn.setBackground(new Color(234, 242, 255));
-            pBtn.setForeground(darkBlue);
+            pBtn.setFont(new Font("Arial", Font.BOLD, 11));
+            pBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+            pBtn.setOpaque(true);
+            pBtn.setBackground(new Color(29, 78, 216));
+            pBtn.setForeground(Color.WHITE);
             pBtn.setBorder(new CompoundBorder(
-                    new LineBorder(new Color(191, 219, 254), 1, true),
-                    new EmptyBorder(4, 8, 4, 8)
+                    new LineBorder(new Color(30, 64, 175), 1, true),
+                    new EmptyBorder(4, 10, 4, 10)
             ));
             pBtn.setFocusPainted(false);
             pBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            pBtn.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    pBtn.setBackground(new Color(37, 99, 235));
+                }
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    pBtn.setBackground(new Color(29, 78, 216));
+                }
+            });
             pBtn.addActionListener(e -> {
                 try {
                     java.util.Date s = sdf.parse(startDateField.getText().trim());
@@ -1404,6 +1450,8 @@ public class StudentDashboard extends JFrame {
 
         JButton chooseBtn = new JButton("Browse Document...");
         chooseBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        chooseBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        chooseBtn.setOpaque(true);
         chooseBtn.setBackground(new Color(29, 78, 216));
         chooseBtn.setForeground(Color.WHITE);
         chooseBtn.setBorder(new CompoundBorder(
@@ -1412,6 +1460,16 @@ public class StudentDashboard extends JFrame {
         ));
         chooseBtn.setFocusPainted(false);
         chooseBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        chooseBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                chooseBtn.setBackground(new Color(37, 99, 235));
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                chooseBtn.setBackground(new Color(29, 78, 216));
+            }
+        });
 
         final File[] chosenFile = new File[1];
         chooseBtn.addActionListener(e -> {
@@ -1522,27 +1580,52 @@ public class StudentDashboard extends JFrame {
         footer.setBackground(new Color(245, 247, 250));
 
         JButton cancelBtn = new JButton("Cancel");
-        cancelBtn.setFont(new Font("Arial", Font.PLAIN, 12));
-        cancelBtn.setBackground(new Color(234, 242, 255));
-        cancelBtn.setForeground(darkBlue);
+        cancelBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        cancelBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        cancelBtn.setOpaque(true);
+        cancelBtn.setBackground(new Color(219, 234, 254));
+        cancelBtn.setForeground(new Color(29, 78, 216));
         cancelBtn.setBorder(new CompoundBorder(
-                new LineBorder(new Color(191, 219, 254), 1, true),
-                new EmptyBorder(6, 14, 6, 14)
+                new LineBorder(new Color(147, 197, 253), 1, true),
+                new EmptyBorder(8, 16, 8, 16)
         ));
         cancelBtn.setFocusPainted(false);
+        cancelBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        cancelBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                cancelBtn.setBackground(new Color(191, 219, 254));
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                cancelBtn.setBackground(new Color(219, 234, 254));
+            }
+        });
         cancelBtn.addActionListener(e -> dialog.dispose());
 
         String submitBtnTitle = isEditMode ? "💾 Save Changes & Update Entry" : "Submit Medical Certificate";
         JButton submitBtn = new JButton(submitBtnTitle);
         submitBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        submitBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        submitBtn.setOpaque(true);
         submitBtn.setForeground(Color.WHITE);
         submitBtn.setBackground(new Color(29, 78, 216));
         submitBtn.setBorder(new CompoundBorder(
                 new LineBorder(new Color(30, 64, 175), 1, true),
-                new EmptyBorder(8, 16, 8, 16)
+                new EmptyBorder(8, 18, 8, 18)
         ));
         submitBtn.setFocusPainted(false);
         submitBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        submitBtn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                submitBtn.setBackground(new Color(37, 99, 235));
+            }
+            @Override
+            public void mouseExited(MouseEvent e) {
+                submitBtn.setBackground(new Color(29, 78, 216));
+            }
+        });
 
         submitBtn.addActionListener(e -> {
             CourseItem selectedCourse = (CourseItem) courseCombo.getSelectedItem();
