@@ -55,6 +55,13 @@ public class AttendanceManagementPage extends JPanel {
     private final AttendanceService service;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
+    // Cross-module navigation callback
+    private Runnable onNavigateToTimetable;
+
+    public void setOnNavigateToTimetable(Runnable onNavigateToTimetable) {
+        this.onNavigateToTimetable = onNavigateToTimetable;
+    }
+
     // Top Navigation Tabs
     private CardLayout tabCardLayout;
     private JPanel tabContentContainer;
@@ -261,9 +268,18 @@ public class AttendanceManagementPage extends JPanel {
         JButton removeRowBtn = createStyledButton("- Remove Student", Color.WHITE, textDark);
         removeRowBtn.addActionListener(e -> removeSelectedRosterRow());
 
+        JButton viewTimetableBtn = createStyledButton("🗓️ Academic Timetable", Color.WHITE, darkNavy);
+        viewTimetableBtn.setToolTipText("Open Department Timetable & Session Schedule");
+        viewTimetableBtn.addActionListener(e -> {
+            if (onNavigateToTimetable != null) {
+                onNavigateToTimetable.run();
+            }
+        });
+
         controls.add(loadBatchBtn);
         controls.add(addRowBtn);
         controls.add(removeRowBtn);
+        controls.add(viewTimetableBtn);
 
         headerPanel.add(tableTitle, BorderLayout.WEST);
         headerPanel.add(controls, BorderLayout.EAST);

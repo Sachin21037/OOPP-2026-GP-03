@@ -50,6 +50,13 @@ public class LabMaintenancePage extends JPanel {
 
     private final LabMaintenanceService service = new LabMaintenanceService();
 
+    // Cross-module navigation callback
+    private Runnable onNavigateToTimetable;
+
+    public void setOnNavigateToTimetable(Runnable onNavigateToTimetable) {
+        this.onNavigateToTimetable = onNavigateToTimetable;
+    }
+
     // KPI labels
     private JLabel totalLabsValueLabel;
     private JLabel workstationHealthValueLabel;
@@ -219,9 +226,19 @@ public class LabMaintenancePage extends JPanel {
         tab2Btn.addActionListener(e -> switchTab(2));
         tab3Btn.addActionListener(e -> switchTab(3));
 
+        JButton timetableBtn = createTabButton("🗓️ View Lab Timetable", false);
+        timetableBtn.setPreferredSize(new Dimension(175, 34));
+        timetableBtn.setToolTipText("Check Department Timetable & Lab Sessions");
+        timetableBtn.addActionListener(e -> {
+            if (onNavigateToTimetable != null) {
+                onNavigateToTimetable.run();
+            }
+        });
+
         panel.add(tab1Btn);
         panel.add(tab2Btn);
         panel.add(tab3Btn);
+        panel.add(timetableBtn);
 
         return panel;
     }

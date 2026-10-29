@@ -51,6 +51,13 @@ public class ProfilePage extends JPanel {
     private JLabel staffPillLabel;
     private JLabel sysIdPillLabel;
 
+    // Cross-module navigation callback
+    private Runnable onNavigateToTimetable;
+
+    public void setOnNavigateToTimetable(Runnable onNavigateToTimetable) {
+        this.onNavigateToTimetable = onNavigateToTimetable;
+    }
+
     // Top KPI Labels
     private JLabel kpiLabsValueLabel;
     private JLabel kpiWorkstationsValueLabel;
@@ -549,6 +556,18 @@ public class ProfilePage extends JPanel {
         noteText.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         noteText.setForeground(darkNavy);
         noteCard.add(noteText, BorderLayout.CENTER);
+
+        JButton viewTimetableBtn = createStyledButton("🗓️ View Timetables", darkNavy, Color.WHITE);
+        viewTimetableBtn.setToolTipText("View Academic Timetable & Lab Sessions");
+        viewTimetableBtn.addActionListener(e -> {
+            if (onNavigateToTimetable != null) {
+                onNavigateToTimetable.run();
+            }
+        });
+        JPanel btnWrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 4));
+        btnWrapper.setOpaque(false);
+        btnWrapper.add(viewTimetableBtn);
+        noteCard.add(btnWrapper, BorderLayout.EAST);
 
         // Labs Table Card
         JPanel tableCard = createCardPanel();
