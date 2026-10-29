@@ -1994,163 +1994,26 @@ public class StudentDashboard extends JFrame {
     }
 
     private JPanel buildAnnouncementsPanel() {
-        JPanel mainPanel = new JPanel(new BorderLayout(0, 14));
+        JPanel mainPanel = new JPanel(new BorderLayout(0, 16));
         mainPanel.setBackground(lightBackground);
         mainPanel.setBorder(new EmptyBorder(0, 25, 20, 25));
 
-        // Header section
-        JPanel headerPanel = new JPanel(new BorderLayout());
+        // Header section (Clean title, NO buttons)
+        JPanel headerPanel = new JPanel();
+        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
         headerPanel.setBackground(lightBackground);
 
-        JPanel headerTitles = new JPanel();
-        headerTitles.setLayout(new BoxLayout(headerTitles, BoxLayout.Y_AXIS));
-        headerTitles.setBackground(lightBackground);
-
-        JLabel sectionTitle = new JLabel("Announcements & Advance Assessment Notices");
-        sectionTitle.setFont(new Font("Arial", Font.BOLD, 18));
+        JLabel sectionTitle = new JLabel("Announcements");
+        sectionTitle.setFont(new Font("Arial", Font.BOLD, 19));
         sectionTitle.setForeground(textColor);
 
-        JLabel sectionSub = new JLabel("Advance notifications regarding upcoming quizzes, assignments, exams, and lecture updates");
+        JLabel sectionSub = new JLabel("Official notices and announcements posted by faculty lecturers");
         sectionSub.setFont(new Font("Arial", Font.PLAIN, 12));
         sectionSub.setForeground(new Color(110, 120, 130));
 
-        headerTitles.add(sectionTitle);
-        headerTitles.add(Box.createVerticalStrut(3));
-        headerTitles.add(sectionSub);
-
-        JPanel headerButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        headerButtons.setBackground(lightBackground);
-
-        JButton refreshBtn = new JButton("🔄 Refresh");
-        refreshBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        refreshBtn.setBackground(new Color(29, 78, 216));
-        refreshBtn.setForeground(Color.WHITE);
-        refreshBtn.setFocusPainted(false);
-        refreshBtn.setBorder(new CompoundBorder(
-                new LineBorder(new Color(30, 64, 175), 1, true),
-                new EmptyBorder(8, 14, 8, 14)
-        ));
-        refreshBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        refreshBtn.addActionListener(e -> refreshAnnouncementsData());
-        headerButtons.add(refreshBtn);
-
-        if (isLecturer()) {
-            JButton postBtn = new JButton("+ Post Announcement (Lecturer)");
-            postBtn.setFont(new Font("Arial", Font.BOLD, 12));
-            postBtn.setBackground(new Color(29, 78, 216));
-            postBtn.setForeground(Color.WHITE);
-            postBtn.setFocusPainted(false);
-            postBtn.setBorder(new CompoundBorder(
-                    new LineBorder(new Color(30, 64, 175), 1, true),
-                    new EmptyBorder(8, 14, 8, 14)
-            ));
-            postBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            postBtn.addActionListener(e -> showPostAnnouncementDialog(currentStudent));
-            headerButtons.add(postBtn);
-        } else {
-            // For students: Posting is restricted exclusively to lecturers
-            JLabel restrictedBadge = new JLabel("🔒 Only Lecturers can post announcements");
-            restrictedBadge.setFont(new Font("Arial", Font.BOLD, 11));
-            restrictedBadge.setForeground(new Color(115, 125, 140));
-            restrictedBadge.setBackground(new Color(238, 242, 248));
-            restrictedBadge.setOpaque(true);
-            restrictedBadge.setBorder(new CompoundBorder(
-                    new LineBorder(new Color(215, 222, 232), 1, true),
-                    new EmptyBorder(7, 12, 7, 12)
-            ));
-            restrictedBadge.setToolTipText("Access Restricted: Only faculty lecturers can create and post announcements.");
-
-            JButton lecturerAuthBtn = new JButton("Lecturer Login to Post 🔑");
-            lecturerAuthBtn.setFont(new Font("Arial", Font.BOLD, 11));
-            lecturerAuthBtn.setBackground(new Color(29, 78, 216));
-            lecturerAuthBtn.setForeground(Color.WHITE);
-            lecturerAuthBtn.setBorder(new CompoundBorder(
-                    new LineBorder(new Color(30, 64, 175), 1, true),
-                    new EmptyBorder(7, 12, 7, 12)
-            ));
-            lecturerAuthBtn.setFocusPainted(false);
-            lecturerAuthBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            lecturerAuthBtn.setToolTipText("Authenticate with Lecturer credentials to post an announcement");
-            lecturerAuthBtn.addActionListener(e -> promptLecturerAuthenticationAndPost());
-            headerButtons.add(restrictedBadge);
-            headerButtons.add(lecturerAuthBtn);
-        }
-
-        headerPanel.add(headerTitles, BorderLayout.WEST);
-        headerPanel.add(headerButtons, BorderLayout.EAST);
-
-        // Top Metrics Cards Panel
-        JPanel metricsPanel = new JPanel(new GridLayout(1, 3, 14, 0));
-        metricsPanel.setBackground(lightBackground);
-
-        JPanel totalCard = createMiniMetricCard("Total Announcements", "0", darkBlue);
-        JPanel quizCard = createMiniMetricCard("Upcoming Quizzes (Advance Notice)", "0", new Color(230, 126, 34));
-        JPanel asmCard = createMiniMetricCard("Upcoming Assignments (Advance Notice)", "0", new Color(20, 165, 145));
-
-        announcementsCountLabel = (JLabel) totalCard.getClientProperty("valLabel");
-        quizzesCountLabel = (JLabel) quizCard.getClientProperty("valLabel");
-        assignmentsCountLabel = (JLabel) asmCard.getClientProperty("valLabel");
-
-        metricsPanel.add(totalCard);
-        metricsPanel.add(quizCard);
-        metricsPanel.add(asmCard);
-
-        // Search & Filter Panel
-        JPanel filterSearchPanel = new JPanel(new BorderLayout(12, 8));
-        filterSearchPanel.setBackground(lightBackground);
-        filterSearchPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
-
-        // Category Filter Buttons
-        JPanel categoryFilterBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        categoryFilterBar.setBackground(lightBackground);
-
-        filterButtons.clear();
-        addAnnouncementFilterButton(categoryFilterBar, "All Announcements", "ALL");
-        addAnnouncementFilterButton(categoryFilterBar, "🔔 Upcoming Quizzes", "QUIZ");
-        addAnnouncementFilterButton(categoryFilterBar, "📝 Upcoming Assignments", "ASSIGNMENT");
-        addAnnouncementFilterButton(categoryFilterBar, "📢 Faculty Notices", "GENERAL");
-
-        // Live Search Input
-        JPanel searchBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-        searchBox.setBackground(lightBackground);
-
-        JLabel searchIcon = new JLabel("🔍");
-        searchIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 12));
-
-        JTextField searchField = new JTextField(18);
-        searchField.setFont(new Font("Arial", Font.PLAIN, 12));
-        searchField.setPreferredSize(new Dimension(240, 32));
-        searchField.setBorder(new CompoundBorder(
-                new LineBorder(new Color(210, 220, 230), 1, true),
-                new EmptyBorder(4, 8, 4, 8)
-        ));
-        searchField.setToolTipText("Filter by title, course code, or lecturer");
-
-        searchField.getDocument().addDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) { update(); }
-            public void removeUpdate(DocumentEvent e) { update(); }
-            public void changedUpdate(DocumentEvent e) { update(); }
-            private void update() {
-                currentAnnouncementSearch = searchField.getText().trim();
-                updateAnnouncementsFeed();
-            }
-        });
-
-        searchBox.add(searchIcon);
-        searchBox.add(searchField);
-
-        filterSearchPanel.add(categoryFilterBar, BorderLayout.WEST);
-        filterSearchPanel.add(searchBox, BorderLayout.EAST);
-
-        // Top Container
-        JPanel topContainer = new JPanel();
-        topContainer.setLayout(new BoxLayout(topContainer, BoxLayout.Y_AXIS));
-        topContainer.setBackground(lightBackground);
-        topContainer.add(headerPanel);
-        topContainer.add(Box.createVerticalStrut(12));
-        topContainer.add(metricsPanel);
-        topContainer.add(Box.createVerticalStrut(10));
-        topContainer.add(filterSearchPanel);
+        headerPanel.add(sectionTitle);
+        headerPanel.add(Box.createVerticalStrut(4));
+        headerPanel.add(sectionSub);
 
         // Announcements Feed list container
         announcementsListContainer = new JPanel();
@@ -2162,7 +2025,7 @@ public class StudentDashboard extends JFrame {
         scrollPane.setBackground(lightBackground);
         scrollPane.getVerticalScrollBar().setUnitIncrement(14);
 
-        mainPanel.add(topContainer, BorderLayout.NORTH);
+        mainPanel.add(headerPanel, BorderLayout.NORTH);
         mainPanel.add(scrollPane, BorderLayout.CENTER);
 
         // Initial Load
@@ -2289,27 +2152,7 @@ public class StudentDashboard extends JFrame {
         if (announcementsListContainer == null) return;
         announcementsListContainer.removeAll();
 
-        String query = (currentAnnouncementSearch != null) ? currentAnnouncementSearch.toLowerCase().trim() : "";
-        List<Notice> filtered = new ArrayList<>();
-
-        for (Notice n : allAnnouncementsList) {
-            String type = n.getNoticeType() != null ? n.getNoticeType().toUpperCase() : "GENERAL";
-            if ("QUIZ".equals(currentAnnouncementFilter) && !type.contains("QUIZ")) continue;
-            if ("ASSIGNMENT".equals(currentAnnouncementFilter) && !type.contains("ASSIGNMENT")) continue;
-            if ("GENERAL".equals(currentAnnouncementFilter) && (type.contains("QUIZ") || type.contains("ASSIGNMENT"))) continue;
-
-            if (!query.isEmpty()) {
-                String fullText = ((n.getTitle() != null ? n.getTitle() : "") + " " +
-                                  (n.getDescription() != null ? n.getDescription() : "") + " " +
-                                  (n.getCourseCode() != null ? n.getCourseCode() : "") + " " +
-                                  (n.getAuthorName() != null ? n.getAuthorName() : "")).toLowerCase();
-                if (!fullText.contains(query)) continue;
-            }
-
-            filtered.add(n);
-        }
-
-        if (filtered.isEmpty()) {
+        if (allAnnouncementsList == null || allAnnouncementsList.isEmpty()) {
             JPanel emptyPanel = new JPanel();
             emptyPanel.setBackground(Color.WHITE);
             emptyPanel.setBorder(new CompoundBorder(
@@ -2322,12 +2165,12 @@ public class StudentDashboard extends JFrame {
             emptyIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 42));
             emptyIcon.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-            JLabel emptyTitle = new JLabel("No announcements found");
+            JLabel emptyTitle = new JLabel("No Announcements Available");
             emptyTitle.setFont(new Font("Arial", Font.BOLD, 15));
             emptyTitle.setForeground(textColor);
             emptyTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-            JLabel emptySub = new JLabel("No advance notices match the selected category or search filter.");
+            JLabel emptySub = new JLabel("There are currently no announcements posted by faculty lecturers.");
             emptySub.setFont(new Font("Arial", Font.PLAIN, 12));
             emptySub.setForeground(new Color(120, 130, 140));
             emptySub.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -2340,7 +2183,7 @@ public class StudentDashboard extends JFrame {
 
             announcementsListContainer.add(emptyPanel);
         } else {
-            for (Notice notice : filtered) {
+            for (Notice notice : allAnnouncementsList) {
                 announcementsListContainer.add(createAnnouncementCard(notice));
                 announcementsListContainer.add(Box.createVerticalStrut(12));
             }
@@ -2394,7 +2237,6 @@ public class StudentDashboard extends JFrame {
         typeBadge.setBackground(badgeBg);
         typeBadge.setOpaque(true);
         typeBadge.setBorder(new EmptyBorder(3, 8, 3, 8));
-
         topBadges.add(typeBadge);
 
         if (notice.getCourseCode() != null && !notice.getCourseCode().isEmpty()) {
@@ -2412,86 +2254,56 @@ public class StudentDashboard extends JFrame {
 
         // Advance notice pill
         String advanceNoticeText = notice.getAdvanceTimeNotice();
-        JLabel advancePill = new JLabel(" " + advanceNoticeText + " ");
-        advancePill.setFont(new Font("Arial", Font.BOLD, 10));
-        advancePill.setForeground(new Color(133, 77, 14));
-        advancePill.setBackground(new Color(254, 243, 199));
-        advancePill.setOpaque(true);
-        advancePill.setBorder(new CompoundBorder(
-                new LineBorder(new Color(245, 215, 145), 1),
-                new EmptyBorder(2, 6, 2, 6)
-        ));
-        topBadges.add(advancePill);
+        if (advanceNoticeText != null && !advanceNoticeText.isEmpty()) {
+            JLabel advancePill = new JLabel(" " + advanceNoticeText + " ");
+            advancePill.setFont(new Font("Arial", Font.BOLD, 10));
+            advancePill.setForeground(new Color(133, 77, 14));
+            advancePill.setBackground(new Color(254, 243, 199));
+            advancePill.setOpaque(true);
+            advancePill.setBorder(new CompoundBorder(
+                    new LineBorder(new Color(245, 215, 145), 1),
+                    new EmptyBorder(2, 6, 2, 6)
+            ));
+            topBadges.add(advancePill);
+        }
 
         // Center Content
         JPanel centerContent = new JPanel();
         centerContent.setLayout(new BoxLayout(centerContent, BoxLayout.Y_AXIS));
         centerContent.setBackground(Color.WHITE);
 
-        JLabel titleLbl = new JLabel(notice.getTitle());
+        JLabel titleLbl = new JLabel(notice.getTitle() != null ? notice.getTitle() : "Notice");
         titleLbl.setFont(new Font("Arial", Font.BOLD, 15));
         titleLbl.setForeground(textColor);
 
-        // Metadata: Lecturer, Posted Date, Scheduled Event Date
+        // Metadata: Posted Date, Scheduled Event Date (without lecturer personal details)
         StringBuilder metaSb = new StringBuilder();
-        metaSb.append("👤 Posted by: ").append(notice.getAuthorName() != null ? notice.getAuthorName() : "Academic Staff");
         if (notice.getNoticeDate() != null) {
-            metaSb.append("   •   📅 Posted: ").append(notice.getNoticeDate().toString());
+            metaSb.append("📅 Posted: ").append(notice.getNoticeDate().toString());
         }
         if (notice.getEventDate() != null) {
-            metaSb.append("   •   🎯 Scheduled Event Date: ").append(notice.getEventDate().toString());
+            if (metaSb.length() > 0) metaSb.append("   •   ");
+            metaSb.append("🎯 Scheduled Event / Due Date: ").append(notice.getEventDate().toString());
         }
 
-        JLabel metaLbl = new JLabel(metaSb.toString());
-        metaLbl.setFont(new Font("Arial", Font.PLAIN, 11));
-        metaLbl.setForeground(new Color(105, 115, 128));
+        centerContent.add(titleLbl);
+        if (metaSb.length() > 0) {
+            JLabel metaLbl = new JLabel(metaSb.toString());
+            metaLbl.setFont(new Font("Arial", Font.PLAIN, 11));
+            metaLbl.setForeground(new Color(105, 115, 128));
+            centerContent.add(Box.createVerticalStrut(4));
+            centerContent.add(metaLbl);
+        }
 
-        // Description preview
+        // Description content
         String desc = notice.getDescription() != null ? notice.getDescription() : "";
         String htmlDesc = desc.replace("\n", "<br>");
-        JLabel descLbl = new JLabel("<html><body style='width: 650px; font-family: Arial; font-size: 11px; color: #3c4858; line-height: 1.45;'>" + htmlDesc + "</body></html>");
-
-        centerContent.add(titleLbl);
-        centerContent.add(Box.createVerticalStrut(4));
-        centerContent.add(metaLbl);
+        JLabel descLbl = new JLabel("<html><body style='width: 700px; font-family: Arial; font-size: 12px; color: #3c4858; line-height: 1.5;'>" + htmlDesc + "</body></html>");
         centerContent.add(Box.createVerticalStrut(8));
         centerContent.add(descLbl);
 
-        // Bottom Actions
-        JPanel bottomActions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        bottomActions.setBackground(Color.WHITE);
-
-        JButton viewDetailsBtn = new JButton("View Full Details & Guidelines ↗");
-        viewDetailsBtn.setFont(new Font("Arial", Font.BOLD, 11));
-        viewDetailsBtn.setBackground(new Color(29, 78, 216));
-        viewDetailsBtn.setForeground(Color.WHITE);
-        viewDetailsBtn.setBorder(new CompoundBorder(
-                new LineBorder(new Color(30, 64, 175), 1, true),
-                new EmptyBorder(6, 12, 6, 12)
-        ));
-        viewDetailsBtn.setFocusPainted(false);
-        viewDetailsBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        viewDetailsBtn.addActionListener(e -> showAnnouncementDetailsDialog(notice));
-        bottomActions.add(viewDetailsBtn);
-
-        if (type.contains("QUIZ") || type.contains("ASSIGNMENT")) {
-            JButton goToAsmBtn = new JButton("Go to Assignments Tab ➔");
-            goToAsmBtn.setFont(new Font("Arial", Font.BOLD, 11));
-            goToAsmBtn.setBackground(new Color(219, 234, 254));
-            goToAsmBtn.setForeground(new Color(29, 78, 216));
-            goToAsmBtn.setBorder(new CompoundBorder(
-                    new LineBorder(new Color(147, 197, 253), 1, true),
-                    new EmptyBorder(6, 12, 6, 12)
-            ));
-            goToAsmBtn.setFocusPainted(false);
-            goToAsmBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            goToAsmBtn.addActionListener(e -> navigateToSection("Assignments"));
-            bottomActions.add(goToAsmBtn);
-        }
-
         card.add(topBadges, BorderLayout.NORTH);
         card.add(centerContent, BorderLayout.CENTER);
-        card.add(bottomActions, BorderLayout.SOUTH);
 
         return card;
     }
@@ -3424,8 +3236,6 @@ public class StudentDashboard extends JFrame {
         String timeStr = n.getNoticeDate() != null ? new SimpleDateFormat("MMM dd, yyyy").format(n.getNoticeDate()) : "Recently";
         if (n.getEventDate() != null) {
             timeStr = n.getAdvanceTimeNotice();
-        } else if (n.getAuthorName() != null && !n.getAuthorName().isBlank()) {
-            timeStr += " • " + n.getAuthorName();
         }
         JLabel timeLbl = new JLabel(timeStr);
         timeLbl.setFont(new Font("Arial", Font.PLAIN, 10));
