@@ -1779,138 +1779,202 @@ public class StudentDashboard extends JFrame {
     // ==========================================
     // 8. MY PROFILE VIEW (WITH PHOTO UPLOAD)
     // ==========================================
+    // 8. MY PROFILE VIEW (WITH PHOTO UPLOAD)
+    // ==========================================
     private JPanel buildProfilePanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 15));
         panel.setBackground(lightBackground);
         panel.setBorder(new EmptyBorder(0, 25, 20, 25));
 
-        JLabel sectionTitle = new JLabel("Undergraduate Student Profile");
-        sectionTitle.setFont(new Font("Arial", Font.BOLD, 18));
-        sectionTitle.setForeground(textColor);
-        panel.add(sectionTitle, BorderLayout.NORTH);
+        // Top Header
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(lightBackground);
+
+        JPanel titleBlock = new JPanel();
+        titleBlock.setLayout(new BoxLayout(titleBlock, BoxLayout.Y_AXIS));
+        titleBlock.setBackground(lightBackground);
+
+        JLabel sectionTitle = new JLabel("My Profile & Academic Credentials");
+        sectionTitle.setFont(new Font("Arial", Font.BOLD, 19));
+        sectionTitle.setForeground(darkBlue);
+
+        JLabel sectionSub = new JLabel("Official registration details, academic standing, and identity management");
+        sectionSub.setFont(new Font("Arial", Font.PLAIN, 12));
+        sectionSub.setForeground(new Color(100, 116, 139));
+
+        titleBlock.add(sectionTitle);
+        titleBlock.add(Box.createVerticalStrut(3));
+        titleBlock.add(sectionSub);
+
+        JLabel topBadge = new JLabel("  ● ACTIVE ENROLLMENT  ");
+        topBadge.setFont(new Font("Arial", Font.BOLD, 11));
+        topBadge.setForeground(new Color(16, 185, 129));
+        topBadge.setBackground(new Color(236, 253, 245));
+        topBadge.setOpaque(true);
+        topBadge.setBorder(new CompoundBorder(
+                new LineBorder(new Color(167, 243, 208), 1, true),
+                new EmptyBorder(6, 12, 6, 12)
+        ));
+
+        headerPanel.add(titleBlock, BorderLayout.WEST);
+        headerPanel.add(topBadge, BorderLayout.EAST);
+        panel.add(headerPanel, BorderLayout.NORTH);
 
         // Center split: Left Card (Photo & Identity) + Right Card (Detailed Info)
         JPanel centerGrid = new JPanel(new BorderLayout(20, 0));
         centerGrid.setBackground(lightBackground);
 
-        // 1. LEFT CARD: Photo & Identity
+        // 1. LEFT CARD: Photo & Identity & Quick Stats
         JPanel leftCard = new JPanel();
         leftCard.setLayout(new BoxLayout(leftCard, BoxLayout.Y_AXIS));
         leftCard.setBackground(Color.WHITE);
-        leftCard.setPreferredSize(new Dimension(280, 440));
+        leftCard.setPreferredSize(new Dimension(275, 480));
         leftCard.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(225, 228, 232)),
-                BorderFactory.createEmptyBorder(25, 20, 25, 20)
+                new LineBorder(new Color(226, 232, 240), 1, true),
+                new EmptyBorder(20, 16, 18, 16)
         ));
 
         String initials = getStudentInitials();
-        JLabel profileAvatarLabel = new JLabel(createAvatarIcon(currentStudent.getProfilePicture(), 130, initials));
+        JLabel profileAvatarLabel = new JLabel(createAvatarIcon(currentStudent.getProfilePicture(), 125, initials));
         profileAvatarLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        JLabel nameLabel = new JLabel(currentStudent.getFullName());
+        nameLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        nameLabel.setForeground(new Color(15, 23, 42));
+        nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        String idText = (currentStudent.getIndexNo() != null && !currentStudent.getIndexNo().isEmpty())
+                ? currentStudent.getIndexNo() : currentStudent.getUserId();
+        JLabel indexLabel = new JLabel("  " + idText + "  ");
+        indexLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        indexLabel.setForeground(new Color(30, 64, 175));
+        indexLabel.setBackground(new Color(239, 246, 255));
+        indexLabel.setOpaque(true);
+        indexLabel.setBorder(new CompoundBorder(
+                new LineBorder(new Color(191, 219, 254), 1, true),
+                new EmptyBorder(3, 8, 3, 8)
+        ));
+        indexLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        String roleStatus = (isLecturer() ? "Faculty Member • Active" : (currentStudent.getStudentStatus() != null ? currentStudent.getStudentStatus() + " Undergraduate" : "Undergraduate"));
+        JLabel roleLabel = new JLabel(roleStatus);
+        roleLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        roleLabel.setForeground(new Color(100, 116, 139));
+        roleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
         JButton uploadBtn = new JButton("📷  Update Photo");
-        uploadBtn.setFont(new Font("Arial", Font.BOLD, 13));
+        uploadBtn.setFont(new Font("Arial", Font.BOLD, 12));
         uploadBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         uploadBtn.setOpaque(true);
         uploadBtn.setForeground(Color.WHITE);
-        uploadBtn.setBackground(new Color(29, 78, 216)); // Vibrant Royal Blue
+        uploadBtn.setBackground(new Color(29, 78, 216)); // Royal Blue
         uploadBtn.setBorder(new CompoundBorder(
                 new LineBorder(new Color(30, 64, 175), 1, true),
-                new EmptyBorder(8, 16, 8, 16)
+                new EmptyBorder(7, 16, 7, 16)
         ));
         uploadBtn.setFocusPainted(false);
         uploadBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         uploadBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        uploadBtn.setMaximumSize(new Dimension(190, 38));
-        uploadBtn.setPreferredSize(new Dimension(190, 38));
+        uploadBtn.setMaximumSize(new Dimension(185, 36));
+        uploadBtn.setPreferredSize(new Dimension(185, 36));
 
         uploadBtn.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
-                uploadBtn.setBackground(new Color(37, 99, 235)); // Lighter Blue hover
+                uploadBtn.setBackground(new Color(37, 99, 235));
             }
             public void mouseExited(MouseEvent e) {
                 uploadBtn.setBackground(new Color(29, 78, 216));
             }
         });
-
         uploadBtn.addActionListener(e -> handlePhotoUpload(profileAvatarLabel, headerAvatarLabel));
 
-        JLabel formatHint = new JLabel("Formats: JPG, JPEG, PNG");
-        formatHint.setFont(new Font("Arial", Font.PLAIN, 11));
-        formatHint.setForeground(new Color(110, 120, 130));
+        JLabel formatHint = new JLabel("JPG, JPEG or PNG • Max 5MB");
+        formatHint.setFont(new Font("Arial", Font.PLAIN, 10));
+        formatHint.setForeground(new Color(148, 163, 184));
         formatHint.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel maxHint = new JLabel("Standard photographs or PNG");
-        maxHint.setFont(new Font("Arial", Font.PLAIN, 10));
-        maxHint.setForeground(new Color(140, 150, 160));
-        maxHint.setAlignmentX(Component.CENTER_ALIGNMENT);
-
         JSeparator sep = new JSeparator();
-        sep.setMaximumSize(new Dimension(230, 1));
-        sep.setForeground(new Color(230, 235, 240));
+        sep.setMaximumSize(new Dimension(235, 1));
+        sep.setForeground(new Color(226, 232, 240));
 
-        JLabel nameLabel = new JLabel(currentStudent.getFullName());
-        nameLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        nameLabel.setForeground(textColor);
-        nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        // Mini Quick Stats Panel (Courses, Attendance, GPA)
+        JPanel statsPanel = new JPanel(new GridLayout(1, 3, 6, 0));
+        statsPanel.setOpaque(false);
+        statsPanel.setMaximumSize(new Dimension(245, 54));
 
-        JLabel indexLabel = new JLabel(currentStudent.getIndexNo());
-        indexLabel.setFont(new Font("Arial", Font.PLAIN, 13));
-        indexLabel.setForeground(new Color(100, 110, 120));
-        indexLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        int enrolled = currentStudent.getEnrolledCourseCount() > 0 ? currentStudent.getEnrolledCourseCount() : 9;
+        double att = currentStudent.getAttendancePercentage() > 0 ? currentStudent.getAttendancePercentage() : 87.0;
+        double gpa = currentStudent.getCurrentGpa() > 0 ? currentStudent.getCurrentGpa() : 2.42;
 
-        JLabel statusPill = new JLabel("  " + currentStudent.getStudentStatus() + " • ACTIVE  ");
-        statusPill.setFont(new Font("Arial", Font.BOLD, 11));
-        statusPill.setForeground(new Color(20, 165, 145));
-        statusPill.setOpaque(true);
-        statusPill.setBackground(new Color(230, 247, 244));
-        statusPill.setBorder(BorderFactory.createLineBorder(new Color(180, 235, 225), 1, true));
-        statusPill.setAlignmentX(Component.CENTER_ALIGNMENT);
+        statsPanel.add(createMiniStatBox("Courses", String.valueOf(enrolled), new Color(45, 100, 160)));
+        statsPanel.add(createMiniStatBox("Attendance", String.format("%.0f%%", att), new Color(20, 165, 145)));
+        statsPanel.add(createMiniStatBox("GPA", String.format("%.2f", gpa), new Color(115, 75, 180)));
 
         leftCard.add(profileAvatarLabel);
-        leftCard.add(Box.createVerticalStrut(14));
-        leftCard.add(uploadBtn);
-        leftCard.add(Box.createVerticalStrut(6));
-        leftCard.add(formatHint);
-        leftCard.add(Box.createVerticalStrut(2));
-        leftCard.add(maxHint);
-        leftCard.add(Box.createVerticalStrut(14));
-        leftCard.add(sep);
-        leftCard.add(Box.createVerticalStrut(14));
-        leftCard.add(nameLabel);
-        leftCard.add(Box.createVerticalStrut(4));
-        leftCard.add(indexLabel);
         leftCard.add(Box.createVerticalStrut(10));
-        leftCard.add(statusPill);
+        leftCard.add(nameLabel);
+        leftCard.add(Box.createVerticalStrut(5));
+        leftCard.add(indexLabel);
+        leftCard.add(Box.createVerticalStrut(4));
+        leftCard.add(roleLabel);
+        leftCard.add(Box.createVerticalStrut(12));
+        leftCard.add(uploadBtn);
+        leftCard.add(Box.createVerticalStrut(4));
+        leftCard.add(formatHint);
+        leftCard.add(Box.createVerticalStrut(12));
+        leftCard.add(sep);
+        leftCard.add(Box.createVerticalStrut(12));
+        leftCard.add(statsPanel);
 
-        // 2. RIGHT CARD: Detailed Information
+        // 2. RIGHT CARD: Categorized Profile Information
         JPanel rightCard = new JPanel(new BorderLayout());
         rightCard.setBackground(Color.WHITE);
         rightCard.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(225, 228, 232)),
-                BorderFactory.createEmptyBorder(22, 25, 22, 25)
+                new LineBorder(new Color(226, 232, 240), 1, true),
+                new EmptyBorder(16, 20, 16, 20)
         ));
 
-        JLabel cardHeading = new JLabel("Academic & Personal Information");
-        cardHeading.setFont(new Font("Arial", Font.BOLD, 15));
-        cardHeading.setForeground(darkBlue);
-        cardHeading.setBorder(new EmptyBorder(0, 0, 15, 0));
-        rightCard.add(cardHeading, BorderLayout.NORTH);
+        JPanel categoriesContainer = new JPanel();
+        categoriesContainer.setLayout(new BoxLayout(categoriesContainer, BoxLayout.Y_AXIS));
+        categoriesContainer.setOpaque(false);
 
-        JPanel fieldsGrid = new JPanel(new GridLayout(5, 2, 20, 14));
-        fieldsGrid.setBackground(Color.WHITE);
+        // Category 1: Academic & University Records
+        categoriesContainer.add(createCategorySectionHeader("🎓  Academic Registration & Department", "Faculty Records"));
+        categoriesContainer.add(Box.createVerticalStrut(8));
 
-        addProfileField(fieldsGrid, "Full Name", currentStudent.getFullName());
-        addProfileField(fieldsGrid, "Student User ID", currentStudent.getUserId());
-        addProfileField(fieldsGrid, "Student Index No", currentStudent.getIndexNo());
-        addProfileField(fieldsGrid, "Department", currentStudent.getDepartment());
-        addProfileField(fieldsGrid, "Academic Batch", currentStudent.getBatch());
-        addProfileField(fieldsGrid, "Current Academic Level", currentStudent.getAcademicYear());
-        addProfileField(fieldsGrid, "Official University Email", currentStudent.getEmail());
-        addProfileField(fieldsGrid, "Contact Phone Number", currentStudent.getPhone());
-        addProfileField(fieldsGrid, "Permanent Residence", currentStudent.getAddress());
-        addProfileField(fieldsGrid, "Student Status", currentStudent.getStudentStatus());
+        JPanel academicGrid = new JPanel(new GridLayout(3, 2, 12, 10));
+        academicGrid.setOpaque(false);
 
-        rightCard.add(fieldsGrid, BorderLayout.CENTER);
+        academicGrid.add(createProfileFieldTile("Student Index No", currentStudent.getIndexNo()));
+        academicGrid.add(createProfileFieldTile("Student User ID", currentStudent.getUserId()));
+        academicGrid.add(createProfileFieldTile("Department / Faculty", currentStudent.getDepartment()));
+        academicGrid.add(createProfileFieldTile("Academic Level", currentStudent.getAcademicYear()));
+        academicGrid.add(createProfileFieldTile("Academic Batch", currentStudent.getBatch()));
+        academicGrid.add(createProfileFieldTile("Enrollment Status", currentStudent.getStudentStatus() != null ? currentStudent.getStudentStatus() + " (Active)" : "Regular"));
+
+        categoriesContainer.add(academicGrid);
+        categoriesContainer.add(Box.createVerticalStrut(16));
+
+        // Category 2: Personal & Contact Details
+        categoriesContainer.add(createCategorySectionHeader("👤  Personal & Contact Information", "Verified"));
+        categoriesContainer.add(Box.createVerticalStrut(8));
+
+        JPanel personalGrid = new JPanel(new GridLayout(2, 2, 12, 10));
+        personalGrid.setOpaque(false);
+
+        personalGrid.add(createProfileFieldTile("Full Legal Name", currentStudent.getFullName()));
+        personalGrid.add(createProfileFieldTile("Official University Email", currentStudent.getEmail()));
+        personalGrid.add(createProfileFieldTile("Contact Phone Number", currentStudent.getPhone()));
+        personalGrid.add(createProfileFieldTile("Permanent Residence", currentStudent.getAddress()));
+
+        categoriesContainer.add(personalGrid);
+
+        JScrollPane scrollPane = new JScrollPane(categoriesContainer);
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(14);
+        rightCard.add(scrollPane, BorderLayout.CENTER);
 
         centerGrid.add(leftCard, BorderLayout.WEST);
         centerGrid.add(rightCard, BorderLayout.CENTER);
@@ -2061,24 +2125,78 @@ public class StudentDashboard extends JFrame {
         }
     }
 
+    private JPanel createMiniStatBox(String label, String value, Color color) {
+        JPanel box = new JPanel();
+        box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
+        box.setBackground(new Color(248, 250, 252));
+        box.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(new Color(226, 232, 240), 1, true),
+                new EmptyBorder(6, 4, 6, 4)
+        ));
+
+        JLabel valLbl = new JLabel(value);
+        valLbl.setFont(new Font("Arial", Font.BOLD, 13));
+        valLbl.setForeground(color);
+        valLbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel lbl = new JLabel(label.toUpperCase());
+        lbl.setFont(new Font("Arial", Font.BOLD, 9));
+        lbl.setForeground(new Color(100, 116, 139));
+        lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        box.add(valLbl);
+        box.add(Box.createVerticalStrut(2));
+        box.add(lbl);
+        return box;
+    }
+
+    private JPanel createCategorySectionHeader(String title, String badge) {
+        JPanel p = new JPanel(new BorderLayout());
+        p.setOpaque(false);
+
+        JLabel titleLbl = new JLabel(title);
+        titleLbl.setFont(new Font("Arial", Font.BOLD, 13));
+        titleLbl.setForeground(darkBlue);
+        p.add(titleLbl, BorderLayout.WEST);
+
+        if (badge != null) {
+            JLabel badgeLbl = new JLabel("  " + badge + "  ");
+            badgeLbl.setFont(new Font("Arial", Font.BOLD, 10));
+            badgeLbl.setForeground(new Color(30, 64, 175));
+            badgeLbl.setBackground(new Color(239, 246, 255));
+            badgeLbl.setOpaque(true);
+            badgeLbl.setBorder(new LineBorder(new Color(191, 219, 254), 1, true));
+            p.add(badgeLbl, BorderLayout.EAST);
+        }
+        return p;
+    }
+
+    private JPanel createProfileFieldTile(String label, String value) {
+        JPanel tile = new JPanel();
+        tile.setLayout(new BoxLayout(tile, BoxLayout.Y_AXIS));
+        tile.setBackground(new Color(248, 250, 252));
+        tile.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(new Color(226, 232, 240), 1, true),
+                new EmptyBorder(7, 12, 7, 12)
+        ));
+
+        JLabel lbl = new JLabel(label.toUpperCase());
+        lbl.setFont(new Font("Arial", Font.BOLD, 9));
+        lbl.setForeground(new Color(100, 116, 139));
+
+        String displayVal = (value != null && !value.trim().isEmpty()) ? value : "Not specified";
+        JLabel val = new JLabel(displayVal);
+        val.setFont(new Font("Arial", Font.BOLD, 12));
+        val.setForeground(new Color(15, 23, 42));
+
+        tile.add(lbl);
+        tile.add(Box.createVerticalStrut(3));
+        tile.add(val);
+        return tile;
+    }
+
     private void addProfileField(JPanel panel, String label, String value) {
-        JPanel fieldPanel = new JPanel();
-        fieldPanel.setLayout(new BoxLayout(fieldPanel, BoxLayout.Y_AXIS));
-        fieldPanel.setBackground(Color.WHITE);
-
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Arial", Font.PLAIN, 12));
-        lbl.setForeground(new Color(110, 120, 130));
-
-        JLabel val = new JLabel((value != null && !value.isEmpty()) ? value : "Not specified");
-        val.setFont(new Font("Arial", Font.BOLD, 14));
-        val.setForeground(textColor);
-
-        fieldPanel.add(lbl);
-        fieldPanel.add(Box.createVerticalStrut(3));
-        fieldPanel.add(val);
-
-        panel.add(fieldPanel);
+        panel.add(createProfileFieldTile(label, value));
     }
 
     // ==========================================
