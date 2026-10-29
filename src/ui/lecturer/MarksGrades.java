@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -71,6 +72,7 @@ public class MarksGrades extends JFrame {
     // In-memory model representing actual database records
     private final List<CourseOfferingItem> assignedCourses = new ArrayList<>();
     private final List<StudentMarksRecord> loadedRecords = new ArrayList<>();
+    private final List<StudentMarksRecord> displayedRecords = new ArrayList<>();
 
     /**
      * Helper model for course offerings assigned to the lecturer.
@@ -112,11 +114,15 @@ public class MarksGrades extends JFrame {
         final Double totalMark;
         final String grade;
         final Double gradePoint;
+        final Double attendancePercentage;
+        final Integer caEligible;
+        final Integer finalEligible;
 
         StudentMarksRecord(String studentId, String studentName, String offeringId, String courseCode,
                            Double assignmentMark, Double quizMark, Double midExamMark,
                            Double finalExamMark, Double caMark, Double totalMark,
-                           String grade, Double gradePoint) {
+                           String grade, Double gradePoint,
+                           Double attendancePercentage, Integer caEligible, Integer finalEligible) {
             this.studentId = studentId != null ? studentId : "";
             this.studentName = studentName != null ? studentName : "";
             this.offeringId = offeringId != null ? offeringId : "";
@@ -129,6 +135,9 @@ public class MarksGrades extends JFrame {
             this.totalMark = totalMark;
             this.grade = grade != null ? grade : "-";
             this.gradePoint = gradePoint;
+            this.attendancePercentage = attendancePercentage;
+            this.caEligible = caEligible;
+            this.finalEligible = finalEligible;
         }
 
         Object[] toTableRow() {
@@ -162,6 +171,10 @@ public class MarksGrades extends JFrame {
                 ? lecturerId.trim()
                 : null;
 
+        if (this.lecturerId != null) {
+            LecturerDashboard.setActiveLecturerId(this.lecturerId);
+        }
+
         setTitle("Faculty Academic Management System - Marks / Grades");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1250, 780);
@@ -187,15 +200,6 @@ public class MarksGrades extends JFrame {
         String sysProp = System.getProperty("fams.lecturer.id");
         if (sysProp != null && !sysProp.trim().isEmpty()) {
             return sysProp.trim();
-        }
-        // Fallback: query database for first available lecturer with assigned courses
-        try (Connection conn = DBConnection.getConnection();
-             Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery("SELECT lecturer_id FROM course_lecturers LIMIT 1")) {
-            if (rs.next()) {
-                return rs.getString("lecturer_id");
-            }
-        } catch (SQLException ignored) {
         }
         return null;
     }
@@ -811,7 +815,8 @@ public class MarksGrades extends JFrame {
                 "       AVG(CASE WHEN a.assessment_type = 'QUIZ' THEN m.marks END) AS quiz_mark, " +
                 "       MAX(CASE WHEN a.assessment_type = 'MID_EXAM' THEN m.marks END) AS mid_mark, " +
                 "       MAX(CASE WHEN a.assessment_type = 'FINAL_EXAM' THEN m.marks END) AS final_exam_mark, " +
-                "       r.ca_mark, r.final_mark, r.grade, r.grade_point " +
+                "       r.ca_mark, r.final_mark, r.grade, r.grade_point, " +
+                "       r.attendance_percentage, r.ca_eligible, r.final_eligible " +
                 "FROM course_lecturers cl " +
                 "JOIN course_offerings co ON cl.offering_id = co.offering_id " +
                 "JOIN courses c ON co.course_id = c.course_id " +
@@ -821,7 +826,9 @@ public class MarksGrades extends JFrame {
                 "LEFT JOIN marks m ON a.assessment_id = m.assessment_id AND e.student_id = m.student_id " +
                 "LEFT JOIN results r ON co.offering_id = r.offering_id AND e.student_id = r.student_id " +
                 "WHERE cl.lecturer_id = ? " +
-                "GROUP BY e.student_id, u.first_name, u.last_name, co.offering_id, c.course_code, r.ca_mark, r.final_mark, r.grade, r.grade_point " +
+                "GROUP BY e.student_id, u.first_name, u.last_name, co.offering_id, c.course_code, " +
+                "         r.ca_mark, r.final_mark, r.grade, r.grade_point, " +
+                "         r.attendance_percentage, r.ca_eligible, r.final_eligible " +
                 "ORDER BY c.course_code, e.student_id";
 
         try (Connection conn = DBConnection.getConnection();
@@ -846,9 +853,14 @@ public class MarksGrades extends JFrame {
                     Double tot = getDoubleOrNull(rs, "final_mark");
                     String grade = rs.getString("grade");
                     Double gp = getDoubleOrNull(rs, "grade_point");
+                    Double att = getDoubleOrNull(rs, "attendance_percentage");
+                    int caElVal = rs.getInt("ca_eligible");
+                    Integer caEl = rs.wasNull() ? null : caElVal;
+                    int finElVal = rs.getInt("final_eligible");
+                    Integer finEl = rs.wasNull() ? null : finElVal;
 
                     loadedRecords.add(new StudentMarksRecord(
-                            stuId, stuName, offId, code, assign, quiz, mid, fin, ca, tot, grade, gp
+                            stuId, stuName, offId, code, assign, quiz, mid, fin, ca, tot, grade, gp, att, caEl, finEl
                     ));
                 }
             }
@@ -872,6 +884,7 @@ public class MarksGrades extends JFrame {
     private void applyFilters() {
         if (tableModel == null) return;
         tableModel.setRowCount(0);
+        displayedRecords.clear();
 
         Object selectedCourseObj = courseDropdown != null ? courseDropdown.getSelectedItem() : null;
         String filterOfferingId = null;
@@ -899,6 +912,7 @@ public class MarksGrades extends JFrame {
 
             if (matchesCourse && matchesSemester && matchesSearch) {
                 filteredList.add(r);
+                displayedRecords.add(r);
                 tableModel.addRow(r.toTableRow());
             }
         }
@@ -996,21 +1010,16 @@ public class MarksGrades extends JFrame {
         }
 
         int modelRow = marksTable.convertRowIndexToModel(selectedRow);
-        String stuId = String.valueOf(tableModel.getValueAt(modelRow, 0));
-        String stuName = String.valueOf(tableModel.getValueAt(modelRow, 1));
-
-        // Find corresponding StudentMarksRecord
-        StudentMarksRecord targetRecord = null;
-        for (StudentMarksRecord r : loadedRecords) {
-            if (r.studentId.equalsIgnoreCase(stuId)) {
-                targetRecord = r;
-                break;
-            }
-        }
+        StudentMarksRecord targetRecord = (modelRow >= 0 && modelRow < displayedRecords.size())
+                ? displayedRecords.get(modelRow)
+                : null;
 
         if (targetRecord == null) {
             return;
         }
+
+        String stuId = targetRecord.studentId;
+        String stuName = targetRecord.studentName;
 
         CourseOfferingItem offering = findCourseOffering(targetRecord.offeringId);
         String courseText = offering != null ? offering.courseCode + " - " + offering.courseName : targetRecord.courseCode;
@@ -1057,6 +1066,12 @@ public class MarksGrades extends JFrame {
         topInfo.add(new JLabel("<html><b>" + stuName + "</b></html>"));
         topInfo.add(new JLabel("Course:"));
         topInfo.add(new JLabel(courseText));
+        topInfo.add(new JLabel("Attendance Percentage:"));
+        topInfo.add(new JLabel(targetRecord.attendancePercentage != null ? String.format(Locale.US, "%.1f%%", targetRecord.attendancePercentage) : "N/A"));
+        topInfo.add(new JLabel("CA Eligibility:"));
+        topInfo.add(new JLabel(targetRecord.caEligible != null ? (targetRecord.caEligible == 1 ? "<html><font color='#0D9488'><b>Eligible</b></font></html>" : "<html><font color='#E53E3E'><b>Not Eligible</b></font></html>") : "Pending / N/A"));
+        topInfo.add(new JLabel("Final Exam Eligibility:"));
+        topInfo.add(new JLabel(targetRecord.finalEligible != null ? (targetRecord.finalEligible == 1 ? "<html><font color='#0D9488'><b>Eligible</b></font></html>" : "<html><font color='#E53E3E'><b>Not Eligible</b></font></html>") : "Pending / N/A"));
         topInfo.add(new JLabel("Continuous Assessment (CA):"));
         topInfo.add(new JLabel(targetRecord.caMark != null ? String.format(Locale.US, "%.2f", targetRecord.caMark) : "-"));
         topInfo.add(new JLabel("Final Exam Mark:"));
@@ -1123,12 +1138,8 @@ public class MarksGrades extends JFrame {
                 return;
             }
             int modelRow = marksTable.convertRowIndexToModel(selectedRow);
-            String selectedStuId = String.valueOf(tableModel.getValueAt(modelRow, 0));
-            for (StudentMarksRecord r : loadedRecords) {
-                if (r.studentId.equalsIgnoreCase(selectedStuId)) {
-                    editRecord = r;
-                    break;
-                }
+            if (modelRow >= 0 && modelRow < displayedRecords.size()) {
+                editRecord = displayedRecords.get(modelRow);
             }
             if (editRecord != null) {
                 activeOffering = findCourseOffering(editRecord.offeringId);
@@ -1137,6 +1148,17 @@ public class MarksGrades extends JFrame {
 
         if (activeOffering == null) {
             JOptionPane.showMessageDialog(this, "Please select a specific course first.", "Enter Marks", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Validate lecturer permission for this offering
+        if (!isOfferingAssignedToLecturer(activeOffering.offeringId)) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "You are not assigned as a lecturer for this course offering. Access denied.",
+                    "Unauthorized Course",
+                    JOptionPane.ERROR_MESSAGE
+            );
             return;
         }
 
@@ -1216,18 +1238,6 @@ public class MarksGrades extends JFrame {
         JComboBox<String> studentSelect = new JComboBox<>(enrolledStudentIds.toArray(new String[0]));
         JLabel studentNameLabel = new JLabel();
 
-        if (isEdit && editRecord != null) {
-            studentSelect.setSelectedItem(editRecord.studentId);
-            studentSelect.setEnabled(false);
-            studentNameLabel.setText(editRecord.studentName);
-        } else {
-            studentNameLabel.setText(studentNames.get(enrolledStudentIds.get(0)));
-            studentSelect.addActionListener(e -> {
-                String selected = (String) studentSelect.getSelectedItem();
-                studentNameLabel.setText(studentNames.getOrDefault(selected, ""));
-            });
-        }
-
         form.add(new JLabel("Course Offering:"));
         form.add(new JLabel("<html><b>" + activeOffering.courseCode + " - " + activeOffering.courseName + "</b></html>"));
         form.add(new JLabel("Student ID:"));
@@ -1238,30 +1248,53 @@ public class MarksGrades extends JFrame {
         // Build assessment inputs dynamically
         Map<AssessmentItem, JTextField> markFields = new LinkedHashMap<>();
         for (AssessmentItem a : assessments) {
-            String initialVal = "";
-            if (isEdit && editRecord != null) {
-                // Query existing mark for this specific assessment
-                try (Connection conn = DBConnection.getConnection();
-                     PreparedStatement ps = conn.prepareStatement(
-                             "SELECT marks FROM marks WHERE assessment_id = ? AND student_id = ?")) {
-                    ps.setString(1, a.id);
-                    ps.setString(2, editRecord.studentId);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            double mv = rs.getDouble("marks");
-                            if (!rs.wasNull()) {
-                                initialVal = String.format(Locale.US, "%.1f", mv);
-                            }
-                        }
-                    }
-                } catch (SQLException ignored) {
-                }
-            }
-
-            JTextField tf = new JTextField(initialVal, 8);
+            JTextField tf = new JTextField(8);
             markFields.put(a, tf);
             form.add(new JLabel(a.name + " (Max " + (int) a.maxMarks + ", " + (int) a.weight + "%):"));
             form.add(tf);
+        }
+
+        // Helper to reload marks for the chosen student
+        final CourseOfferingItem chosenOffering = activeOffering;
+        Runnable loadStudentMarks = () -> {
+            String selectedStu = (String) studentSelect.getSelectedItem();
+            if (selectedStu == null || selectedStu.isEmpty()) return;
+            studentNameLabel.setText(studentNames.getOrDefault(selectedStu, ""));
+
+            for (JTextField tf : markFields.values()) {
+                tf.setText("");
+            }
+
+            String sqlMarks = "SELECT assessment_id, marks FROM marks WHERE student_id = ? AND assessment_id IN (" +
+                    "SELECT assessment_id FROM assessments WHERE offering_id = ?)";
+            try (Connection conn = DBConnection.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sqlMarks)) {
+                ps.setString(1, selectedStu);
+                ps.setString(2, chosenOffering.offeringId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    Map<String, Double> loaded = new HashMap<>();
+                    while (rs.next()) {
+                        loaded.put(rs.getString("assessment_id"), rs.getDouble("marks"));
+                    }
+                    for (Map.Entry<AssessmentItem, JTextField> entry : markFields.entrySet()) {
+                        Double m = loaded.get(entry.getKey().id);
+                        if (m != null) {
+                            entry.getValue().setText(String.format(Locale.US, "%.1f", m));
+                        }
+                    }
+                }
+            } catch (SQLException ignored) {
+            }
+        };
+
+        if (isEdit && editRecord != null) {
+            studentSelect.setSelectedItem(editRecord.studentId);
+            studentSelect.setEnabled(false);
+            loadStudentMarks.run();
+        } else {
+            studentSelect.setSelectedIndex(0);
+            loadStudentMarks.run();
+            studentSelect.addActionListener(e -> loadStudentMarks.run());
         }
 
         int result = JOptionPane.showConfirmDialog(
@@ -1299,7 +1332,7 @@ public class MarksGrades extends JFrame {
                     } catch (NumberFormatException ex) {
                         JOptionPane.showMessageDialog(
                                 this,
-                                "Invalid numeric input for '" + a.name + "'.",
+                                "Invalid numeric input for '" + a.name + "'. Please enter a valid number.",
                                 "Input Error",
                                 JOptionPane.ERROR_MESSAGE
                         );
@@ -1308,8 +1341,18 @@ public class MarksGrades extends JFrame {
                 }
             }
 
+            if (parsedMarks.isEmpty()) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Please enter marks for at least one assessment.",
+                        "Empty Input",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
             // Persist valid marks to MariaDB
-            persistMarksAndResults(activeOffering.offeringId, targetStudentId, parsedMarks, assessments);
+            persistMarksAndResults(chosenOffering.offeringId, targetStudentId, parsedMarks, assessments);
         }
     }
 
@@ -1329,12 +1372,42 @@ public class MarksGrades extends JFrame {
         }
     }
 
+    private boolean isOfferingAssignedToLecturer(String offeringId) {
+        if (offeringId == null || lecturerId == null) return false;
+        for (CourseOfferingItem item : assignedCourses) {
+            if (item.offeringId.equalsIgnoreCase(offeringId)) {
+                return true;
+            }
+        }
+        String sql = "SELECT 1 FROM course_lecturers WHERE offering_id = ? AND lecturer_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, offeringId);
+            ps.setString(2, lecturerId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+
     /**
      * Safely saves or updates marks in the 'marks' table and synchronizes the 'results' table.
      */
     private void persistMarksAndResults(String offeringId, String studentId,
                                         Map<AssessmentItem, Double> marksMap,
                                         List<AssessmentItem> allAssessments) {
+        if (!isOfferingAssignedToLecturer(offeringId)) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "You are not authorized to modify marks for course offering: " + offeringId,
+                    "Access Denied",
+                    JOptionPane.ERROR_MESSAGE
+            );
+            return;
+        }
+
         String upsertMarkSql =
                 "INSERT INTO marks (mark_id, assessment_id, student_id, marks, entered_by, entered_at) " +
                 "VALUES (?, ?, ?, ?, ?, NOW()) " +
@@ -1344,12 +1417,11 @@ public class MarksGrades extends JFrame {
             conn.setAutoCommit(false);
 
             try {
-                // 1. Persist each assessment mark
+                // 1. Persist each assessment mark entered
                 for (Map.Entry<AssessmentItem, Double> entry : marksMap.entrySet()) {
                     AssessmentItem a = entry.getKey();
                     double markVal = entry.getValue();
 
-                    // Generate next mark_id if inserting
                     String nextMarkId = getNextId(conn, "marks", "mark_id", "MRK", 4);
 
                     try (PreparedStatement ps = conn.prepareStatement(upsertMarkSql)) {
@@ -1362,7 +1434,44 @@ public class MarksGrades extends JFrame {
                     }
                 }
 
-                // 2. Query all current marks for this student and offering to recalculate results
+                // 2. Query actual attendance data for this student in this course offering
+                int totalSessions = 0;
+                String sqlTotalSessions = "SELECT COUNT(*) FROM attendance_sessions WHERE offering_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sqlTotalSessions)) {
+                    ps.setString(1, offeringId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            totalSessions = rs.getInt(1);
+                        }
+                    }
+                }
+
+                int attendedSessions = 0;
+                String sqlAttended = "SELECT COUNT(*) FROM attendance a " +
+                        "JOIN attendance_sessions s ON a.session_id = s.session_id " +
+                        "WHERE s.offering_id = ? AND a.student_id = ? " +
+                        "  AND (UPPER(a.status) = 'PRESENT' OR UPPER(a.status) = 'MEDICAL')";
+                try (PreparedStatement ps = conn.prepareStatement(sqlAttended)) {
+                    ps.setString(1, offeringId);
+                    ps.setString(2, studentId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            attendedSessions = rs.getInt(1);
+                        }
+                    }
+                }
+
+                Double attendancePercentage = null;
+                boolean attendanceEligible = false;
+                if (totalSessions > 0) {
+                    attendancePercentage = Math.round((((double) attendedSessions / totalSessions) * 100.0) * 100.0) / 100.0;
+                    attendanceEligible = (attendancePercentage >= 80.0);
+                } else {
+                    // Safe handling if attendance sessions data missing: student is not automatically marked eligible
+                    attendanceEligible = false;
+                }
+
+                // 3. Query all current marks for this student and offering to recalculate CA & Final marks
                 Map<String, Double> currentStudentMarks = new LinkedHashMap<>();
                 String queryCurrent = "SELECT m.assessment_id, m.marks FROM marks m " +
                         "JOIN assessments a ON m.assessment_id = a.assessment_id " +
@@ -1377,55 +1486,94 @@ public class MarksGrades extends JFrame {
                     }
                 }
 
-                // Compute CA mark, Final Exam mark, and Total Mark based on official weights
+                // Compute CA mark and final exam mark based on assessment weights
                 double caMark = 0.0;
+                double totalCaWeight = 0.0;
+                boolean hasAnyCaMark = false;
                 Double finalExamMark = null;
+                double finalExamWeight = 0.0;
+                double finalExamMax = 100.0;
 
                 for (AssessmentItem a : allAssessments) {
                     Double score = currentStudentMarks.get(a.id);
-                    if (score != null) {
-                        double normalizedWeight = a.weight / 100.0;
-                        double contribution = (score / a.maxMarks) * a.weight;
-                        if ("FINAL_EXAM".equalsIgnoreCase(a.type)) {
+                    if ("FINAL_EXAM".equalsIgnoreCase(a.type)) {
+                        finalExamWeight = a.weight;
+                        finalExamMax = a.maxMarks > 0 ? a.maxMarks : 100.0;
+                        if (score != null) {
                             finalExamMark = score;
-                        } else {
-                            caMark += contribution;
+                        }
+                    } else {
+                        totalCaWeight += a.weight;
+                        if (score != null) {
+                            hasAnyCaMark = true;
+                            double maxM = a.maxMarks > 0 ? a.maxMarks : 100.0;
+                            caMark += (score / maxM) * a.weight;
                         }
                     }
                 }
 
+                // CA Eligibility: student must obtain at least 50% of the total CA weight component
+                boolean caEligible = false;
+                if (totalCaWeight > 0 && hasAnyCaMark) {
+                    double caPercentage = (caMark / totalCaWeight) * 100.0;
+                    caEligible = (caPercentage >= 50.0);
+                } else {
+                    // Missing or 0 CA data: safe handling, cannot mark eligible
+                    caEligible = false;
+                }
+
+                // Final examination eligibility: both attendance criteria and CA criteria must be met
+                boolean finalEligible = attendanceEligible && caEligible;
+
+                int caEligibleInt = caEligible ? 1 : 0;
+                int finalEligibleInt = finalEligible ? 1 : 0;
+
+                // Total Final Mark calculation:
                 Double totalFinalMark = null;
                 if (finalExamMark != null) {
-                    // Find final exam assessment weight
-                    double feWeight = 55.0;
-                    for (AssessmentItem a : allAssessments) {
-                        if ("FINAL_EXAM".equalsIgnoreCase(a.type)) {
-                            feWeight = a.weight;
-                            break;
-                        }
-                    }
-                    double feContrib = (finalExamMark / 100.0) * feWeight;
-                    totalFinalMark = caMark + feContrib;
-                } else if (caMark > 0) {
-                    totalFinalMark = caMark;
+                    double feContrib = (finalExamMark / finalExamMax) * (finalExamWeight > 0 ? finalExamWeight : 55.0);
+                    totalFinalMark = Math.round((caMark + feContrib) * 100.0) / 100.0;
+                } else if (hasAnyCaMark) {
+                    totalFinalMark = Math.round(caMark * 100.0) / 100.0;
                 }
 
-                String grade = computeGrade(totalFinalMark != null ? totalFinalMark : 0.0);
-                double gradePoint = computeGradePoint(grade);
+                // Grade & Grade Point calculation:
+                String grade;
+                double gradePoint;
+                if (!finalEligible) {
+                    // Ineligible students receive F (0.0 GP) according to university examination rules
+                    grade = "F";
+                    gradePoint = 0.0;
+                } else {
+                    if (finalExamMark != null) {
+                        grade = computeGrade(totalFinalMark != null ? totalFinalMark : 0.0);
+                        gradePoint = computeGradePoint(grade);
+                    } else {
+                        grade = "-";
+                        gradePoint = 0.0;
+                    }
+                }
 
-                // 3. Upsert results table
+                // 4. Upsert results table without duplicate student results for the offering
                 String nextResultId = getNextId(conn, "results", "result_id", "RES", 4);
                 String upsertResultSql =
-                        "INSERT INTO results (result_id, student_id, offering_id, ca_mark, final_exam_mark, final_mark, grade, grade_point, ca_eligible, final_eligible) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1) " +
-                        "ON DUPLICATE KEY UPDATE ca_mark = VALUES(ca_mark), final_exam_mark = VALUES(final_exam_mark), " +
-                        "final_mark = VALUES(final_mark), grade = VALUES(grade), grade_point = VALUES(grade_point)";
+                        "INSERT INTO results (result_id, student_id, offering_id, ca_mark, final_exam_mark, final_mark, grade, grade_point, attendance_percentage, ca_eligible, final_eligible) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                        "ON DUPLICATE KEY UPDATE " +
+                        "ca_mark = VALUES(ca_mark), " +
+                        "final_exam_mark = VALUES(final_exam_mark), " +
+                        "final_mark = VALUES(final_mark), " +
+                        "grade = VALUES(grade), " +
+                        "grade_point = VALUES(grade_point), " +
+                        "attendance_percentage = VALUES(attendance_percentage), " +
+                        "ca_eligible = VALUES(ca_eligible), " +
+                        "final_eligible = VALUES(final_eligible)";
 
                 try (PreparedStatement ps = conn.prepareStatement(upsertResultSql)) {
                     ps.setString(1, nextResultId);
                     ps.setString(2, studentId);
                     ps.setString(3, offeringId);
-                    ps.setDouble(4, caMark);
+                    ps.setDouble(4, Math.round(caMark * 100.0) / 100.0);
                     if (finalExamMark != null) {
                         ps.setDouble(5, finalExamMark);
                     } else {
@@ -1436,8 +1584,19 @@ public class MarksGrades extends JFrame {
                     } else {
                         ps.setNull(6, java.sql.Types.DECIMAL);
                     }
-                    ps.setString(7, grade);
+                    if (grade != null && !"-".equals(grade)) {
+                        ps.setString(7, grade);
+                    } else {
+                        ps.setNull(7, java.sql.Types.VARCHAR);
+                    }
                     ps.setDouble(8, gradePoint);
+                    if (attendancePercentage != null) {
+                        ps.setDouble(9, attendancePercentage);
+                    } else {
+                        ps.setNull(9, java.sql.Types.DECIMAL);
+                    }
+                    ps.setInt(10, caEligibleInt);
+                    ps.setInt(11, finalEligibleInt);
                     ps.executeUpdate();
                 }
 
@@ -1445,7 +1604,10 @@ public class MarksGrades extends JFrame {
 
                 JOptionPane.showMessageDialog(
                         this,
-                        "Marks have been saved successfully to MySQL database.",
+                        "Marks and results have been saved successfully to the database.\n" +
+                        "Attendance: " + (attendancePercentage != null ? String.format(Locale.US, "%.1f%%", attendancePercentage) : "N/A") +
+                        " | CA Eligible: " + (caEligible ? "Yes" : "No") +
+                        " | Final Eligible: " + (finalEligible ? "Yes" : "No"),
                         "Save Marks",
                         JOptionPane.INFORMATION_MESSAGE
                 );
@@ -1479,7 +1641,8 @@ public class MarksGrades extends JFrame {
 
     private static String computeGrade(double mark) {
         if (mark >= 85.0) return "A+";
-        if (mark >= 70.0) return "A";
+        if (mark >= 75.0) return "A";
+        if (mark >= 70.0) return "A-";
         if (mark >= 65.0) return "B+";
         if (mark >= 60.0) return "B";
         if (mark >= 55.0) return "B-";
