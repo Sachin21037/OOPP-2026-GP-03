@@ -345,6 +345,10 @@ public final class LecturerTheme {
      * Creates the dark navy-blue sidebar matching the Administrator Dashboard.
      */
     public static JPanel createSidebar(String activePage, String lecturerId, JFrame currentFrame) {
+        final String safeLecturerId = (lecturerId != null && !lecturerId.trim().isEmpty())
+                ? lecturerId.trim()
+                : LecturerDashboard.getActiveLecturerId();
+
         JPanel sidebar = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -374,43 +378,49 @@ public final class LecturerTheme {
         menu.add(menuTitle);
 
         menu.add(createNavItem("Dashboard", "Dashboard".equalsIgnoreCase(activePage), () -> {
-            new LecturerDashboard(lecturerId).setVisible(true);
+            new LecturerDashboard(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("My Courses", "My Courses".equalsIgnoreCase(activePage), () -> {
-            new MyCourses(lecturerId).setVisible(true);
+            new MyCourses(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Students", "Students".equalsIgnoreCase(activePage), () -> {
-            new Student(lecturerId).setVisible(true);
+            new Student(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Attendance", "Attendance".equalsIgnoreCase(activePage), () -> {
-            new Attendance(lecturerId).setVisible(true);
+            new Attendance(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Marks / Grades", "Marks / Grades".equalsIgnoreCase(activePage), () -> {
-            new MarksGrades(lecturerId).setVisible(true);
+            new MarksGrades(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Assignments", "Assignments".equalsIgnoreCase(activePage), () -> {
-            new Assignments(lecturerId).setVisible(true);
+            new Assignments(safeLecturerId).setVisible(true);
+            currentFrame.dispose();
+        }));
+        menu.add(Box.createVerticalStrut(4));
+
+        menu.add(createNavItem("Course Materials", "Course Materials".equalsIgnoreCase(activePage), () -> {
+            new CourseMaterials(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Profile", "Profile".equalsIgnoreCase(activePage), () -> {
-            new LecturerProfile(lecturerId).setVisible(true);
+            new LecturerProfile(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
 
@@ -430,6 +440,7 @@ public final class LecturerTheme {
             );
             if (answer == JOptionPane.YES_OPTION) {
                 LecturerDashboard.setActiveLecturerId(null);
+                LecturerTheme.clearLecturerNameCache(null);
                 currentFrame.dispose();
                 SwingUtilities.invokeLater(() -> {
                     new ui.login.LoginFrame().setVisible(true);
