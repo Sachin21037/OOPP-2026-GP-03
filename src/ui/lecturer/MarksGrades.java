@@ -117,12 +117,15 @@ public class MarksGrades extends JFrame {
         final Double attendancePercentage;
         final Integer caEligible;
         final Integer finalEligible;
+        final Double sgpa;
+        final Double cgpa;
 
         StudentMarksRecord(String studentId, String studentName, String offeringId, String courseCode,
                            Double assignmentMark, Double quizMark, Double midExamMark,
                            Double finalExamMark, Double caMark, Double totalMark,
                            String grade, Double gradePoint,
-                           Double attendancePercentage, Integer caEligible, Integer finalEligible) {
+                           Double attendancePercentage, Integer caEligible, Integer finalEligible,
+                           Double sgpa, Double cgpa) {
             this.studentId = studentId != null ? studentId : "";
             this.studentName = studentName != null ? studentName : "";
             this.offeringId = offeringId != null ? offeringId : "";
@@ -138,6 +141,8 @@ public class MarksGrades extends JFrame {
             this.attendancePercentage = attendancePercentage;
             this.caEligible = caEligible;
             this.finalEligible = finalEligible;
+            this.sgpa = sgpa;
+            this.cgpa = cgpa;
         }
 
         Object[] toTableRow() {
@@ -726,6 +731,12 @@ public class MarksGrades extends JFrame {
             return;
         }
 
+        try (Connection conn = DBConnection.getConnection()) {
+            syncAllResultsAndGpa(conn);
+        } catch (SQLException e) {
+            System.err.println("[MarksGrades] Warning: automatic results synchronization: " + e.getMessage());
+        }
+
         populateCoursesAndSemesters();
         loadMarksFromDatabase();
     }
@@ -816,7 +827,8 @@ public class MarksGrades extends JFrame {
                 "       MAX(CASE WHEN a.assessment_type = 'MID_EXAM' THEN m.marks END) AS mid_mark, " +
                 "       MAX(CASE WHEN a.assessment_type = 'FINAL_EXAM' THEN m.marks END) AS final_exam_mark, " +
                 "       r.ca_mark, r.final_mark, r.grade, r.grade_point, " +
-                "       r.attendance_percentage, r.ca_eligible, r.final_eligible " +
+                "       r.attendance_percentage, r.ca_eligible, r.final_eligible, " +
+                "       r.sgpa, r.cgpa " +
                 "FROM course_lecturers cl " +
                 "JOIN course_offerings co ON cl.offering_id = co.offering_id " +
                 "JOIN courses c ON co.course_id = c.course_id " +
@@ -828,7 +840,8 @@ public class MarksGrades extends JFrame {
                 "WHERE cl.lecturer_id = ? " +
                 "GROUP BY e.student_id, u.first_name, u.last_name, co.offering_id, c.course_code, " +
                 "         r.ca_mark, r.final_mark, r.grade, r.grade_point, " +
-                "         r.attendance_percentage, r.ca_eligible, r.final_eligible " +
+                "         r.attendance_percentage, r.ca_eligible, r.final_eligible, " +
+                "         r.sgpa, r.cgpa " +
                 "ORDER BY c.course_code, e.student_id";
 
         try (Connection conn = DBConnection.getConnection();
@@ -858,9 +871,11 @@ public class MarksGrades extends JFrame {
                     Integer caEl = rs.wasNull() ? null : caElVal;
                     int finElVal = rs.getInt("final_eligible");
                     Integer finEl = rs.wasNull() ? null : finElVal;
+                    Double sgpa = getDoubleOrNull(rs, "sgpa");
+                    Double cgpa = getDoubleOrNull(rs, "cgpa");
 
                     loadedRecords.add(new StudentMarksRecord(
-                            stuId, stuName, offId, code, assign, quiz, mid, fin, ca, tot, grade, gp, att, caEl, finEl
+                            stuId, stuName, offId, code, assign, quiz, mid, fin, ca, tot, grade, gp, att, caEl, finEl, sgpa, cgpa
                     ));
                 }
             }
@@ -1080,6 +1095,10 @@ public class MarksGrades extends JFrame {
         topInfo.add(new JLabel("<html><b>" + (targetRecord.totalMark != null ? String.format(Locale.US, "%.2f", targetRecord.totalMark) : "-") + "</b></html>"));
         topInfo.add(new JLabel("Assigned Grade:"));
         topInfo.add(new JLabel("<html><font color='#1F4263'><b>" + targetRecord.grade + "</b> (GP: " + (targetRecord.gradePoint != null ? targetRecord.gradePoint : "-") + ")</font></html>"));
+        topInfo.add(new JLabel("Semester GPA (SGPA):"));
+        topInfo.add(new JLabel(targetRecord.sgpa != null ? String.format(Locale.US, "%.2f", targetRecord.sgpa) : "N/A"));
+        topInfo.add(new JLabel("Cumulative GPA (CGPA):"));
+        topInfo.add(new JLabel("<html><b>" + (targetRecord.cgpa != null ? String.format(Locale.US, "%.2f", targetRecord.cgpa) : "N/A") + "</b></html>"));
 
         JTextArea assessArea = new JTextArea(breakdown.length() > 0 ? breakdown.toString() : "No assessment items found for this course offering.");
         assessArea.setEditable(false);
@@ -1467,8 +1486,21 @@ public class MarksGrades extends JFrame {
                     attendancePercentage = Math.round((((double) attendedSessions / totalSessions) * 100.0) * 100.0) / 100.0;
                     attendanceEligible = (attendancePercentage >= 80.0);
                 } else {
-                    // Safe handling if attendance sessions data missing: student is not automatically marked eligible
-                    attendanceEligible = false;
+                    // Safe handling if attendance sessions data missing: check existing attendance percentage from results
+                    String sqlExistingAtt = "SELECT attendance_percentage FROM results WHERE offering_id = ? AND student_id = ?";
+                    try (PreparedStatement psAtt = conn.prepareStatement(sqlExistingAtt)) {
+                        psAtt.setString(1, offeringId);
+                        psAtt.setString(2, studentId);
+                        try (ResultSet rsAtt = psAtt.executeQuery()) {
+                            if (rsAtt.next()) {
+                                double existingAtt = rsAtt.getDouble("attendance_percentage");
+                                if (!rsAtt.wasNull()) {
+                                    attendancePercentage = existingAtt;
+                                    attendanceEligible = (attendancePercentage >= 80.0);
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // 3. Query all current marks for this student and offering to recalculate CA & Final marks
@@ -1600,6 +1632,9 @@ public class MarksGrades extends JFrame {
                     ps.executeUpdate();
                 }
 
+                // 5. Update SGPA & CGPA for this student across all semesters
+                updateGpaForStudent(conn, studentId);
+
                 conn.commit();
 
                 JOptionPane.showMessageDialog(
@@ -1667,6 +1702,184 @@ public class MarksGrades extends JFrame {
             case "C-": return 1.7;
             case "D": return 1.0;
             default: return 0.0;
+        }
+    }
+
+    /**
+     * Recalculates and updates SGPA and CGPA for a specific student across all their enrolled course offerings.
+     */
+    public static void updateGpaForStudent(Connection conn, String studentId) throws SQLException {
+        if (studentId == null || studentId.trim().isEmpty()) return;
+
+        // 1. Recalculate SGPA for each semester the student is enrolled in
+        String sqlSgpa =
+                "SELECT co.academic_year, co.semester, " +
+                "       SUM(c.credits * r.grade_point) AS total_qp, " +
+                "       SUM(c.credits) AS total_credits " +
+                "FROM results r " +
+                "JOIN course_offerings co ON r.offering_id = co.offering_id " +
+                "JOIN courses c ON co.course_id = c.course_id " +
+                "WHERE r.student_id = ? AND r.grade_point IS NOT NULL " +
+                "GROUP BY co.academic_year, co.semester";
+
+        Map<String, Double> semGpas = new HashMap<>();
+        try (PreparedStatement ps = conn.prepareStatement(sqlSgpa)) {
+            ps.setString(1, studentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String ay = rs.getString("academic_year");
+                    String sem = rs.getString("semester");
+                    double qp = rs.getDouble("total_qp");
+                    double cr = rs.getDouble("total_credits");
+                    double sgpa = (cr > 0) ? Math.round((qp / cr) * 100.0) / 100.0 : 0.0;
+                    semGpas.put(ay + "##" + sem, sgpa);
+                }
+            }
+        }
+
+        String sqlUpdateSgpa =
+                "UPDATE results r " +
+                "JOIN course_offerings co ON r.offering_id = co.offering_id " +
+                "SET r.sgpa = ? " +
+                "WHERE r.student_id = ? AND co.academic_year = ? AND co.semester = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sqlUpdateSgpa)) {
+            for (Map.Entry<String, Double> entry : semGpas.entrySet()) {
+                String[] parts = entry.getKey().split("##", 2);
+                ps.setDouble(1, entry.getValue());
+                ps.setString(2, studentId);
+                ps.setString(3, parts[0]);
+                ps.setString(4, parts[1]);
+                ps.executeUpdate();
+            }
+        }
+
+        // 2. Recalculate CGPA across all courses taken by the student
+        String sqlCgpa =
+                "SELECT SUM(c.credits * r.grade_point) AS total_qp, " +
+                "       SUM(c.credits) AS total_credits " +
+                "FROM results r " +
+                "JOIN course_offerings co ON r.offering_id = co.offering_id " +
+                "JOIN courses c ON co.course_id = c.course_id " +
+                "WHERE r.student_id = ? AND r.grade_point IS NOT NULL";
+
+        Double cgpa = null;
+        try (PreparedStatement ps = conn.prepareStatement(sqlCgpa)) {
+            ps.setString(1, studentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    double cr = rs.getDouble("total_credits");
+                    if (!rs.wasNull() && cr > 0) {
+                        double qp = rs.getDouble("total_qp");
+                        cgpa = Math.round((qp / cr) * 100.0) / 100.0;
+                    }
+                }
+            }
+        }
+
+        if (cgpa != null) {
+            String sqlUpdateCgpa = "UPDATE results SET cgpa = ? WHERE student_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sqlUpdateCgpa)) {
+                ps.setDouble(1, cgpa);
+                ps.setString(2, studentId);
+                ps.executeUpdate();
+            }
+        }
+    }
+
+    /**
+     * Synchronizes all records in the results table:
+     * - Recalculates attendance from attendance sessions where sessions exist
+     * - Evaluates CA eligibility (>= 50% of CA weight)
+     * - Evaluates Final Exam eligibility (Attendance >= 80% AND CA Eligible)
+     * - Sets Grade 'F' (0.0 GP) for ineligible students
+     * - Computes SGPA per semester and CGPA across all courses
+     */
+    public static void syncAllResultsAndGpa(Connection conn) throws SQLException {
+        // 1. Synchronize attendance percentage from attendance sessions for offerings that have session data
+        String updateAttSql =
+                "UPDATE results r " +
+                "JOIN ( " +
+                "    SELECT a.student_id, s.offering_id, " +
+                "           ROUND((SUM(CASE WHEN UPPER(a.status) = 'PRESENT' OR UPPER(a.status) = 'MEDICAL' THEN 1 ELSE 0 END) / (SELECT COUNT(*) FROM attendance_sessions ses WHERE ses.offering_id = s.offering_id)) * 100.0, 2) AS calc_att " +
+                "    FROM attendance a " +
+                "    JOIN attendance_sessions s ON a.session_id = s.session_id " +
+                "    GROUP BY a.student_id, s.offering_id " +
+                ") att_calc ON r.student_id = att_calc.student_id AND r.offering_id = att_calc.offering_id " +
+                "SET r.attendance_percentage = att_calc.calc_att";
+
+        try (Statement st = conn.createStatement()) {
+            st.executeUpdate(updateAttSql);
+        }
+
+        // 2. Synchronize ca_eligible and final_eligible
+        String updateEligibilitySql =
+                "UPDATE results r " +
+                "LEFT JOIN ( " +
+                "    SELECT a.offering_id, " +
+                "           SUM(CASE WHEN a.assessment_type != 'FINAL_EXAM' THEN a.weight_percentage ELSE 0 END) AS total_ca_weight " +
+                "    FROM assessments a " +
+                "    GROUP BY a.offering_id " +
+                ") aw ON r.offering_id = aw.offering_id " +
+                "SET r.ca_eligible = CASE " +
+                "    WHEN r.ca_mark IS NOT NULL AND aw.total_ca_weight > 0 AND (r.ca_mark / aw.total_ca_weight) * 100.0 >= 50.0 THEN 1 " +
+                "    WHEN r.ca_mark IS NOT NULL AND (aw.total_ca_weight IS NULL OR aw.total_ca_weight = 0) AND r.ca_mark >= 20.0 THEN 1 " +
+                "    ELSE 0 " +
+                "END, " +
+                "r.final_eligible = CASE " +
+                "    WHEN (CASE " +
+                "        WHEN r.ca_mark IS NOT NULL AND aw.total_ca_weight > 0 AND (r.ca_mark / aw.total_ca_weight) * 100.0 >= 50.0 THEN 1 " +
+                "        WHEN r.ca_mark IS NOT NULL AND (aw.total_ca_weight IS NULL OR aw.total_ca_weight = 0) AND r.ca_mark >= 20.0 THEN 1 " +
+                "        ELSE 0 " +
+                "    END) = 1 AND r.attendance_percentage IS NOT NULL AND r.attendance_percentage >= 80.0 THEN 1 " +
+                "    ELSE 0 " +
+                "END";
+
+        try (Statement st = conn.createStatement()) {
+            st.executeUpdate(updateEligibilitySql);
+        }
+
+        // 3. Ineligible students receive grade 'F' and grade_point 0.0
+        String updateIneligibleGradesSql =
+                "UPDATE results SET grade = 'F', grade_point = 0.0 WHERE final_eligible = 0 AND (grade != 'F' OR grade IS NULL OR grade_point != 0.0)";
+        try (Statement st = conn.createStatement()) {
+            st.executeUpdate(updateIneligibleGradesSql);
+        }
+
+        // 4. Update SGPA for all students per semester
+        String updateSgpaSql =
+                "UPDATE results r " +
+                "JOIN course_offerings co ON r.offering_id = co.offering_id " +
+                "JOIN ( " +
+                "    SELECT r2.student_id, co2.academic_year, co2.semester, " +
+                "           ROUND(SUM(c2.credits * r2.grade_point) / SUM(c2.credits), 2) AS calc_sgpa " +
+                "    FROM results r2 " +
+                "    JOIN course_offerings co2 ON r2.offering_id = co2.offering_id " +
+                "    JOIN courses c2 ON co2.course_id = c2.course_id " +
+                "    WHERE r2.grade_point IS NOT NULL " +
+                "    GROUP BY r2.student_id, co2.academic_year, co2.semester " +
+                ") sg ON r.student_id = sg.student_id AND co.academic_year = sg.academic_year AND co.semester = sg.semester " +
+                "SET r.sgpa = sg.calc_sgpa";
+
+        try (Statement st = conn.createStatement()) {
+            st.executeUpdate(updateSgpaSql);
+        }
+
+        // 5. Update CGPA for all students cumulatively
+        String updateCgpaSql =
+                "UPDATE results r " +
+                "JOIN ( " +
+                "    SELECT r2.student_id, " +
+                "           ROUND(SUM(c2.credits * r2.grade_point) / SUM(c2.credits), 2) AS calc_cgpa " +
+                "    FROM results r2 " +
+                "    JOIN course_offerings co2 ON r2.offering_id = co2.offering_id " +
+                "    JOIN courses c2 ON co2.course_id = c2.course_id " +
+                "    WHERE r2.grade_point IS NOT NULL " +
+                "    GROUP BY r2.student_id " +
+                ") cg ON r.student_id = cg.student_id " +
+                "SET r.cgpa = cg.calc_cgpa";
+
+        try (Statement st = conn.createStatement()) {
+            st.executeUpdate(updateCgpaSql);
         }
     }
 
