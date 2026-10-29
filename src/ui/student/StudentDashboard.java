@@ -1807,23 +1807,25 @@ public class StudentDashboard extends JFrame {
         JLabel profileAvatarLabel = new JLabel(createAvatarIcon(currentStudent.getProfilePicture(), 130, initials));
         profileAvatarLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JButton uploadBtn = new JButton("📷  Upload Photo");
-        uploadBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        JButton uploadBtn = new JButton("📷  Update Photo");
+        uploadBtn.setFont(new Font("Arial", Font.BOLD, 13));
+        uploadBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        uploadBtn.setOpaque(true);
         uploadBtn.setForeground(Color.WHITE);
-        uploadBtn.setBackground(new Color(29, 78, 216));
+        uploadBtn.setBackground(new Color(29, 78, 216)); // Vibrant Royal Blue
         uploadBtn.setBorder(new CompoundBorder(
                 new LineBorder(new Color(30, 64, 175), 1, true),
-                new EmptyBorder(6, 14, 6, 14)
+                new EmptyBorder(8, 16, 8, 16)
         ));
         uploadBtn.setFocusPainted(false);
         uploadBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         uploadBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        uploadBtn.setMaximumSize(new Dimension(180, 36));
-        uploadBtn.setPreferredSize(new Dimension(180, 36));
+        uploadBtn.setMaximumSize(new Dimension(190, 38));
+        uploadBtn.setPreferredSize(new Dimension(190, 38));
 
         uploadBtn.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
-                uploadBtn.setBackground(new Color(37, 99, 235));
+                uploadBtn.setBackground(new Color(37, 99, 235)); // Lighter Blue hover
             }
             public void mouseExited(MouseEvent e) {
                 uploadBtn.setBackground(new Color(29, 78, 216));
@@ -2537,6 +2539,8 @@ public class StudentDashboard extends JFrame {
 
         JButton cancelBtn = new JButton("Cancel");
         cancelBtn.setFont(new Font("Arial", Font.PLAIN, 12));
+        cancelBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        cancelBtn.setOpaque(true);
         cancelBtn.setBackground(new Color(234, 242, 255));
         cancelBtn.setForeground(darkBlue);
         cancelBtn.setBorder(new CompoundBorder(
@@ -2548,6 +2552,8 @@ public class StudentDashboard extends JFrame {
 
         JButton verifyBtn = new JButton("Verify & Continue to Post");
         verifyBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        verifyBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        verifyBtn.setOpaque(true);
         verifyBtn.setBackground(new Color(29, 78, 216));
         verifyBtn.setForeground(Color.WHITE);
         verifyBtn.setBorder(new CompoundBorder(
@@ -2847,6 +2853,8 @@ public class StudentDashboard extends JFrame {
 
         JButton cancelBtn = new JButton("Cancel");
         cancelBtn.setFont(new Font("Arial", Font.PLAIN, 12));
+        cancelBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        cancelBtn.setOpaque(true);
         cancelBtn.setBackground(new Color(234, 242, 255));
         cancelBtn.setForeground(darkBlue);
         cancelBtn.setBorder(new CompoundBorder(
@@ -2858,6 +2866,8 @@ public class StudentDashboard extends JFrame {
 
         JButton submitBtn = new JButton("Post Advance Announcement");
         submitBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        submitBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        submitBtn.setOpaque(true);
         submitBtn.setBackground(new Color(29, 78, 216));
         submitBtn.setForeground(Color.WHITE);
         submitBtn.setBorder(new CompoundBorder(
@@ -3260,6 +3270,8 @@ public class StudentDashboard extends JFrame {
 
         JButton viewAllBtn = new JButton("View All Announcements & Notices →");
         viewAllBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        viewAllBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        viewAllBtn.setOpaque(true);
         viewAllBtn.setForeground(Color.WHITE);
         viewAllBtn.setBackground(new Color(29, 78, 216));
         viewAllBtn.setBorder(new CompoundBorder(
