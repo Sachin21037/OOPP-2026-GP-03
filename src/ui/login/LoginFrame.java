@@ -9,7 +9,9 @@ import ui.student.StudentDashboard;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.Path2D;
@@ -449,9 +451,13 @@ public class LoginFrame extends JFrame {
         demoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JButton studentDemoBtn = new JButton("Sample Student");
-        studentDemoBtn.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        studentDemoBtn.setForeground(PRIMARY_NAVY);
-        studentDemoBtn.setBackground(new Color(240, 245, 252));
+        studentDemoBtn.setFont(new Font("SansSerif", Font.BOLD, 11));
+        studentDemoBtn.setForeground(SECONDARY_BLUE);
+        studentDemoBtn.setBackground(new Color(234, 242, 255));
+        studentDemoBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(191, 219, 254), 1, true),
+                new EmptyBorder(5, 8, 5, 8)
+        ));
         studentDemoBtn.setFocusPainted(false);
         studentDemoBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         studentDemoBtn.addActionListener(e -> {
@@ -460,9 +466,13 @@ public class LoginFrame extends JFrame {
         });
 
         JButton lecturerDemoBtn = new JButton("Sample Lecturer");
-        lecturerDemoBtn.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        lecturerDemoBtn.setForeground(new Color(20, 110, 100));
-        lecturerDemoBtn.setBackground(new Color(238, 250, 246));
+        lecturerDemoBtn.setFont(new Font("SansSerif", Font.BOLD, 11));
+        lecturerDemoBtn.setForeground(SECONDARY_BLUE);
+        lecturerDemoBtn.setBackground(new Color(234, 242, 255));
+        lecturerDemoBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(191, 219, 254), 1, true),
+                new EmptyBorder(5, 8, 5, 8)
+        ));
         lecturerDemoBtn.setFocusPainted(false);
         lecturerDemoBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         lecturerDemoBtn.addActionListener(e -> {

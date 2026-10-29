@@ -179,21 +179,24 @@ public class StudentDashboard extends JFrame {
         JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
         logoutPanel.setBackground(sidebarColor);
 
-        JButton logoutButton = new JButton("Logout");
-        logoutButton.setFont(new Font("Arial", Font.BOLD, 13));
-        logoutButton.setForeground(new Color(255, 130, 130));
-        logoutButton.setBackground(sidebarColor);
-        logoutButton.setBorderPainted(false);
+        JButton logoutButton = new JButton("🚪 Logout");
+        logoutButton.setFont(new Font("Arial", Font.BOLD, 12));
+        logoutButton.setForeground(Color.WHITE);
+        logoutButton.setBackground(new Color(29, 78, 216));
+        logoutButton.setBorder(new CompoundBorder(
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(8, 20, 8, 20)
+        ));
         logoutButton.setFocusPainted(false);
         logoutButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         logoutButton.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
-                logoutButton.setForeground(new Color(255, 175, 175));
+                logoutButton.setBackground(new Color(37, 99, 235));
             }
 
             public void mouseExited(MouseEvent e) {
-                logoutButton.setForeground(new Color(255, 130, 130));
+                logoutButton.setBackground(new Color(29, 78, 216));
             }
         });
 
@@ -399,9 +402,13 @@ public class StudentDashboard extends JFrame {
         sectionTitle.setForeground(textColor);
 
         JButton openWindowBtn = new JButton("Open in Window ↗");
-        openWindowBtn.setFont(new Font("Arial", Font.PLAIN, 12));
-        openWindowBtn.setBackground(Color.WHITE);
-        openWindowBtn.setForeground(darkBlue);
+        openWindowBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        openWindowBtn.setBackground(new Color(29, 78, 216));
+        openWindowBtn.setForeground(Color.WHITE);
+        openWindowBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(6, 14, 6, 14)
+        ));
         openWindowBtn.setFocusPainted(false);
         openWindowBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         openWindowBtn.addActionListener(e -> new MyCoursesFrame(currentStudent).setVisible(true));
@@ -654,17 +661,21 @@ public class StudentDashboard extends JFrame {
         JButton submitNewBtn = new JButton("+ Submit Medical Certificate");
         submitNewBtn.setFont(new Font("Arial", Font.BOLD, 12));
         submitNewBtn.setForeground(Color.WHITE);
-        submitNewBtn.setBackground(darkBlue);
+        submitNewBtn.setBackground(new Color(29, 78, 216));
+        submitNewBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(6, 14, 6, 14)
+        ));
         submitNewBtn.setFocusPainted(false);
         submitNewBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         submitNewBtn.setPreferredSize(new Dimension(235, 38));
 
         submitNewBtn.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
-                submitNewBtn.setBackground(new Color(38, 85, 128));
+                submitNewBtn.setBackground(new Color(37, 99, 235));
             }
             public void mouseExited(MouseEvent e) {
-                submitNewBtn.setBackground(darkBlue);
+                submitNewBtn.setBackground(new Color(29, 78, 216));
             }
         });
 
@@ -710,8 +721,12 @@ public class StudentDashboard extends JFrame {
 
         JButton submitSelectedBtn = new JButton("Submit Medical for Selected");
         submitSelectedBtn.setFont(new Font("Arial", Font.BOLD, 11));
-        submitSelectedBtn.setBackground(new Color(240, 245, 250));
-        submitSelectedBtn.setForeground(darkBlue);
+        submitSelectedBtn.setBackground(new Color(29, 78, 216));
+        submitSelectedBtn.setForeground(Color.WHITE);
+        submitSelectedBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(6, 12, 6, 12)
+        ));
         submitSelectedBtn.setFocusPainted(false);
         submitSelectedBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         submitSelectedBtn.setEnabled(false);
@@ -822,8 +837,12 @@ public class StudentDashboard extends JFrame {
         // Edit Entry button
         JButton editLeaveBtn = new JButton("✏️ Edit Selected Entry");
         editLeaveBtn.setFont(new Font("Arial", Font.BOLD, 11));
-        editLeaveBtn.setBackground(new Color(240, 245, 250));
-        editLeaveBtn.setForeground(darkBlue);
+        editLeaveBtn.setBackground(new Color(29, 78, 216));
+        editLeaveBtn.setForeground(Color.WHITE);
+        editLeaveBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(6, 12, 6, 12)
+        ));
         editLeaveBtn.setFocusPainted(false);
         editLeaveBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         editLeaveBtn.setEnabled(false);
@@ -1210,7 +1229,12 @@ public class StudentDashboard extends JFrame {
             final int daysCount = presetDays[i];
             JButton pBtn = new JButton(presetNames[i]);
             pBtn.setFont(new Font("Arial", Font.PLAIN, 11));
-            pBtn.setBackground(Color.WHITE);
+            pBtn.setBackground(new Color(234, 242, 255));
+            pBtn.setForeground(darkBlue);
+            pBtn.setBorder(new CompoundBorder(
+                    new LineBorder(new Color(191, 219, 254), 1, true),
+                    new EmptyBorder(4, 8, 4, 8)
+            ));
             pBtn.setFocusPainted(false);
             pBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
             pBtn.addActionListener(e -> {
@@ -1367,6 +1391,12 @@ public class StudentDashboard extends JFrame {
 
         JButton chooseBtn = new JButton("Browse Document...");
         chooseBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        chooseBtn.setBackground(new Color(29, 78, 216));
+        chooseBtn.setForeground(Color.WHITE);
+        chooseBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(6, 12, 6, 12)
+        ));
         chooseBtn.setFocusPainted(false);
         chooseBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
@@ -1480,6 +1510,12 @@ public class StudentDashboard extends JFrame {
 
         JButton cancelBtn = new JButton("Cancel");
         cancelBtn.setFont(new Font("Arial", Font.PLAIN, 12));
+        cancelBtn.setBackground(new Color(234, 242, 255));
+        cancelBtn.setForeground(darkBlue);
+        cancelBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(191, 219, 254), 1, true),
+                new EmptyBorder(6, 14, 6, 14)
+        ));
         cancelBtn.setFocusPainted(false);
         cancelBtn.addActionListener(e -> dialog.dispose());
 
@@ -1487,7 +1523,11 @@ public class StudentDashboard extends JFrame {
         JButton submitBtn = new JButton(submitBtnTitle);
         submitBtn.setFont(new Font("Arial", Font.BOLD, 12));
         submitBtn.setForeground(Color.WHITE);
-        submitBtn.setBackground(darkBlue);
+        submitBtn.setBackground(new Color(29, 78, 216));
+        submitBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(8, 16, 8, 16)
+        ));
         submitBtn.setFocusPainted(false);
         submitBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
@@ -1671,7 +1711,11 @@ public class StudentDashboard extends JFrame {
         JButton uploadBtn = new JButton("📷  Upload Photo");
         uploadBtn.setFont(new Font("Arial", Font.BOLD, 12));
         uploadBtn.setForeground(Color.WHITE);
-        uploadBtn.setBackground(darkBlue);
+        uploadBtn.setBackground(new Color(29, 78, 216));
+        uploadBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(6, 14, 6, 14)
+        ));
         uploadBtn.setFocusPainted(false);
         uploadBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         uploadBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -1680,10 +1724,10 @@ public class StudentDashboard extends JFrame {
 
         uploadBtn.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
-                uploadBtn.setBackground(new Color(38, 85, 128));
+                uploadBtn.setBackground(new Color(37, 99, 235));
             }
             public void mouseExited(MouseEvent e) {
-                uploadBtn.setBackground(darkBlue);
+                uploadBtn.setBackground(new Color(29, 78, 216));
             }
         });
 
@@ -1978,13 +2022,13 @@ public class StudentDashboard extends JFrame {
         headerButtons.setBackground(lightBackground);
 
         JButton refreshBtn = new JButton("🔄 Refresh");
-        refreshBtn.setFont(new Font("Arial", Font.PLAIN, 12));
-        refreshBtn.setBackground(Color.WHITE);
-        refreshBtn.setForeground(darkBlue);
+        refreshBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        refreshBtn.setBackground(new Color(29, 78, 216));
+        refreshBtn.setForeground(Color.WHITE);
         refreshBtn.setFocusPainted(false);
         refreshBtn.setBorder(new CompoundBorder(
-                new LineBorder(new Color(210, 220, 230), 1, true),
-                new EmptyBorder(8, 12, 8, 12)
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(8, 14, 8, 14)
         ));
         refreshBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         refreshBtn.addActionListener(e -> refreshAnnouncementsData());
@@ -1993,11 +2037,11 @@ public class StudentDashboard extends JFrame {
         if (isLecturer()) {
             JButton postBtn = new JButton("+ Post Announcement (Lecturer)");
             postBtn.setFont(new Font("Arial", Font.BOLD, 12));
-            postBtn.setBackground(new Color(20, 165, 145));
+            postBtn.setBackground(new Color(29, 78, 216));
             postBtn.setForeground(Color.WHITE);
             postBtn.setFocusPainted(false);
             postBtn.setBorder(new CompoundBorder(
-                    new LineBorder(new Color(16, 135, 120), 1, true),
+                    new LineBorder(new Color(30, 64, 175), 1, true),
                     new EmptyBorder(8, 14, 8, 14)
             ));
             postBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -2017,18 +2061,17 @@ public class StudentDashboard extends JFrame {
             restrictedBadge.setToolTipText("Access Restricted: Only faculty lecturers can create and post announcements.");
 
             JButton lecturerAuthBtn = new JButton("Lecturer Login to Post 🔑");
-            lecturerAuthBtn.setFont(new Font("Arial", Font.PLAIN, 11));
-            lecturerAuthBtn.setBackground(Color.WHITE);
-            lecturerAuthBtn.setForeground(darkBlue);
+            lecturerAuthBtn.setFont(new Font("Arial", Font.BOLD, 11));
+            lecturerAuthBtn.setBackground(new Color(29, 78, 216));
+            lecturerAuthBtn.setForeground(Color.WHITE);
             lecturerAuthBtn.setBorder(new CompoundBorder(
-                    new LineBorder(new Color(195, 215, 238), 1, true),
-                    new EmptyBorder(7, 11, 7, 11)
+                    new LineBorder(new Color(30, 64, 175), 1, true),
+                    new EmptyBorder(7, 12, 7, 12)
             ));
             lecturerAuthBtn.setFocusPainted(false);
             lecturerAuthBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
             lecturerAuthBtn.setToolTipText("Authenticate with Lecturer credentials to post an announcement");
             lecturerAuthBtn.addActionListener(e -> promptLecturerAuthenticationAndPost());
-
             headerButtons.add(restrictedBadge);
             headerButtons.add(lecturerAuthBtn);
         }
@@ -2155,41 +2198,62 @@ public class StudentDashboard extends JFrame {
 
     private void addAnnouncementFilterButton(JPanel parent, String label, String filterKey) {
         JButton btn = new JButton(label);
-        btn.setFont(new Font("Arial", Font.PLAIN, 12));
+        btn.setFont(new Font("Arial", Font.BOLD, 12));
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
+        Color activeBg = new Color(29, 78, 216);      // #1D4ED8 Vibrant Royal Blue
+        Color inactiveBg = new Color(219, 234, 254);  // #DBEAFE Distinct Soft Blue
+        Color inactiveFg = new Color(29, 78, 216);    // #1D4ED8 Royal Blue
+        Color inactiveBorder = new Color(147, 197, 253);
+
         if (filterKey.equals(currentAnnouncementFilter)) {
-            btn.setBackground(navActiveColor);
+            btn.setBackground(activeBg);
             btn.setForeground(Color.WHITE);
             btn.setBorder(new CompoundBorder(
-                    new LineBorder(navActiveColor, 1, true),
-                    new EmptyBorder(6, 12, 6, 12)
+                    new LineBorder(new Color(30, 64, 175), 1, true),
+                    new EmptyBorder(7, 14, 7, 14)
             ));
         } else {
-            btn.setBackground(Color.WHITE);
-            btn.setForeground(textColor);
+            btn.setBackground(inactiveBg);
+            btn.setForeground(inactiveFg);
             btn.setBorder(new CompoundBorder(
-                    new LineBorder(new Color(215, 222, 230), 1, true),
-                    new EmptyBorder(6, 12, 6, 12)
+                    new LineBorder(inactiveBorder, 1, true),
+                    new EmptyBorder(7, 14, 7, 14)
             ));
         }
+
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (!filterKey.equals(currentAnnouncementFilter)) {
+                    btn.setBackground(new Color(191, 219, 254));
+                }
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (!filterKey.equals(currentAnnouncementFilter)) {
+                    btn.setBackground(inactiveBg);
+                }
+            }
+        });
 
         btn.addActionListener(e -> {
             currentAnnouncementFilter = filterKey;
             for (JButton b : filterButtons) {
-                b.setBackground(Color.WHITE);
-                b.setForeground(textColor);
+                b.setBackground(inactiveBg);
+                b.setForeground(inactiveFg);
                 b.setBorder(new CompoundBorder(
-                        new LineBorder(new Color(215, 222, 230), 1, true),
-                        new EmptyBorder(6, 12, 6, 12)
+                        new LineBorder(inactiveBorder, 1, true),
+                        new EmptyBorder(7, 14, 7, 14)
                 ));
             }
-            btn.setBackground(navActiveColor);
+            btn.setBackground(activeBg);
             btn.setForeground(Color.WHITE);
             btn.setBorder(new CompoundBorder(
-                    new LineBorder(navActiveColor, 1, true),
-                    new EmptyBorder(6, 12, 6, 12)
+                    new LineBorder(new Color(30, 64, 175), 1, true),
+                    new EmptyBorder(7, 14, 7, 14)
             ));
             updateAnnouncementsFeed();
         });
@@ -2398,12 +2462,12 @@ public class StudentDashboard extends JFrame {
         bottomActions.setBackground(Color.WHITE);
 
         JButton viewDetailsBtn = new JButton("View Full Details & Guidelines ↗");
-        viewDetailsBtn.setFont(new Font("Arial", Font.PLAIN, 11));
-        viewDetailsBtn.setBackground(new Color(245, 248, 252));
-        viewDetailsBtn.setForeground(darkBlue);
+        viewDetailsBtn.setFont(new Font("Arial", Font.BOLD, 11));
+        viewDetailsBtn.setBackground(new Color(29, 78, 216));
+        viewDetailsBtn.setForeground(Color.WHITE);
         viewDetailsBtn.setBorder(new CompoundBorder(
-                new LineBorder(new Color(205, 220, 238), 1, true),
-                new EmptyBorder(5, 10, 5, 10)
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(6, 12, 6, 12)
         ));
         viewDetailsBtn.setFocusPainted(false);
         viewDetailsBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -2413,11 +2477,11 @@ public class StudentDashboard extends JFrame {
         if (type.contains("QUIZ") || type.contains("ASSIGNMENT")) {
             JButton goToAsmBtn = new JButton("Go to Assignments Tab ➔");
             goToAsmBtn.setFont(new Font("Arial", Font.BOLD, 11));
-            goToAsmBtn.setBackground(Color.WHITE);
-            goToAsmBtn.setForeground(new Color(20, 165, 145));
+            goToAsmBtn.setBackground(new Color(219, 234, 254));
+            goToAsmBtn.setForeground(new Color(29, 78, 216));
             goToAsmBtn.setBorder(new CompoundBorder(
-                    new LineBorder(new Color(20, 165, 145), 1, true),
-                    new EmptyBorder(5, 10, 5, 10)
+                    new LineBorder(new Color(147, 197, 253), 1, true),
+                    new EmptyBorder(6, 12, 6, 12)
             ));
             goToAsmBtn.setFocusPainted(false);
             goToAsmBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -2474,9 +2538,14 @@ public class StudentDashboard extends JFrame {
 
         JButton closeBtn = new JButton("Close");
         closeBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        closeBtn.setBackground(darkBlue);
+        closeBtn.setBackground(new Color(29, 78, 216));
         closeBtn.setForeground(Color.WHITE);
+        closeBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(6, 16, 6, 16)
+        ));
         closeBtn.setFocusPainted(false);
+        closeBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         closeBtn.addActionListener(e -> dialog.dispose());
         footer.add(closeBtn);
 
@@ -2557,13 +2626,23 @@ public class StudentDashboard extends JFrame {
 
         JButton cancelBtn = new JButton("Cancel");
         cancelBtn.setFont(new Font("Arial", Font.PLAIN, 12));
-        cancelBtn.setBackground(Color.WHITE);
+        cancelBtn.setBackground(new Color(234, 242, 255));
+        cancelBtn.setForeground(darkBlue);
+        cancelBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(191, 219, 254), 1, true),
+                new EmptyBorder(6, 12, 6, 12)
+        ));
+        cancelBtn.setFocusPainted(false);
         cancelBtn.addActionListener(e -> authDialog.dispose());
 
         JButton verifyBtn = new JButton("Verify & Continue to Post");
         verifyBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        verifyBtn.setBackground(new Color(20, 165, 145));
+        verifyBtn.setBackground(new Color(29, 78, 216));
         verifyBtn.setForeground(Color.WHITE);
+        verifyBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(6, 14, 6, 14)
+        ));
         verifyBtn.setFocusPainted(false);
         verifyBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         verifyBtn.addActionListener(e -> {
@@ -2857,15 +2936,23 @@ public class StudentDashboard extends JFrame {
 
         JButton cancelBtn = new JButton("Cancel");
         cancelBtn.setFont(new Font("Arial", Font.PLAIN, 12));
-        cancelBtn.setBackground(Color.WHITE);
-        cancelBtn.setForeground(textColor);
+        cancelBtn.setBackground(new Color(234, 242, 255));
+        cancelBtn.setForeground(darkBlue);
+        cancelBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(191, 219, 254), 1, true),
+                new EmptyBorder(6, 14, 6, 14)
+        ));
         cancelBtn.setFocusPainted(false);
         cancelBtn.addActionListener(e -> dialog.dispose());
 
         JButton submitBtn = new JButton("Post Advance Announcement");
         submitBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        submitBtn.setBackground(new Color(20, 165, 145));
+        submitBtn.setBackground(new Color(29, 78, 216));
         submitBtn.setForeground(Color.WHITE);
+        submitBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(8, 16, 8, 16)
+        ));
         submitBtn.setFocusPainted(false);
         submitBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         submitBtn.addActionListener(e -> {
@@ -3029,11 +3116,11 @@ public class StudentDashboard extends JFrame {
     private void highlightMenuButton(String selectedText) {
         for (JButton b : menuButtons) {
             if (b.getText().trim().equals(selectedText)) {
-                b.setBackground(navActiveColor);
+                b.setBackground(new Color(29, 78, 216));
                 b.setFont(new Font("Arial", Font.BOLD, 13));
                 b.setForeground(Color.WHITE);
                 b.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createMatteBorder(0, 4, 0, 0, navAccentColor),
+                        BorderFactory.createMatteBorder(0, 4, 0, 0, new Color(147, 197, 253)),
                         BorderFactory.createEmptyBorder(12, 14, 12, 10)
                 ));
             } else {
@@ -3262,11 +3349,11 @@ public class StudentDashboard extends JFrame {
 
         JButton viewAllBtn = new JButton("View All Announcements & Notices →");
         viewAllBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        viewAllBtn.setForeground(new Color(29, 78, 216));
-        viewAllBtn.setBackground(new Color(238, 242, 255));
+        viewAllBtn.setForeground(Color.WHITE);
+        viewAllBtn.setBackground(new Color(29, 78, 216));
         viewAllBtn.setBorder(new CompoundBorder(
-                new LineBorder(new Color(191, 219, 254), 1, true),
-                new EmptyBorder(8, 12, 8, 12)
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(8, 14, 8, 14)
         ));
         viewAllBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         viewAllBtn.setFocusPainted(false);
