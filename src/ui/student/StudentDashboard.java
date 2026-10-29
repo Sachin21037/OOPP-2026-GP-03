@@ -20,6 +20,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.math.BigDecimal;
@@ -56,7 +57,8 @@ public class StudentDashboard extends JFrame {
     private final StudentDAO studentDAO = new StudentDAO();
     private final List<JButton> menuButtons = new ArrayList<>();
 
-    // Announcements state
+    // Announcements & Notifications state
+    private NotificationBellButton notificationBtn;
     private JPanel announcementsListContainer;
     private List<Notice> allAnnouncementsList = new ArrayList<>();
     private String currentAnnouncementFilter = "ALL";
@@ -130,28 +132,11 @@ public class StudentDashboard extends JFrame {
         userType.setForeground(new Color(180, 240, 220));
         userType.setFont(new Font("Arial", Font.BOLD, 13));
 
-        JButton announcementsNavBtn = new JButton("📢 Announcements");
-        announcementsNavBtn.setFont(new Font("Arial", Font.BOLD, 12));
-        announcementsNavBtn.setForeground(Color.WHITE);
-        announcementsNavBtn.setBackground(new Color(38, 90, 136));
-        announcementsNavBtn.setBorder(new CompoundBorder(
-                new LineBorder(new Color(85, 145, 195), 1, true),
-                new EmptyBorder(6, 14, 6, 14)
-        ));
-        announcementsNavBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        announcementsNavBtn.setFocusPainted(false);
-        announcementsNavBtn.setToolTipText("View Faculty Announcements & Advance Notices");
-        announcementsNavBtn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                announcementsNavBtn.setBackground(new Color(50, 115, 170));
-            }
-            public void mouseExited(MouseEvent e) {
-                announcementsNavBtn.setBackground(new Color(38, 90, 136));
-            }
-        });
-        announcementsNavBtn.addActionListener(e -> navigateToSection("Announcements"));
+        notificationBtn = new NotificationBellButton();
+        notificationBtn.setToolTipText("View Notifications & Notices");
+        notificationBtn.addActionListener(e -> showNotificationsPopup(notificationBtn));
 
-        headerRight.add(announcementsNavBtn);
+        headerRight.add(notificationBtn);
         headerRight.add(headerAvatarLabel);
         headerRight.add(studentBadge);
         headerRight.add(userType);
@@ -2217,6 +2202,9 @@ public class StudentDashboard extends JFrame {
         allAnnouncementsList = studentDAO.getAllAnnouncements(currentStudent != null ? currentStudent.getUserId() : null);
         updateAnnouncementMetrics();
         updateAnnouncementsFeed();
+        if (notificationBtn != null) {
+            notificationBtn.setBadgeCount(allAnnouncementsList != null ? allAnnouncementsList.size() : 0);
+        }
     }
 
     private void updateAnnouncementMetrics() {
@@ -3143,6 +3131,334 @@ public class StudentDashboard extends JFrame {
             }
         }
         return table;
+    }
+
+    // ==========================================
+    // NOTIFICATION BELL & POPUP VIEWER
+    // ==========================================
+
+    /**
+     * Shows a modern dropdown popup displaying recent notifications when the bell is clicked.
+     */
+    private void showNotificationsPopup(Component invoker) {
+        JPopupMenu popup = new JPopupMenu();
+        popup.setBackground(Color.WHITE);
+        popup.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(203, 213, 225), 1),
+                BorderFactory.createEmptyBorder(0, 0, 0, 0)
+        ));
+
+        JPanel container = new JPanel(new BorderLayout());
+        container.setPreferredSize(new Dimension(380, 420));
+        container.setBackground(Color.WHITE);
+
+        // Header
+        JPanel top = new JPanel(new BorderLayout());
+        top.setBackground(new Color(248, 250, 252));
+        top.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)),
+                new EmptyBorder(12, 16, 12, 16)
+        ));
+
+        JPanel titleGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        titleGroup.setOpaque(false);
+
+        JLabel bellIconLbl = new JLabel("🔔");
+        bellIconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
+
+        JLabel titleLbl = new JLabel("Notifications");
+        titleLbl.setFont(new Font("Arial", Font.BOLD, 14));
+        titleLbl.setForeground(textColor);
+
+        int count = allAnnouncementsList != null ? allAnnouncementsList.size() : 0;
+        JLabel countBadge = new JLabel(count + " new");
+        countBadge.setFont(new Font("Arial", Font.BOLD, 10));
+        countBadge.setForeground(Color.WHITE);
+        countBadge.setOpaque(true);
+        countBadge.setBackground(new Color(29, 78, 216));
+        countBadge.setBorder(new EmptyBorder(2, 6, 2, 6));
+
+        titleGroup.add(bellIconLbl);
+        titleGroup.add(titleLbl);
+        titleGroup.add(countBadge);
+
+        JButton markReadBtn = new JButton("Clear Badge");
+        markReadBtn.setFont(new Font("Arial", Font.PLAIN, 11));
+        markReadBtn.setForeground(new Color(100, 116, 139));
+        markReadBtn.setBackground(new Color(248, 250, 252));
+        markReadBtn.setBorderPainted(false);
+        markReadBtn.setContentAreaFilled(false);
+        markReadBtn.setFocusPainted(false);
+        markReadBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        markReadBtn.addActionListener(ev -> {
+            if (notificationBtn != null) notificationBtn.setBadgeCount(0);
+            countBadge.setText("0 new");
+            countBadge.setBackground(new Color(148, 163, 184));
+        });
+
+        top.add(titleGroup, BorderLayout.WEST);
+        top.add(markReadBtn, BorderLayout.EAST);
+        container.add(top, BorderLayout.NORTH);
+
+        // Notifications List
+        JPanel listPanel = new JPanel();
+        listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
+        listPanel.setBackground(Color.WHITE);
+
+        List<Notice> notices = allAnnouncementsList;
+        if (notices == null || notices.isEmpty()) {
+            notices = studentDAO.getAllAnnouncements(currentStudent != null ? currentStudent.getUserId() : null);
+        }
+
+        if (notices == null || notices.isEmpty()) {
+            JPanel emptyPanel = new JPanel();
+            emptyPanel.setLayout(new BoxLayout(emptyPanel, BoxLayout.Y_AXIS));
+            emptyPanel.setBackground(Color.WHITE);
+            emptyPanel.setBorder(new EmptyBorder(50, 20, 50, 20));
+
+            JLabel emptyIcon = new JLabel("🎉");
+            emptyIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 32));
+            emptyIcon.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            JLabel emptyText = new JLabel("No New Notifications");
+            emptyText.setFont(new Font("Arial", Font.BOLD, 14));
+            emptyText.setForeground(textColor);
+            emptyText.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            JLabel emptySub = new JLabel("You are completely caught up!");
+            emptySub.setFont(new Font("Arial", Font.PLAIN, 12));
+            emptySub.setForeground(new Color(148, 163, 184));
+            emptySub.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            emptyPanel.add(emptyIcon);
+            emptyPanel.add(Box.createVerticalStrut(10));
+            emptyPanel.add(emptyText);
+            emptyPanel.add(Box.createVerticalStrut(4));
+            emptyPanel.add(emptySub);
+
+            listPanel.add(emptyPanel);
+        } else {
+            int maxItems = Math.min(notices.size(), 8);
+            for (int i = 0; i < maxItems; i++) {
+                Notice n = notices.get(i);
+                JPanel item = createNotificationItemCard(n, popup);
+                listPanel.add(item);
+            }
+        }
+
+        JScrollPane scroll = new JScrollPane(listPanel);
+        scroll.setBorder(null);
+        scroll.setBackground(Color.WHITE);
+        scroll.getVerticalScrollBar().setUnitIncrement(12);
+        container.add(scroll, BorderLayout.CENTER);
+
+        // Footer
+        JPanel footer = new JPanel(new BorderLayout());
+        footer.setBackground(new Color(248, 250, 252));
+        footer.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)),
+                new EmptyBorder(10, 16, 10, 16)
+        ));
+
+        JButton viewAllBtn = new JButton("View All Announcements & Notices →");
+        viewAllBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        viewAllBtn.setForeground(new Color(29, 78, 216));
+        viewAllBtn.setBackground(new Color(238, 242, 255));
+        viewAllBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(191, 219, 254), 1, true),
+                new EmptyBorder(8, 12, 8, 12)
+        ));
+        viewAllBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        viewAllBtn.setFocusPainted(false);
+        viewAllBtn.addActionListener(ev -> {
+            popup.setVisible(false);
+            navigateToSection("Announcements");
+        });
+
+        footer.add(viewAllBtn, BorderLayout.CENTER);
+        container.add(footer, BorderLayout.SOUTH);
+
+        popup.add(container);
+
+        // Position popup directly below the notification button
+        int xOffset = invoker.getWidth() - container.getPreferredSize().width;
+        popup.show(invoker, xOffset, invoker.getHeight() + 4);
+    }
+
+    private JPanel createNotificationItemCard(Notice n, JPopupMenu parentPopup) {
+        JPanel card = new JPanel(new BorderLayout(10, 0));
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(241, 245, 249)),
+                new EmptyBorder(10, 14, 10, 14)
+        ));
+        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        // Icon on left
+        String type = n.getNoticeType() != null ? n.getNoticeType().toUpperCase() : "GENERAL";
+        String iconSymbol = "📢";
+        Color iconBg = new Color(238, 242, 255);
+        Color iconBorder = new Color(199, 210, 254);
+        if (type.contains("QUIZ")) {
+            iconSymbol = "🔔";
+            iconBg = new Color(254, 243, 199);
+            iconBorder = new Color(253, 230, 138);
+        } else if (type.contains("ASSIGNMENT")) {
+            iconSymbol = "📝";
+            iconBg = new Color(209, 250, 229);
+            iconBorder = new Color(167, 243, 208);
+        }
+
+        JLabel iconLbl = new JLabel(iconSymbol, SwingConstants.CENTER);
+        iconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 15));
+        iconLbl.setPreferredSize(new Dimension(34, 34));
+        iconLbl.setOpaque(true);
+        iconLbl.setBackground(iconBg);
+        iconLbl.setBorder(new LineBorder(iconBorder, 1, true));
+
+        // Center texts
+        JPanel textCol = new JPanel();
+        textCol.setLayout(new BoxLayout(textCol, BoxLayout.Y_AXIS));
+        textCol.setOpaque(false);
+
+        String course = n.getCourseCode() != null && !n.getCourseCode().isBlank() ? "[" + n.getCourseCode() + "] " : "";
+        JLabel titleLbl = new JLabel(course + (n.getTitle() != null ? n.getTitle() : "Notice"));
+        titleLbl.setFont(new Font("Arial", Font.BOLD, 12));
+        titleLbl.setForeground(textColor);
+
+        String desc = n.getDescription() != null ? n.getDescription() : "";
+        if (desc.length() > 60) {
+            desc = desc.substring(0, 57) + "...";
+        }
+        JLabel descLbl = new JLabel(desc.isEmpty() ? "Click to view full notice details." : desc);
+        descLbl.setFont(new Font("Arial", Font.PLAIN, 11));
+        descLbl.setForeground(new Color(100, 116, 139));
+
+        String timeStr = n.getNoticeDate() != null ? new SimpleDateFormat("MMM dd, yyyy").format(n.getNoticeDate()) : "Recently";
+        if (n.getEventDate() != null) {
+            timeStr = n.getAdvanceTimeNotice();
+        } else if (n.getAuthorName() != null && !n.getAuthorName().isBlank()) {
+            timeStr += " • " + n.getAuthorName();
+        }
+        JLabel timeLbl = new JLabel(timeStr);
+        timeLbl.setFont(new Font("Arial", Font.PLAIN, 10));
+        timeLbl.setForeground(new Color(148, 163, 184));
+
+        textCol.add(titleLbl);
+        textCol.add(Box.createVerticalStrut(2));
+        textCol.add(descLbl);
+        textCol.add(Box.createVerticalStrut(2));
+        textCol.add(timeLbl);
+
+        card.add(iconLbl, BorderLayout.WEST);
+        card.add(textCol, BorderLayout.CENTER);
+
+        card.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                card.setBackground(new Color(248, 250, 252));
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                card.setBackground(Color.WHITE);
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (parentPopup != null) parentPopup.setVisible(false);
+                navigateToSection("Announcements");
+            }
+        });
+
+        return card;
+    }
+
+    /**
+     * Custom notification bell button with vector-rendered bell and unread badge.
+     */
+    private static class NotificationBellButton extends JButton {
+        private int badgeCount = 0;
+
+        public NotificationBellButton() {
+            setPreferredSize(new Dimension(38, 38));
+            setContentAreaFilled(false);
+            setBorderPainted(false);
+            setFocusPainted(false);
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
+            setToolTipText("Notifications");
+        }
+
+        public void setBadgeCount(int count) {
+            this.badgeCount = count;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            // Hover circle
+            if (getModel().isRollover()) {
+                g2.setColor(new Color(255, 255, 255, 35));
+                g2.fillOval(2, 2, w - 4, h - 4);
+            }
+
+            // Bell icon
+            int cx = w / 2;
+            int cy = h / 2 - 1;
+
+            g2.setColor(Color.WHITE);
+            g2.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+            // Bell top loop
+            g2.drawArc(cx - 2, cy - 9, 4, 4, 0, 180);
+
+            // Bell body
+            Path2D.Double bell = new Path2D.Double();
+            bell.moveTo(cx - 6, cy - 6);
+            bell.curveTo(cx - 6, cy - 2, cx - 8, cy + 3, cx - 8, cy + 5);
+            bell.lineTo(cx + 8, cy + 5);
+            bell.curveTo(cx + 8, cy + 3, cx + 6, cy - 2, cx + 6, cy - 6);
+            bell.quadTo(cx, cy - 8, cx - 6, cy - 6);
+            bell.closePath();
+            g2.draw(bell);
+
+            // Bell clapper
+            g2.fillOval(cx - 2, cy + 6, 4, 3);
+
+            // Badge if badgeCount > 0
+            if (badgeCount > 0) {
+                String badgeText = badgeCount > 99 ? "99+" : String.valueOf(badgeCount);
+                g2.setFont(new Font("Arial", Font.BOLD, 10));
+                FontMetrics fm = g2.getFontMetrics();
+                int strW = fm.stringWidth(badgeText);
+                int badgeW = Math.max(16, strW + 6);
+                int badgeH = 14;
+                int bx = w - badgeW - 2;
+                int by = 2;
+
+                // Red badge fill
+                g2.setColor(new Color(239, 68, 68)); // #EF4444
+                g2.fillRoundRect(bx, by, badgeW, badgeH, 8, 8);
+
+                // Badge border
+                g2.setColor(new Color(27, 67, 103)); // match darkBlue header
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(bx, by, badgeW, badgeH, 8, 8);
+
+                // Text
+                g2.setColor(Color.WHITE);
+                g2.drawString(badgeText, bx + (badgeW - strW) / 2, by + fm.getAscent() - 1);
+            }
+
+            g2.dispose();
+        }
     }
 
     // Main method to test and launch StudentDashboard directly
