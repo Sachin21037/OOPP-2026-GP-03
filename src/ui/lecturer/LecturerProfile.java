@@ -408,11 +408,11 @@ public class LecturerProfile extends JFrame {
             return;
         }
 
-        String sql = "SELECT l.lecturer_id, l.staff_no, l.department, l.designation, " +
+        String sql = "SELECT u.user_id, l.lecturer_id, l.staff_no, l.department, l.designation, " +
                      "       u.first_name, u.last_name, u.email, u.phone, u.profile_picture " +
-                     "FROM lecturers l " +
-                     "LEFT JOIN users u ON l.lecturer_id = u.user_id " +
-                     "WHERE l.lecturer_id = ?";
+                     "FROM users u " +
+                     "LEFT JOIN lecturers l ON u.user_id = l.lecturer_id " +
+                     "WHERE u.user_id = ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -422,6 +422,10 @@ public class LecturerProfile extends JFrame {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     String id = rs.getString("lecturer_id");
+                    if (id == null || id.isEmpty()) {
+                        id = rs.getString("user_id");
+                    }
+                    String staffNo = rs.getString("staff_no");
                     String dept = rs.getString("department");
                     String desig = rs.getString("designation");
                     String firstName = rs.getString("first_name");
@@ -452,6 +456,12 @@ public class LecturerProfile extends JFrame {
                         lecturerTitle.setText(desig.trim());
                     } else {
                         lecturerTitle.setText("Lecturer");
+                    }
+
+                    if (staffNo != null && !staffNo.trim().isEmpty()) {
+                        staffTitle.setText(staffNo.trim());
+                    } else {
+                        staffTitle.setText("Academic Staff");
                     }
 
                     currentPhotoPath = photo;
@@ -487,6 +497,7 @@ public class LecturerProfile extends JFrame {
         departmentField.setText("-");
         designationField.setText("-");
         lecturerTitle.setText("Lecturer");
+        staffTitle.setText("Academic Staff");
         avatar.setIcon(null);
         avatar.setText("?");
         saveOriginalValues();
@@ -495,6 +506,9 @@ public class LecturerProfile extends JFrame {
     private void updateAvatarDisplay(String photoPath, String name) {
         if (photoPath != null && !photoPath.trim().isEmpty()) {
             File photoFile = new File(photoPath.trim());
+            if (!photoFile.exists()) {
+                photoFile = new File(System.getProperty("user.dir"), photoPath.trim());
+            }
             if (photoFile.exists() && photoFile.isFile()) {
                 try {
                     ImageIcon rawIcon = new ImageIcon(photoFile.getAbsolutePath());
@@ -615,11 +629,33 @@ public class LecturerProfile extends JFrame {
             return;
         }
 
+        if (rawName.length() > 100) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Full Name cannot exceed 100 characters.",
+                    "Validation Error",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            nameField.requestFocus();
+            return;
+        }
+
         String rawEmail = emailField.getText().trim();
         if (rawEmail.isEmpty()) {
             JOptionPane.showMessageDialog(
                     this,
                     "Email Address is required.",
+                    "Validation Error",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            emailField.requestFocus();
+            return;
+        }
+
+        if (rawEmail.length() > 100) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Email Address cannot exceed 100 characters.",
                     "Validation Error",
                     JOptionPane.WARNING_MESSAGE
             );
@@ -639,15 +675,28 @@ public class LecturerProfile extends JFrame {
         }
 
         String rawPhone = phoneField.getText().trim();
-        if (!rawPhone.isEmpty() && !PHONE_PATTERN.matcher(rawPhone).matches()) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Please enter a valid phone number format (e.g. 0710000002).",
-                    "Validation Error",
-                    JOptionPane.WARNING_MESSAGE
-            );
-            phoneField.requestFocus();
-            return;
+        if (!rawPhone.isEmpty()) {
+            if (rawPhone.length() > 20) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Phone number cannot exceed 20 characters.",
+                        "Validation Error",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                phoneField.requestFocus();
+                return;
+            }
+
+            if (!PHONE_PATTERN.matcher(rawPhone).matches()) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Please enter a valid phone number format (e.g. 0710000002).",
+                        "Validation Error",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                phoneField.requestFocus();
+                return;
+            }
         }
 
         // Handle profile photo copying if a new photo was selected
@@ -687,57 +736,86 @@ public class LecturerProfile extends JFrame {
             lastName = rawName.substring(spaceIdx + 1).trim();
         }
 
-        String updateSql = "UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, profile_picture = ? WHERE user_id = ?";
+        // Check if email is already taken by another user
+        try (Connection conn = DBConnection.getConnection()) {
+            String checkEmailSql = "SELECT user_id FROM users WHERE email = ? AND user_id != ?";
+            try (PreparedStatement checkPs = conn.prepareStatement(checkEmailSql)) {
+                checkPs.setString(1, rawEmail);
+                checkPs.setString(2, lecturerId);
+                try (ResultSet rs = checkPs.executeQuery()) {
+                    if (rs.next()) {
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "The email address '" + rawEmail + "' is already registered to another user.",
+                                "Duplicate Email",
+                                JOptionPane.WARNING_MESSAGE
+                        );
+                        emailField.requestFocus();
+                        return;
+                    }
+                }
+            }
 
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(updateSql)) {
+            String updateSql = "UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, profile_picture = ? WHERE user_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
 
-            ps.setString(1, firstName);
-            ps.setString(2, lastName);
-            ps.setString(3, rawEmail);
-            ps.setString(4, rawPhone.isEmpty() ? null : rawPhone);
-            ps.setString(5, newPhotoPath);
-            ps.setString(6, lecturerId);
+                ps.setString(1, firstName);
+                ps.setString(2, lastName);
+                ps.setString(3, rawEmail);
+                ps.setString(4, rawPhone.isEmpty() ? null : rawPhone);
+                ps.setString(5, newPhotoPath);
+                ps.setString(6, lecturerId);
 
-            int affected = ps.executeUpdate();
+                int affected = ps.executeUpdate();
 
-            if (affected > 0) {
-                currentPhotoPath = newPhotoPath;
-                pendingPhotoFile = null;
+                if (affected > 0) {
+                    currentPhotoPath = newPhotoPath;
+                    pendingPhotoFile = null;
 
-                saveOriginalValues();
-                setFieldsEditable(false);
-                changePhotoButton.setVisible(false);
+                    saveOriginalValues();
+                    setFieldsEditable(false);
+                    changePhotoButton.setVisible(false);
 
-                editButton.setVisible(true);
-                saveButton.setVisible(false);
-                cancelButton.setVisible(false);
+                    editButton.setVisible(true);
+                    saveButton.setVisible(false);
+                    cancelButton.setVisible(false);
 
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Profile updated successfully in MySQL database.",
-                        "Save Profile",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Profile updated successfully in MySQL database.",
+                            "Save Profile",
+                            JOptionPane.INFORMATION_MESSAGE
+                    );
 
-                // Refresh profile data from MySQL
-                loadProfileFromDatabase();
-            } else {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "No profile changes were saved. Lecturer record may not exist in users table.",
-                        "Save Failed",
-                        JOptionPane.WARNING_MESSAGE
-                );
+                    // Refresh profile data from MySQL
+                    loadProfileFromDatabase();
+                } else {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "No profile changes were saved. Lecturer record may not exist in users table.",
+                            "Save Failed",
+                            JOptionPane.WARNING_MESSAGE
+                    );
+                }
             }
 
         } catch (SQLException ex) {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Database error while saving profile to MySQL: " + ex.getMessage(),
-                    "MySQL Database Error",
-                    JOptionPane.ERROR_MESSAGE
-            );
+            String msg = ex.getMessage();
+            if (msg != null && msg.contains("Duplicate entry") && msg.contains("email")) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "The email address '" + rawEmail + "' is already registered to another account.",
+                        "Duplicate Email",
+                        JOptionPane.WARNING_MESSAGE
+                );
+            } else {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Database error while saving profile to MySQL: " + ex.getMessage(),
+                        "MySQL Database Error",
+                        JOptionPane.ERROR_MESSAGE
+                );
+            }
         }
     }
 
