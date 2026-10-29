@@ -176,27 +176,30 @@ public class StudentDashboard extends JFrame {
         sidebar.add(menuPanel, BorderLayout.NORTH);
 
         // Logout
-        JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
+        JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 15));
         logoutPanel.setBackground(sidebarColor);
 
-        JButton logoutButton = new JButton("🚪 Logout");
-        logoutButton.setFont(new Font("Arial", Font.BOLD, 12));
+        JButton logoutButton = new JButton("🚪  Logout");
+        logoutButton.setFont(new Font("Arial", Font.BOLD, 13));
+        logoutButton.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        logoutButton.setOpaque(true);
         logoutButton.setForeground(Color.WHITE);
-        logoutButton.setBackground(new Color(29, 78, 216));
+        logoutButton.setBackground(new Color(220, 38, 38)); // Vibrant danger red
         logoutButton.setBorder(new CompoundBorder(
-                new LineBorder(new Color(30, 64, 175), 1, true),
-                new EmptyBorder(8, 20, 8, 20)
+                new LineBorder(new Color(185, 28, 28), 1, true),
+                new EmptyBorder(8, 24, 8, 24)
         ));
+        logoutButton.setPreferredSize(new Dimension(165, 38));
         logoutButton.setFocusPainted(false);
         logoutButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         logoutButton.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
-                logoutButton.setBackground(new Color(37, 99, 235));
+                logoutButton.setBackground(new Color(239, 68, 68)); // Lighter red hover
             }
 
             public void mouseExited(MouseEvent e) {
-                logoutButton.setBackground(new Color(29, 78, 216));
+                logoutButton.setBackground(new Color(220, 38, 38));
             }
         });
 
