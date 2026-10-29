@@ -112,15 +112,6 @@ public class LecturerProfile extends JFrame {
         if (sysProp != null && !sysProp.trim().isEmpty()) {
             return sysProp.trim();
         }
-        // Fallback: query MySQL for the first lecturer record
-        try (Connection conn = DBConnection.getConnection();
-             Statement st = conn.createStatement();
-             ResultSet rs = st.executeQuery("SELECT lecturer_id FROM lecturers ORDER BY lecturer_id LIMIT 1")) {
-            if (rs.next()) {
-                return rs.getString("lecturer_id");
-            }
-        } catch (SQLException ignored) {
-        }
         return null;
     }
 
