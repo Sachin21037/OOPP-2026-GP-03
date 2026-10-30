@@ -2136,7 +2136,7 @@ public class StudentDashboard extends JFrame {
         } else if (initialRecord != null) {
             for (int i = 0; i < absentCombo.getItemCount(); i++) {
                 AbsentSessionItem item = absentCombo.getItemAt(i);
-                if (item.record != null && item.record.getSessionId().equals(initialRecord.getSessionId())) {
+                if (item.record != null && item.record.getSessionId() == initialRecord.getSessionId()) {
                     absentCombo.setSelectedIndex(i);
                     break;
                 }

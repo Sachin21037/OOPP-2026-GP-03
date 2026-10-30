@@ -78,11 +78,30 @@ public class NoticeService {
     }
 
     /**
-     * Searches notices based on user role constraints.
+     * Searches notices based on user role constraints or department and status filter.
      */
-    public List<Notice> searchNotices(String keyword, String statusFilter, String role) {
-        boolean activeOnly = !isAdmin(role);
-        return noticeDAO.searchNotices(keyword, statusFilter, activeOnly);
+    public List<Notice> searchNotices(String keyword, String filter2, String filter3) {
+        if ("ADMIN".equalsIgnoreCase(filter3) || "LECTURER".equalsIgnoreCase(filter3) || "UNDERGRADUATE".equalsIgnoreCase(filter3)) {
+            boolean activeOnly = !isAdmin(filter3);
+            return noticeDAO.searchNotices(keyword, filter2, activeOnly);
+        }
+        return noticeDAO.searchNotices(keyword, filter2, filter3);
+    }
+
+    public List<Notice> searchNotices(String keyword) {
+        return noticeDAO.searchNotices(keyword, null, "ALL");
+    }
+
+    public List<Notice> getDepartmentNotices(String department, String statusMode) {
+        return noticeDAO.getDepartmentNotices(department, statusMode);
+    }
+
+    public void markNoticeAsRead(String noticeId) {
+        noticeDAO.markNoticeAsRead(noticeId);
+    }
+
+    public int getUnreadCount(String department) {
+        return noticeDAO.getUnreadCount(department);
     }
 
     /**

@@ -10,9 +10,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Data Access Object for Academic Notices in FAMS.
@@ -20,6 +22,8 @@ import java.util.Map;
  * search filtering, auto-ID generation, and creator joins.
  */
 public class NoticeDAO {
+
+    private final Set<String> readNoticeIds = new HashSet<>();
 
     private static final String BASE_SELECT =
             "SELECT n.notice_id, n.title, n.description, n.notice_date, n.created_by, n.status, " +
@@ -349,6 +353,66 @@ public class NoticeDAO {
         }
         n.setCreatorUsername(creatorUsername != null ? creatorUsername : "");
 
+        if (readNoticeIds.contains(n.getNoticeId())) {
+            n.setRead(true);
+        }
+
         return n;
+    }
+
+    public List<Notice> getNoticesByStatus(String statusMode) {
+        List<Notice> all = getAllNotices();
+        if (statusMode == null || "ALL".equalsIgnoreCase(statusMode.trim())) {
+            return all;
+        }
+
+        String mode = statusMode.trim().toUpperCase();
+        List<Notice> filtered = new ArrayList<>();
+        for (Notice n : all) {
+            if (mode.equalsIgnoreCase(n.getStatus())) {
+                filtered.add(n);
+            }
+        }
+        return filtered;
+    }
+
+    public List<Notice> getDepartmentNotices(String department, String statusMode) {
+        return getNoticesByStatus(statusMode);
+    }
+
+    public List<Notice> searchNotices(String keyword, String department, String statusMode) {
+        List<Notice> base = getNoticesByStatus(statusMode);
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return base;
+        }
+
+        String kw = keyword.trim().toLowerCase();
+        List<Notice> result = new ArrayList<>();
+        for (Notice n : base) {
+            if ((n.getTitle() != null && n.getTitle().toLowerCase().contains(kw))
+                    || (n.getDescription() != null && n.getDescription().toLowerCase().contains(kw))
+                    || (n.getCreatorName() != null && n.getCreatorName().toLowerCase().contains(kw))
+                    || (n.getNoticeId() != null && n.getNoticeId().toLowerCase().contains(kw))) {
+                result.add(n);
+            }
+        }
+        return result;
+    }
+
+    public void markNoticeAsRead(String noticeId) {
+        if (noticeId != null) {
+            readNoticeIds.add(noticeId.trim());
+        }
+    }
+
+    public int getUnreadCount(String department) {
+        List<Notice> notices = getActiveNotices();
+        int count = 0;
+        for (Notice n : notices) {
+            if (!readNoticeIds.contains(n.getNoticeId())) {
+                count++;
+            }
+        }
+        return count;
     }
 }

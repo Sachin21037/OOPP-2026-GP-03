@@ -169,6 +169,14 @@ public class TimetableEntry {
         return str;
     }
 
+    public boolean isLabSession() {
+        return venue != null && venue.toLowerCase().contains("lab");
+    }
+
+    public String getSessionType() {
+        return isLabSession() ? "LAB PRACTICAL" : "LECTURE";
+    }
+
     public String getCourseDisplay() {
         if (courseCode != null && !courseCode.isBlank()) {
             return courseCode + " - " + (courseName != null ? courseName : "");

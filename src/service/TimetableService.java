@@ -97,6 +97,43 @@ public class TimetableService {
         return timetableDAO.searchTimetables(keyword, dayFilter, batchFilter, departmentFilter);
     }
 
+    public List<TimetableEntry> getTimetablesForDepartment(String department) {
+        return timetableDAO.getTimetablesForDepartment(department);
+    }
+
+    public List<String> getAvailableDepartments() {
+        return timetableDAO.getAvailableDepartments();
+    }
+
+    public List<String> getAvailableAcademicYears() {
+        return timetableDAO.getAvailableAcademicYears();
+    }
+
+    public List<String> getAvailableSemesters() {
+        return timetableDAO.getAvailableSemesters();
+    }
+
+    public List<TimetableEntry> searchTimetables(String keyword, String dayFilter, String department) {
+        return timetableDAO.searchTimetables(keyword, dayFilter, department);
+    }
+
+    public List<TimetableEntry> searchTimetables(String keyword, String dayFilter, String department,
+                                                 String sessionType, String academicYear, String semester) {
+        return timetableDAO.searchTimetables(keyword, dayFilter, department, sessionType, academicYear, semester);
+    }
+
+    public String getNextTimetableId() {
+        return timetableDAO.getNextTimetableId();
+    }
+
+    public boolean createTimetableEntry(TimetableEntry entry) {
+        return timetableDAO.addTimetableEntry(entry);
+    }
+
+    public boolean deleteTimetableEntry(String timetableId) {
+        return timetableDAO.deleteTimetableEntry(timetableId);
+    }
+
     /**
      * Suggests next sequential ID.
      */

@@ -7,7 +7,7 @@ import java.time.temporal.ChronoUnit;
 /**
  * Model class representing an Academic Notice in FAMS.
  * Maps directly to the 'notices' table and encapsulates notice details,
- * publishing metadata, advance scheduling, and status.
+ * publishing metadata, advance scheduling, status, department targeting, and attachments.
  */
 public class Notice {
 
@@ -23,6 +23,13 @@ public class Notice {
     private String creatorName;     // e.g. "System Administrator"
     private String creatorUsername; // e.g. "admin001"
 
+    // Department & attachment & portal metadata
+    private Date expiryDate;        // Expiry date for circular/notice
+    private String targetDepartment;// e.g. "Information and Communication Technology" or "Faculty-wide"
+    private String attachmentName;  // e.g. "Mid_Semester_Exam_Timetable_2026.pdf"
+    private boolean urgent;         // High priority / urgent flag
+    private boolean read;           // Read vs unread indicator for officer
+
     // Additional fields for advance announcements (Quizzes, Assignments, Exams)
     private String courseCode;
     private String courseName;
@@ -35,6 +42,10 @@ public class Notice {
         this.status = "ACTIVE";
         this.noticeType = "GENERAL";
         this.noticeDate = Date.valueOf(LocalDate.now());
+        this.expiryDate = Date.valueOf(LocalDate.now().plusDays(30));
+        this.targetDepartment = "Information and Communication Technology";
+        this.urgent = false;
+        this.read = false;
     }
 
     public Notice(String noticeId, String title, String description, Date noticeDate, String createdBy, String status) {
@@ -44,7 +55,13 @@ public class Notice {
         this.noticeDate = noticeDate;
         this.createdBy = createdBy;
         this.status = (status != null && !status.isBlank()) ? status.toUpperCase() : "ACTIVE";
+        if (noticeDate != null) {
+            this.expiryDate = Date.valueOf(noticeDate.toLocalDate().plusDays(30));
+        }
+        this.targetDepartment = "Information and Communication Technology";
+        this.urgent = computeUrgency(title, description);
         this.noticeType = inferType(title, description);
+        this.read = false;
     }
 
     public Notice(String noticeId, String title, String description, Date noticeDate, String createdBy, String authorName, String status) {
@@ -58,6 +75,30 @@ public class Notice {
         this.creatorName = creatorName;
         this.creatorUsername = creatorUsername;
         this.authorName = creatorName;
+    }
+
+    public Notice(String noticeId, String title, String description, Date noticeDate, Date expiryDate,
+                  String createdBy, String status, String targetDepartment, String attachmentName,
+                  boolean urgent, String creatorName) {
+        this.noticeId = noticeId;
+        this.title = title;
+        this.description = description;
+        this.noticeDate = noticeDate;
+        this.expiryDate = expiryDate;
+        this.createdBy = createdBy;
+        this.status = (status != null && !status.isBlank()) ? status.toUpperCase() : "ACTIVE";
+        this.targetDepartment = targetDepartment;
+        this.attachmentName = attachmentName;
+        this.urgent = urgent || computeUrgency(title, description);
+        this.creatorName = creatorName;
+        this.authorName = creatorName;
+        this.noticeType = inferType(title, description);
+        this.read = false;
+    }
+
+    private static boolean computeUrgency(String title, String desc) {
+        String combined = ((title != null ? title : "") + " " + (desc != null ? desc : "")).toLowerCase();
+        return combined.contains("urgent") || combined.contains("exam") || combined.contains("deadline") || combined.contains("immediate");
     }
 
     // Getters and Setters
@@ -75,6 +116,9 @@ public class Notice {
 
     public void setTitle(String title) {
         this.title = title;
+        if (computeUrgency(title, this.description)) {
+            this.urgent = true;
+        }
         if (this.noticeType == null || "GENERAL".equalsIgnoreCase(this.noticeType)) {
             this.noticeType = inferType(title, this.description);
         }
@@ -86,6 +130,9 @@ public class Notice {
 
     public void setDescription(String description) {
         this.description = description;
+        if (computeUrgency(this.title, description)) {
+            this.urgent = true;
+        }
         if (this.noticeType == null || "GENERAL".equalsIgnoreCase(this.noticeType)) {
             this.noticeType = inferType(this.title, description);
         }
@@ -97,6 +144,14 @@ public class Notice {
 
     public void setNoticeDate(Date noticeDate) {
         this.noticeDate = noticeDate;
+    }
+
+    public Date getExpiryDate() {
+        return expiryDate;
+    }
+
+    public void setExpiryDate(Date expiryDate) {
+        this.expiryDate = expiryDate;
     }
 
     public String getCreatedBy() {
@@ -143,6 +198,42 @@ public class Notice {
 
     public void setCreatorUsername(String creatorUsername) {
         this.creatorUsername = creatorUsername;
+    }
+
+    public String getTargetDepartment() {
+        return (targetDepartment != null && !targetDepartment.isBlank()) ? targetDepartment : "Faculty-wide";
+    }
+
+    public void setTargetDepartment(String targetDepartment) {
+        this.targetDepartment = targetDepartment;
+    }
+
+    public String getAttachmentName() {
+        return attachmentName;
+    }
+
+    public void setAttachmentName(String attachmentName) {
+        this.attachmentName = attachmentName;
+    }
+
+    public boolean hasAttachment() {
+        return attachmentName != null && !attachmentName.isBlank();
+    }
+
+    public boolean isUrgent() {
+        return urgent;
+    }
+
+    public void setUrgent(boolean urgent) {
+        this.urgent = urgent;
+    }
+
+    public boolean isRead() {
+        return read;
+    }
+
+    public void setRead(boolean read) {
+        this.read = read;
     }
 
     public String getCourseCode() {
@@ -231,12 +322,23 @@ public class Notice {
     }
 
     public boolean isActive() {
-        return "ACTIVE".equalsIgnoreCase(this.status);
+        return "ACTIVE".equalsIgnoreCase(this.status) && !isExpired();
+    }
+
+    public boolean isExpired() {
+        if (expiryDate == null) return false;
+        Date today = Date.valueOf(LocalDate.now());
+        return expiryDate.before(today);
     }
 
     public String getFormattedDate() {
         if (noticeDate == null) return "N/A";
         return noticeDate.toString();
+    }
+
+    public String getFormattedExpiryDate() {
+        if (expiryDate == null) return "No Expiry";
+        return expiryDate.toString();
     }
 
     public String getShortDescription(int maxLength) {
@@ -252,8 +354,10 @@ public class Notice {
                 "noticeId='" + noticeId + '\'' +
                 ", title='" + title + '\'' +
                 ", noticeDate=" + noticeDate +
-                ", createdBy='" + createdBy + '\'' +
+                ", expiryDate=" + expiryDate +
+                ", department='" + targetDepartment + '\'' +
                 ", status='" + status + '\'' +
+                ", urgent=" + urgent +
                 '}';
     }
 }

@@ -7,6 +7,7 @@ import ui.admin.AdminDashboard;
 import ui.admin.NoticeViewerFrame;
 import ui.admin.TimetableViewerFrame;
 import ui.student.StudentDashboard;
+import ui.technicalofficer.TechnicalOfficerDashboard;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -636,6 +637,14 @@ public class LoginFrame extends JFrame {
                                 dash.setVisible(true);
                                 dash.navigateToSection("Announcements");
                             });
+                        } else if ("TECHNICAL_OFFICER".equalsIgnoreCase(role)) {
+                            final String finalOfficerId = (userId != null && !userId.isBlank()) ? userId : "TO001";
+                            final String finalOfficerName = displayName;
+                            SwingUtilities.invokeLater(() -> {
+                                TechnicalOfficerDashboard toDash = new TechnicalOfficerDashboard(finalOfficerId, finalOfficerName);
+                                toDash.setVisible(true);
+                            });
+                            dispose();
                         } else {
                             String roleName = formatRoleName(role);
                             Object[] options = {"View Academic Timetable", "View Notices", "Close"};

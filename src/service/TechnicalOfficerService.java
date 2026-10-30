@@ -1,9 +1,11 @@
 package service;
 
 import dao.TechnicalOfficerDAO;
+import model.LabFacility;
 import model.TechnicalOfficer;
 
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -16,6 +18,8 @@ public class TechnicalOfficerService {
 
     private static TechnicalOfficerService instance;
     private final TechnicalOfficerDAO technicalOfficerDAO;
+    private LabMaintenanceService labService;
+    private MedicalService medicalService;
 
     // Email validation regex: standard RFC 5322 simplified
     private static final Pattern EMAIL_PATTERN =
@@ -53,6 +57,77 @@ public class TechnicalOfficerService {
     public TechnicalOfficer getTechnicalOfficerById(String toId) {
         if (toId == null || toId.isBlank()) return null;
         return technicalOfficerDAO.getTechnicalOfficerById(toId.trim());
+    }
+
+    private synchronized LabMaintenanceService getLabService() {
+        if (labService == null) {
+            labService = new LabMaintenanceService();
+        }
+        return labService;
+    }
+
+    private synchronized MedicalService getMedicalService() {
+        if (medicalService == null) {
+            medicalService = new MedicalService();
+        }
+        return medicalService;
+    }
+
+    public TechnicalOfficer getProfile(String officerId) {
+        return technicalOfficerDAO.getOfficerById(officerId);
+    }
+
+    public boolean updateProfile(TechnicalOfficer officer) {
+        if (officer == null) return false;
+        if (officer.getFirstName() == null || officer.getFirstName().trim().isEmpty()) return false;
+        if (officer.getEmail() == null || !officer.getEmail().contains("@")) return false;
+        return technicalOfficerDAO.updateOfficer(officer);
+    }
+
+    public boolean changePassword(String officerId, String currentPassword, String newPassword) {
+        if (newPassword == null || newPassword.length() < 6) {
+            return false;
+        }
+        return technicalOfficerDAO.changePassword(officerId, currentPassword, newPassword);
+    }
+
+    public List<String[]> getAuditLogs() {
+        return technicalOfficerDAO.getAuditLogs();
+    }
+
+    public void addAuditLog(String category, String description, String status) {
+        technicalOfficerDAO.addAuditLog(category, description, status);
+    }
+
+    public List<LabFacility> getAssignedLabs() {
+        return getLabService().getAllLabs();
+    }
+
+    public Map<String, Object> getProfileStats() {
+        Map<String, Object> stats = new HashMap<>();
+        List<LabFacility> labs = getLabService().getAllLabs();
+
+        int totalLabs = labs.size();
+        int totalWorkstations = 0;
+        int operationalWorkstations = 0;
+
+        for (LabFacility lab : labs) {
+            totalWorkstations += lab.getTotalWorkstations();
+            operationalWorkstations += lab.getOperationalWorkstations();
+        }
+
+        double uptime = totalWorkstations > 0 ? ((double) operationalWorkstations / totalWorkstations) * 100.0 : 100.0;
+        int maintenanceTickets = getLabService().getAllMaintenanceRecords().size();
+        int medicalsProcessed = getMedicalService().getAllMedicals().size();
+
+        stats.put("totalLabs", totalLabs);
+        stats.put("totalWorkstations", totalWorkstations);
+        stats.put("operationalWorkstations", operationalWorkstations);
+        stats.put("uptimePercentage", String.format("%.1f%%", uptime));
+        stats.put("maintenanceTickets", maintenanceTickets);
+        stats.put("medicalsProcessed", medicalsProcessed);
+
+        return stats;
     }
 
     /**

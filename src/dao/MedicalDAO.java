@@ -179,7 +179,7 @@ public class MedicalDAO {
         for (Medical m : mockMedicals) {
             if (studentCode.equalsIgnoreCase(m.getStudentCode()) ||
                 studentCode.equalsIgnoreCase(m.getIndexNo()) ||
-                (studentCode.matches("\\d+") && m.getStudentId() == Integer.parseInt(studentCode))) {
+                (studentCode.matches("\\d+") && m.getStudentId() != null && m.getStudentId().replaceAll("\\D+", "").equals(studentCode))) {
                 filtered.add(m);
             }
         }

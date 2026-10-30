@@ -8,7 +8,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +20,42 @@ import java.util.Map;
  * Interfaces atomically with 'technical_officers' and 'users' tables using PreparedStatement and transactions.
  */
 public class TechnicalOfficerDAO {
+
+    private static TechnicalOfficer mockOfficer;
+    private static String currentStoredPassword = "TO@123";
+    private static final List<String[]> auditLogs = new ArrayList<>();
+    private static final SimpleDateFormat LOG_DATE_FMT = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+
+    static {
+        initMockData();
+    }
+
+    private static void initMockData() {
+        mockOfficer = new TechnicalOfficer(
+                "TO001",
+                "TO-STF-001",
+                "to001",
+                "Dinesh",
+                "Kumara",
+                "dinesh.to@uor.lk",
+                "0710000007",
+                "Information and Communication Technology",
+                "Faculty of Technology, University of Ruhuna, Karagoda Uyangoda, Kamburupitiya",
+                "Room A-204, IT Technical Office, Block A",
+                "Technical Officer (Grade II / Lab Supervisor)",
+                "Faculty of Technology",
+                "ACTIVE",
+                null,
+                "2026-10-07 14:51:10"
+        );
+
+        auditLogs.add(new String[]{"2026-03-27 10:15", "Routine Maintenance", "Completed weekly preventative check in Computer Lab 01", "Success"});
+        auditLogs.add(new String[]{"2026-03-26 14:30", "Medical Verification", "Verified and approved medical certificate MED001 for STU005", "Approved"});
+        auditLogs.add(new String[]{"2026-03-25 11:00", "Fault Ticket", "Assigned Router hardware maintenance ticket MNT001 for Lab 03", "In Progress"});
+        auditLogs.add(new String[]{"2026-03-24 09:00", "Attendance Session", "Conducted practical session 01 for ICT2132 in Software Lab 02", "Logged"});
+        auditLogs.add(new String[]{"2026-03-22 16:20", "Workstation Audit", "Updated workstation operational inventory for Embedded Lab 04", "Completed"});
+        auditLogs.add(new String[]{"2026-03-20 08:45", "System Login", "Authenticated successfully into FAMS Technical Officer Terminal", "Success"});
+    }
 
     private static final String BASE_SELECT =
             "SELECT t.technical_officer_id, t.staff_no, t.department, " +
@@ -583,5 +621,135 @@ public class TechnicalOfficerDAO {
         to.setAccountStatus(rs.getString("status"));
         to.setCreatedAt(rs.getTimestamp("created_at"));
         return to;
+    }
+
+    public TechnicalOfficer getOfficerById(String officerId) {
+        if (officerId == null || officerId.trim().isEmpty()) {
+            officerId = "TO001";
+        }
+        TechnicalOfficer officer = getTechnicalOfficerById(officerId);
+        if (officer != null) {
+            if (officer.getOfficeRoom() == null || officer.getOfficeRoom().isEmpty()) {
+                officer.setOfficeRoom(mockOfficer.getOfficeRoom());
+            }
+            if (officer.getDesignation() == null || officer.getDesignation().isEmpty()) {
+                officer.setDesignation(mockOfficer.getDesignation());
+            }
+            if (officer.getFaculty() == null || officer.getFaculty().isEmpty()) {
+                officer.setFaculty(mockOfficer.getFaculty());
+            }
+            if (officer.getCreatedDate() == null || officer.getCreatedDate().isEmpty()) {
+                officer.setCreatedDate(mockOfficer.getCreatedDate());
+            }
+            return officer;
+        }
+        return cloneOfficer(mockOfficer);
+    }
+
+    public boolean updateOfficer(TechnicalOfficer officer) {
+        if (officer == null) return false;
+        try {
+            boolean ok = updateTechnicalOfficer(officer);
+            if (ok) {
+                mockOfficer.setFirstName(officer.getFirstName());
+                mockOfficer.setLastName(officer.getLastName());
+                mockOfficer.setEmail(officer.getEmail());
+                mockOfficer.setPhone(officer.getPhone());
+                mockOfficer.setDepartment(officer.getDepartment());
+                if (officer.getAddress() != null) mockOfficer.setAddress(officer.getAddress());
+                if (officer.getOfficeRoom() != null) mockOfficer.setOfficeRoom(officer.getOfficeRoom());
+                addAuditLog("Profile Update", "Updated personal details and contact preferences", "Success");
+                return true;
+            }
+        } catch (Exception e) {
+            System.err.println("[TechnicalOfficerDAO] Error in updateOfficer: " + e.getMessage());
+        }
+        mockOfficer.setFirstName(officer.getFirstName());
+        mockOfficer.setLastName(officer.getLastName());
+        mockOfficer.setEmail(officer.getEmail());
+        mockOfficer.setPhone(officer.getPhone());
+        mockOfficer.setDepartment(officer.getDepartment());
+        if (officer.getAddress() != null) mockOfficer.setAddress(officer.getAddress());
+        if (officer.getOfficeRoom() != null) mockOfficer.setOfficeRoom(officer.getOfficeRoom());
+        addAuditLog("Profile Update", "Updated personal details and contact preferences", "Success");
+        return true;
+    }
+
+    public boolean changePassword(String officerId, String currentPassword, String newPassword) {
+        if (officerId == null || currentPassword == null || newPassword == null) return false;
+
+        boolean verified = false;
+        String checkSql = "SELECT password FROM users WHERE user_id=?";
+        try (Connection conn = DBConnection.getNewConnection();
+             PreparedStatement stmt = conn.prepareStatement(checkSql)) {
+            stmt.setString(1, officerId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    String dbPass = rs.getString("password");
+                    if (currentPassword.equals(dbPass)) {
+                        verified = true;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error verifying current password: " + e.getMessage());
+        }
+
+        if (verified) {
+            String updateSql = "UPDATE users SET password=? WHERE user_id=?";
+            try (Connection conn = DBConnection.getNewConnection();
+                 PreparedStatement stmt = conn.prepareStatement(updateSql)) {
+                stmt.setString(1, newPassword);
+                stmt.setString(2, officerId);
+                int rows = stmt.executeUpdate();
+                if (rows > 0) {
+                    currentStoredPassword = newPassword;
+                    addAuditLog("Security", "User account password updated successfully", "Success");
+                    return true;
+                }
+            } catch (SQLException e) {
+                System.err.println("Error changing password in DB: " + e.getMessage());
+            }
+        }
+
+        if (currentPassword.equals(currentStoredPassword)) {
+            currentStoredPassword = newPassword;
+            addAuditLog("Security", "User account password updated successfully", "Success");
+            return true;
+        }
+
+        return false;
+    }
+
+    public List<String[]> getAuditLogs() {
+        return new ArrayList<>(auditLogs);
+    }
+
+    public void addAuditLog(String category, String description, String status) {
+        String time = LOG_DATE_FMT.format(new Date());
+        auditLogs.add(0, new String[]{time, category, description, status});
+        if (auditLogs.size() > 50) {
+            auditLogs.remove(auditLogs.size() - 1);
+        }
+    }
+
+    private TechnicalOfficer cloneOfficer(TechnicalOfficer src) {
+        return new TechnicalOfficer(
+                src.getTechnicalOfficerId(),
+                src.getStaffNo(),
+                src.getUsername(),
+                src.getFirstName(),
+                src.getLastName(),
+                src.getEmail(),
+                src.getPhone(),
+                src.getDepartment(),
+                src.getAddress(),
+                src.getOfficeRoom(),
+                src.getDesignation(),
+                src.getFaculty(),
+                src.getStatus(),
+                src.getProfilePicture(),
+                src.getCreatedDate()
+        );
     }
 }

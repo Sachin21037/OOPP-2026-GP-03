@@ -497,4 +497,150 @@ public class TimetableDAO {
 
         return e;
     }
+
+    public List<String> getAvailableDepartments() {
+        List<String> depts = new ArrayList<>();
+        String sql = "SELECT DISTINCT department FROM timetables WHERE department IS NOT NULL AND department != '' ORDER BY department ASC";
+        try (Connection conn = DBConnection.getNewConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                String d = rs.getString("department");
+                if (d != null && !d.isBlank() && !depts.contains(d)) {
+                    depts.add(d);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[TimetableDAO ERROR] getAvailableDepartments failed: " + e.getMessage());
+        }
+        if (!depts.contains("Information and Communication Technology")) {
+            depts.add(0, "Information and Communication Technology");
+        }
+        return depts;
+    }
+
+    public List<String> getAvailableAcademicYears() {
+        List<String> years = new ArrayList<>();
+        years.add("All Years");
+        years.add("2026/2027");
+        years.add("2025/2026");
+        years.add("2024/2025");
+        return years;
+    }
+
+    public List<String> getAvailableSemesters() {
+        List<String> semesters = new ArrayList<>();
+        semesters.add("All Semesters");
+        semesters.add("SEMESTER 1");
+        semesters.add("SEMESTER 2");
+        return semesters;
+    }
+
+    public List<TimetableEntry> searchTimetables(String keyword, String dayFilter, String department) {
+        return searchTimetables(keyword, dayFilter, department, "All Sessions", "All Years", "All Semesters");
+    }
+
+    public List<TimetableEntry> searchTimetables(String keyword, String dayFilter, String department,
+                                                 String sessionType, String academicYear, String semester) {
+        List<TimetableEntry> source;
+        if (department == null || department.isBlank() || department.equalsIgnoreCase("All Departments")) {
+            source = getAllTimetables();
+        } else {
+            source = getTimetablesForDepartment(department);
+        }
+
+        String kw = (keyword != null) ? keyword.trim().toLowerCase() : "";
+        String day = (dayFilter != null && !dayFilter.equalsIgnoreCase("All Days")) ? dayFilter.trim().toUpperCase() : "";
+        String type = (sessionType != null) ? sessionType.trim().toLowerCase() : "all sessions";
+        String targetYear = (academicYear != null && !academicYear.equalsIgnoreCase("All Years")) ? academicYear.trim() : "";
+        String targetSem = (semester != null && !semester.equalsIgnoreCase("All Semesters")) ? semester.trim().toUpperCase() : "";
+
+        List<TimetableEntry> filtered = new ArrayList<>();
+        for (TimetableEntry e : source) {
+            boolean matchesDay = day.isEmpty() || (e.getDayOfWeek() != null && e.getDayOfWeek().equalsIgnoreCase(day));
+
+            boolean matchesKw = kw.isEmpty()
+                    || (e.getCourseCode() != null && e.getCourseCode().toLowerCase().contains(kw))
+                    || (e.getCourseName() != null && e.getCourseName().toLowerCase().contains(kw))
+                    || (e.getVenue() != null && e.getVenue().toLowerCase().contains(kw))
+                    || (e.getLecturers() != null && e.getLecturers().toLowerCase().contains(kw))
+                    || (e.getDepartment() != null && e.getDepartment().toLowerCase().contains(kw));
+
+            boolean matchesType = true;
+            if (type.contains("lab") || type.contains("practical")) {
+                matchesType = e.isLabSession();
+            } else if (type.contains("lecture")) {
+                matchesType = !e.isLabSession();
+            }
+
+            boolean matchesYear = targetYear.isEmpty()
+                    || (e.getAcademicYear() != null && e.getAcademicYear().equalsIgnoreCase(targetYear));
+
+            boolean matchesSem = targetSem.isEmpty()
+                    || (e.getSemester() != null && e.getSemester().equalsIgnoreCase(targetSem));
+
+            if (matchesDay && matchesKw && matchesType && matchesYear && matchesSem) {
+                filtered.add(e);
+            }
+        }
+        return filtered;
+    }
+
+    public String getNextTimetableId() {
+        int maxId = 0;
+        List<TimetableEntry> all = getAllTimetables();
+        for (TimetableEntry e : all) {
+            String tid = e.getTimetableId();
+            if (tid != null && tid.toUpperCase().startsWith("TBL")) {
+                try {
+                    int num = Integer.parseInt(tid.substring(3).trim());
+                    if (num > maxId) {
+                        maxId = num;
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+        }
+        return String.format("TBL%03d", maxId + 1);
+    }
+
+    public boolean addTimetableEntry(TimetableEntry entry) {
+        if (entry == null) return false;
+        if (entry.getTimetableId() == null || entry.getTimetableId().isBlank()) {
+            entry.setTimetableId(getNextTimetableId());
+        }
+
+        String sql = "INSERT INTO timetables (timetable_id, offering_id, day_of_week, start_time, end_time, venue, batch, department) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DBConnection.getNewConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, entry.getTimetableId());
+            ps.setString(2, entry.getOfferingId() != null ? entry.getOfferingId() : "OFF001");
+            ps.setString(3, entry.getDayOfWeek() != null ? entry.getDayOfWeek().toUpperCase() : "MONDAY");
+            ps.setTime(4, entry.getStartTime() != null ? entry.getStartTime() : Time.valueOf("08:30:00"));
+            ps.setTime(5, entry.getEndTime() != null ? entry.getEndTime() : Time.valueOf("10:30:00"));
+            ps.setString(6, entry.getVenue() != null ? entry.getVenue() : "ICT Lab 01");
+            ps.setString(7, entry.getBatch() != null ? entry.getBatch() : "2024/2025");
+            ps.setString(8, entry.getDepartment() != null ? entry.getDepartment() : "Information and Communication Technology");
+
+            ps.executeUpdate();
+            return true;
+        } catch (SQLException ex) {
+            System.err.println("[TimetableDAO ERROR] addTimetableEntry failed: " + ex.getMessage());
+        }
+        return false;
+    }
+
+    public boolean deleteTimetableEntry(String timetableId) {
+        if (timetableId == null) return false;
+        String sql = "DELETE FROM timetables WHERE timetable_id = ?";
+        try (Connection conn = DBConnection.getNewConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, timetableId);
+            ps.executeUpdate();
+            return true;
+        } catch (SQLException ex) {
+            System.err.println("[TimetableDAO ERROR] deleteTimetableEntry failed: " + ex.getMessage());
+        }
+        return false;
+    }
 }
