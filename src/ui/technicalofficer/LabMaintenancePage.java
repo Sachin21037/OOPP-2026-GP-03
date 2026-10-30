@@ -226,7 +226,7 @@ public class LabMaintenancePage extends JPanel {
         tab2Btn.addActionListener(e -> switchTab(2));
         tab3Btn.addActionListener(e -> switchTab(3));
 
-        JButton timetableBtn = createTabButton("🗓️ View Lab Timetable", false);
+        JButton timetableBtn = createTabButton("View Lab Timetable", false);
         timetableBtn.setPreferredSize(new Dimension(175, 34));
         timetableBtn.setToolTipText("Check Department Timetable & Lab Sessions");
         timetableBtn.addActionListener(e -> {

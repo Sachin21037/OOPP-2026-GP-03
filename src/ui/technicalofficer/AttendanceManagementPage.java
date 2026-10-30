@@ -268,7 +268,7 @@ public class AttendanceManagementPage extends JPanel {
         JButton removeRowBtn = createStyledButton("- Remove Student", Color.WHITE, textDark);
         removeRowBtn.addActionListener(e -> removeSelectedRosterRow());
 
-        JButton viewTimetableBtn = createStyledButton("🗓️ Academic Timetable", Color.WHITE, darkNavy);
+        JButton viewTimetableBtn = createStyledButton("Academic Timetable", Color.WHITE, darkNavy);
         viewTimetableBtn.setToolTipText("Open Department Timetable & Session Schedule");
         viewTimetableBtn.addActionListener(e -> {
             if (onNavigateToTimetable != null) {

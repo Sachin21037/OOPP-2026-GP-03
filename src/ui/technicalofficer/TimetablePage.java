@@ -12,6 +12,8 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
+import javax.swing.RowSorter;
+import javax.swing.SortOrder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -163,37 +165,47 @@ public class TimetablePage extends JPanel {
     }
 
     private JPanel createHeaderPanel() {
-        JPanel header = new JPanel(new BorderLayout(16, 0));
+        JPanel header = new JPanel(new BorderLayout(0, 10));
         header.setOpaque(false);
 
-        JPanel titleBox = new JPanel(new GridLayout(2, 1, 0, 4));
+        // Top Row: Title + Subtitle on LEFT, Quick Action Buttons on RIGHT
+        JPanel topRow = new JPanel(new BorderLayout(16, 0));
+        topRow.setOpaque(false);
+
+        JPanel titleBox = new JPanel(new GridLayout(2, 1, 0, 3));
         titleBox.setOpaque(false);
 
         JLabel title = new JLabel("Department Academic Timetables");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(textDark);
 
         subtitleLabel = new JLabel("Weekly lecture, laboratory, and tutorial schedule for " + officerDepartment);
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         subtitleLabel.setForeground(textMuted);
 
         titleBox.add(title);
         titleBox.add(subtitleLabel);
 
-        // Stats Badges + Quick Actions
-        JPanel statsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        statsPanel.setOpaque(false);
+        // Action Buttons Row (Right) - All with BLACK letters as requested
+        JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actionsPanel.setOpaque(false);
 
-        totalSlotsBadge = createStatBadge("Total Slots: 0", new Color(241, 245, 249), textDark);
-        labSlotsBadge = createStatBadge("Lab Practicals: 0", new Color(204, 251, 241), tealLab);
-        lectureSlotsBadge = createStatBadge("Lectures: 0", new Color(243, 232, 255), purpleLec);
+        JButton createSlotBtn = new JButton("Create Timetable Slot");
+        createSlotBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        createSlotBtn.setForeground(Color.BLACK);
+        createSlotBtn.setBackground(new Color(230, 242, 255));
+        createSlotBtn.setFocusPainted(false);
+        createSlotBtn.setBorder(new CompoundBorder(new LineBorder(primaryBlue, 1), new EmptyBorder(7, 14, 7, 14)));
+        createSlotBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        createSlotBtn.setToolTipText("Create and schedule a new academic timetable session for this department");
+        createSlotBtn.addActionListener(e -> showCreateTimetableDialog());
 
         JButton resetDeptBtn = new JButton("My Department");
         resetDeptBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        resetDeptBtn.setForeground(Color.WHITE);
-        resetDeptBtn.setBackground(darkNavy);
+        resetDeptBtn.setForeground(Color.BLACK);
+        resetDeptBtn.setBackground(Color.WHITE);
         resetDeptBtn.setFocusPainted(false);
-        resetDeptBtn.setBorder(new CompoundBorder(new LineBorder(darkNavy, 1), new EmptyBorder(7, 14, 7, 14)));
+        resetDeptBtn.setBorder(new CompoundBorder(new LineBorder(new Color(203, 213, 225), 1), new EmptyBorder(7, 14, 7, 14)));
         resetDeptBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         resetDeptBtn.setToolTipText("Filter back directly to your assigned department timetable");
         resetDeptBtn.addActionListener(e -> {
@@ -204,16 +216,16 @@ public class TimetablePage extends JPanel {
 
         JButton refreshBtn = new JButton("Refresh");
         refreshBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        refreshBtn.setForeground(primaryBlue);
+        refreshBtn.setForeground(Color.BLACK);
         refreshBtn.setBackground(Color.WHITE);
         refreshBtn.setFocusPainted(false);
         refreshBtn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(7, 14, 7, 14)));
         refreshBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         refreshBtn.addActionListener(e -> refreshTimetable());
 
-        JButton viewNoticesBtn = new JButton("📢 Department Notices");
+        JButton viewNoticesBtn = new JButton("Department Notices");
         viewNoticesBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        viewNoticesBtn.setForeground(textDark);
+        viewNoticesBtn.setForeground(Color.BLACK);
         viewNoticesBtn.setBackground(Color.WHITE);
         viewNoticesBtn.setFocusPainted(false);
         viewNoticesBtn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(7, 14, 7, 14)));
@@ -225,26 +237,28 @@ public class TimetablePage extends JPanel {
             }
         });
 
-        JButton createSlotBtn = new JButton("➕ Create Timetable Slot");
-        createSlotBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        createSlotBtn.setForeground(Color.WHITE);
-        createSlotBtn.setBackground(primaryBlue);
-        createSlotBtn.setFocusPainted(false);
-        createSlotBtn.setBorder(new CompoundBorder(new LineBorder(primaryBlue, 1), new EmptyBorder(7, 14, 7, 14)));
-        createSlotBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        createSlotBtn.setToolTipText("Create and schedule a new academic timetable session for this department");
-        createSlotBtn.addActionListener(e -> showCreateTimetableDialog());
+        actionsPanel.add(createSlotBtn);
+        actionsPanel.add(resetDeptBtn);
+        actionsPanel.add(refreshBtn);
+        actionsPanel.add(viewNoticesBtn);
 
-        statsPanel.add(totalSlotsBadge);
-        statsPanel.add(labSlotsBadge);
-        statsPanel.add(lectureSlotsBadge);
-        statsPanel.add(createSlotBtn);
-        statsPanel.add(resetDeptBtn);
-        statsPanel.add(refreshBtn);
-        statsPanel.add(viewNoticesBtn);
+        topRow.add(titleBox, BorderLayout.WEST);
+        topRow.add(actionsPanel, BorderLayout.EAST);
 
-        header.add(titleBox, BorderLayout.WEST);
-        header.add(statsPanel, BorderLayout.EAST);
+        // Bottom Row: Summary Badges positioned cleanly on their own row
+        JPanel statsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        statsRow.setOpaque(false);
+
+        totalSlotsBadge = createStatBadge("Total Slots: 0", new Color(241, 245, 249), Color.BLACK);
+        labSlotsBadge = createStatBadge("Lab Practicals: 0", new Color(204, 251, 241), Color.BLACK);
+        lectureSlotsBadge = createStatBadge("Lectures: 0", new Color(243, 232, 255), Color.BLACK);
+
+        statsRow.add(totalSlotsBadge);
+        statsRow.add(labSlotsBadge);
+        statsRow.add(lectureSlotsBadge);
+
+        header.add(topRow, BorderLayout.NORTH);
+        header.add(statsRow, BorderLayout.SOUTH);
 
         return header;
     }
@@ -264,17 +278,17 @@ public class TimetablePage extends JPanel {
         badge.setFont(new Font("Segoe UI", Font.BOLD, 12));
         badge.setForeground(fg);
         badge.setOpaque(false);
-        badge.setBorder(new EmptyBorder(6, 14, 6, 14));
+        badge.setBorder(new EmptyBorder(5, 12, 5, 12));
         return badge;
     }
 
     private JPanel createFilterAndControlsPanel() {
-        JPanel container = new JPanel(new BorderLayout(0, 12));
+        JPanel container = new JPanel(new BorderLayout(0, 10));
         container.setBackground(Color.WHITE);
-        container.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(14, 18, 14, 18)));
+        container.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(12, 16, 12, 16)));
 
-        // Top Row: Multi-criteria Filters
-        JPanel filtersRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
+        // Top Row: Multi-criteria Filters (All 5 fitted properly without clipping)
+        JPanel filtersRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
         filtersRow.setOpaque(false);
 
         // 1. Department Filter
@@ -282,7 +296,8 @@ public class TimetablePage extends JPanel {
         deptFilter = new JComboBox<>();
         deptFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         deptFilter.setBackground(Color.WHITE);
-        deptFilter.setPreferredSize(new Dimension(240, 32));
+        deptFilter.setForeground(Color.BLACK);
+        deptFilter.setPreferredSize(new Dimension(185, 30));
         populateDepartmentFilter();
         deptFilter.addActionListener(e -> applyFilters());
         filtersRow.add(deptFilter);
@@ -292,7 +307,8 @@ public class TimetablePage extends JPanel {
         academicYearFilter = new JComboBox<>(new String[]{"All Years", "2026/2027", "2025/2026", "2024/2025"});
         academicYearFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         academicYearFilter.setBackground(Color.WHITE);
-        academicYearFilter.setPreferredSize(new Dimension(115, 32));
+        academicYearFilter.setForeground(Color.BLACK);
+        academicYearFilter.setPreferredSize(new Dimension(95, 30));
         academicYearFilter.addActionListener(e -> applyFilters());
         filtersRow.add(academicYearFilter);
 
@@ -301,7 +317,8 @@ public class TimetablePage extends JPanel {
         semesterFilter = new JComboBox<>(new String[]{"All Semesters", "SEMESTER 1", "SEMESTER 2"});
         semesterFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         semesterFilter.setBackground(Color.WHITE);
-        semesterFilter.setPreferredSize(new Dimension(130, 32));
+        semesterFilter.setForeground(Color.BLACK);
+        semesterFilter.setPreferredSize(new Dimension(110, 30));
         semesterFilter.addActionListener(e -> applyFilters());
         filtersRow.add(semesterFilter);
 
@@ -310,7 +327,8 @@ public class TimetablePage extends JPanel {
         dayFilter = new JComboBox<>(new String[]{"All Days", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"});
         dayFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         dayFilter.setBackground(Color.WHITE);
-        dayFilter.setPreferredSize(new Dimension(120, 32));
+        dayFilter.setForeground(Color.BLACK);
+        dayFilter.setPreferredSize(new Dimension(100, 30));
         dayFilter.addActionListener(e -> applyFilters());
         filtersRow.add(dayFilter);
 
@@ -319,7 +337,8 @@ public class TimetablePage extends JPanel {
         sessionTypeFilter = new JComboBox<>(new String[]{"All Sessions", "Lab Practicals Only", "Lectures Only"});
         sessionTypeFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         sessionTypeFilter.setBackground(Color.WHITE);
-        sessionTypeFilter.setPreferredSize(new Dimension(145, 32));
+        sessionTypeFilter.setForeground(Color.BLACK);
+        sessionTypeFilter.setPreferredSize(new Dimension(130, 30));
         sessionTypeFilter.addActionListener(e -> applyFilters());
         filtersRow.add(sessionTypeFilter);
 
@@ -332,10 +351,11 @@ public class TimetablePage extends JPanel {
         searchBox.setOpaque(false);
         searchBox.add(createFilterLabel("Search:"));
 
-        searchField = new JTextField(24);
+        searchField = new JTextField(20);
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        searchField.setForeground(Color.BLACK);
         searchField.putClientProperty("JTextField.placeholderText", "Search course code, name, venue, lecturer...");
-        searchField.setPreferredSize(new Dimension(280, 32));
+        searchField.setPreferredSize(new Dimension(240, 30));
         searchField.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(4, 8, 4, 8)));
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -351,11 +371,11 @@ public class TimetablePage extends JPanel {
         JPanel viewSwitcher = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         viewSwitcher.setOpaque(false);
 
-        weeklyViewBtn = new JButton("📅 Weekly View (Mon - Fri)");
+        weeklyViewBtn = new JButton("Weekly View (Mon - Fri)");
         styleSwitcherButton(weeklyViewBtn, true);
         weeklyViewBtn.addActionListener(e -> switchView("WEEKLY"));
 
-        tableViewBtn = new JButton("📋 Detailed Table View");
+        tableViewBtn = new JButton("Detailed Table View");
         styleSwitcherButton(tableViewBtn, false);
         tableViewBtn.addActionListener(e -> switchView("TABLE"));
 
@@ -374,7 +394,7 @@ public class TimetablePage extends JPanel {
     private JLabel createFilterLabel(String text) {
         JLabel l = new JLabel(text);
         l.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        l.setForeground(textMuted);
+        l.setForeground(textDark);
         return l;
     }
 
@@ -382,13 +402,12 @@ public class TimetablePage extends JPanel {
         btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setForeground(Color.BLACK); // LETTERS IN BLACK AS REQUESTED
         if (active) {
-            btn.setBackground(darkNavy);
-            btn.setForeground(Color.WHITE);
-            btn.setBorder(new CompoundBorder(new LineBorder(darkNavy, 1), new EmptyBorder(6, 14, 6, 14)));
+            btn.setBackground(new Color(219, 234, 254)); // Soft highlighted blue
+            btn.setBorder(new CompoundBorder(new LineBorder(darkNavy, 2), new EmptyBorder(5, 13, 5, 13)));
         } else {
             btn.setBackground(Color.WHITE);
-            btn.setForeground(textDark);
             btn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(6, 14, 6, 14)));
         }
     }
@@ -414,21 +433,19 @@ public class TimetablePage extends JPanel {
         };
 
         timetableTable = new JTable(tableModel);
-        timetableTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        timetableTable.setRowHeight(36);
+        timetableTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        timetableTable.setRowHeight(34);
         timetableTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        timetableTable.setShowVerticalLines(false);
-        timetableTable.setGridColor(new Color(241, 245, 249));
-        timetableTable.setSelectionBackground(new Color(234, 242, 255));
-        timetableTable.setSelectionForeground(textDark);
+        timetableTable.setShowGrid(true);
+        timetableTable.setShowHorizontalLines(true);
+        timetableTable.setShowVerticalLines(true);
+        timetableTable.setGridColor(borderColor);
+        timetableTable.setSelectionBackground(new Color(237, 243, 248));
+        timetableTable.setSelectionForeground(darkNavy);
+        timetableTable.setDefaultRenderer(Object.class, new AlternateRowRenderer());
 
-        // Header Styling
-        JTableHeader th = timetableTable.getTableHeader();
-        th.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        th.setBackground(new Color(248, 250, 252));
-        th.setForeground(textDark);
-        th.setPreferredSize(new Dimension(0, 38));
-        th.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, borderColor));
+        // Header Styling matching FAMS Dark Navy Blue standard
+        setupTableHeader(timetableTable);
 
         // Column widths
         timetableTable.getColumnModel().getColumn(0).setPreferredWidth(75);   // Slot ID
@@ -449,6 +466,12 @@ public class TimetablePage extends JPanel {
                 JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
                 lbl.setForeground(accentBlue);
+                lbl.setHorizontalAlignment(SwingConstants.CENTER);
+                if (!isSelected) {
+                    lbl.setBackground((row % 2 == 0) ? Color.WHITE : new Color(248, 250, 252));
+                } else {
+                    lbl.setBackground(new Color(237, 243, 248));
+                }
                 return lbl;
             }
         });
@@ -461,7 +484,8 @@ public class TimetablePage extends JPanel {
                 String type = (value != null) ? value.toString() : "LECTURE";
                 boolean isLab = type.toUpperCase().contains("LAB") || type.toUpperCase().contains("PRACTICAL");
                 JPanel pill = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 4));
-                pill.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
+                Color rowBg = isSelected ? new Color(237, 243, 248) : ((row % 2 == 0) ? Color.WHITE : new Color(248, 250, 252));
+                pill.setBackground(rowBg);
 
                 JLabel tag = new JLabel(type) {
                     @Override
@@ -494,8 +518,14 @@ public class TimetablePage extends JPanel {
                     lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
                 } else {
                     lbl.setForeground(textDark);
-                    lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                    lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
                 }
+                if (!isSelected) {
+                    lbl.setBackground((row % 2 == 0) ? Color.WHITE : new Color(248, 250, 252));
+                } else {
+                    lbl.setBackground(new Color(237, 243, 248));
+                }
+                lbl.setBorder(new EmptyBorder(0, 8, 0, 8));
                 return lbl;
             }
         });
@@ -518,17 +548,17 @@ public class TimetablePage extends JPanel {
         JPanel footer = new JPanel(new BorderLayout());
         footer.setOpaque(false);
 
-        JLabel tip = new JLabel("💡 Tip: Double-click any row to view complete course, venue equipment, and lecturer details.");
+        JLabel tip = new JLabel("Tip: Double-click any row to view complete course, venue equipment, and lecturer details.");
         tip.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         tip.setForeground(textMuted);
 
         JButton viewSlotBtn = new JButton("View Slot Details");
         viewSlotBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        viewSlotBtn.setBackground(darkNavy);
-        viewSlotBtn.setForeground(Color.WHITE);
+        viewSlotBtn.setBackground(new Color(230, 242, 255));
+        viewSlotBtn.setForeground(Color.BLACK);
         viewSlotBtn.setFocusPainted(false);
         viewSlotBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        viewSlotBtn.setBorder(new EmptyBorder(8, 16, 8, 16));
+        viewSlotBtn.setBorder(new CompoundBorder(new LineBorder(primaryBlue, 1), new EmptyBorder(8, 16, 8, 16)));
         viewSlotBtn.addActionListener(e -> showSelectedSlotDetails());
 
         footer.add(tip, BorderLayout.WEST);
@@ -549,8 +579,8 @@ public class TimetablePage extends JPanel {
         inner.setLayout(new BoxLayout(inner, BoxLayout.Y_AXIS));
         inner.setOpaque(false);
 
-        JLabel iconLabel = new JLabel("📅", SwingConstants.CENTER);
-        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 52));
+        JLabel iconLabel = new JLabel("", SwingConstants.CENTER);
+        iconLabel.setFont(new Font("Segoe UI", Font.PLAIN, 40));
         iconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JLabel titleLabel = new JLabel("No Timetable Schedules Available", SwingConstants.CENTER);
@@ -565,11 +595,11 @@ public class TimetablePage extends JPanel {
 
         JButton resetFiltersBtn = new JButton("Reset All Filters");
         resetFiltersBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        resetFiltersBtn.setBackground(darkNavy);
-        resetFiltersBtn.setForeground(Color.WHITE);
+        resetFiltersBtn.setBackground(new Color(230, 242, 255));
+        resetFiltersBtn.setForeground(Color.BLACK);
         resetFiltersBtn.setFocusPainted(false);
         resetFiltersBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        resetFiltersBtn.setBorder(new EmptyBorder(8, 18, 8, 18));
+        resetFiltersBtn.setBorder(new CompoundBorder(new LineBorder(primaryBlue, 1), new EmptyBorder(8, 18, 8, 18)));
         resetFiltersBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
         resetFiltersBtn.addActionListener(e -> resetAllFilters());
 
@@ -728,7 +758,7 @@ public class TimetablePage extends JPanel {
                 ? new String[]{"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"}
                 : new String[]{"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"};
 
-        JPanel columnsPanel = new JPanel(new GridLayout(1, days.length, 12, 0));
+        JPanel columnsPanel = new JPanel(new GridLayout(1, days.length, 8, 0));
         columnsPanel.setBackground(lightBg);
 
         for (String dayName : days) {
@@ -741,6 +771,8 @@ public class TimetablePage extends JPanel {
         scroll.setBackground(lightBg);
         scroll.getViewport().setBackground(lightBg);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
 
         weeklyGridContainer.add(scroll, BorderLayout.CENTER);
         weeklyGridContainer.revalidate();
@@ -748,9 +780,9 @@ public class TimetablePage extends JPanel {
     }
 
     private JPanel createDayColumn(String dayName, List<TimetableEntry> allEntries) {
-        JPanel col = new JPanel(new BorderLayout(0, 10));
+        JPanel col = new JPanel(new BorderLayout(0, 8));
         col.setBackground(Color.WHITE);
-        col.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(12, 12, 14, 12)));
+        col.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(10, 8, 12, 8)));
 
         // Filter slots for this day
         List<TimetableEntry> daySlots = new ArrayList<>();
@@ -856,15 +888,15 @@ public class TimetablePage extends JPanel {
 
         card.setOpaque(false);
         card.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        card.setBorder(new EmptyBorder(10, 12, 10, 10));
+        card.setBorder(new EmptyBorder(8, 8, 8, 8));
 
         // Top: Time Range + Session Type Badge
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
 
         JLabel timeLbl = new JLabel(slot.getFormattedTimeRange());
-        timeLbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        timeLbl.setForeground(textDark);
+        timeLbl.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        timeLbl.setForeground(Color.BLACK);
 
         JLabel typePill = new JLabel(slot.getSessionType(), SwingConstants.CENTER) {
             @Override
@@ -880,7 +912,7 @@ public class TimetablePage extends JPanel {
         typePill.setFont(new Font("Segoe UI", Font.BOLD, 9));
         typePill.setForeground(accent);
         typePill.setOpaque(false);
-        typePill.setBorder(new EmptyBorder(2, 6, 2, 6));
+        typePill.setBorder(new EmptyBorder(2, 4, 2, 4));
 
         top.add(timeLbl, BorderLayout.WEST);
         top.add(typePill, BorderLayout.EAST);
@@ -896,7 +928,7 @@ public class TimetablePage extends JPanel {
 
         JLabel nameLbl = new JLabel(slot.getCourseName() != null ? slot.getCourseName() : "");
         nameLbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        nameLbl.setForeground(textDark);
+        nameLbl.setForeground(Color.BLACK);
 
         center.add(codeLbl);
         center.add(Box.createVerticalStrut(2));
@@ -906,13 +938,13 @@ public class TimetablePage extends JPanel {
         JPanel btm = new JPanel(new GridLayout(2, 1, 0, 2));
         btm.setOpaque(false);
 
-        JLabel venueLbl = new JLabel("📍 " + slot.getVenue());
+        JLabel venueLbl = new JLabel("Venue: " + slot.getVenue());
         venueLbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        venueLbl.setForeground(isLab ? tealLab : textDark);
+        venueLbl.setForeground(isLab ? tealLab : Color.BLACK);
 
-        JLabel lecLbl = new JLabel("👤 " + slot.getLecturers());
+        JLabel lecLbl = new JLabel("Lecturer: " + slot.getLecturers());
         lecLbl.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        lecLbl.setForeground(textMuted);
+        lecLbl.setForeground(Color.BLACK);
 
         btm.add(venueLbl);
         btm.add(lecLbl);
@@ -996,8 +1028,8 @@ public class TimetablePage extends JPanel {
         notePanel.setBackground(isLab ? tealLabBg : new Color(241, 245, 249));
         notePanel.setBorder(new EmptyBorder(10, 12, 10, 12));
         JLabel noteLabel = new JLabel(isLab
-                ? "⚙️ Laboratory Session: Ensure workstations, networking hardware, and safety infrastructure are ready."
-                : "ℹ️ Lecture Session: Managed via departmental lecture hall schedules.");
+                ? "Laboratory Session: Ensure workstations, networking hardware, and safety infrastructure are ready."
+                : "Lecture Session: Managed via departmental lecture hall schedules.");
         noteLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         noteLabel.setForeground(isLab ? tealLab : textDark);
         notePanel.add(noteLabel, BorderLayout.CENTER);
@@ -1007,13 +1039,13 @@ public class TimetablePage extends JPanel {
         btnPanel.setOpaque(false);
 
         if (onNavigateToAttendance != null) {
-            JButton logAttBtn = new JButton("📋 Log Attendance");
+            JButton logAttBtn = new JButton("Log Attendance");
             logAttBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            logAttBtn.setBackground(primaryBlue);
-            logAttBtn.setForeground(Color.WHITE);
+            logAttBtn.setBackground(new Color(230, 242, 255));
+            logAttBtn.setForeground(Color.BLACK);
             logAttBtn.setFocusPainted(false);
             logAttBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            logAttBtn.setBorder(new EmptyBorder(8, 14, 8, 14));
+            logAttBtn.setBorder(new CompoundBorder(new LineBorder(primaryBlue, 1), new EmptyBorder(8, 14, 8, 14)));
             logAttBtn.addActionListener(e -> {
                 dialog.dispose();
                 onNavigateToAttendance.run();
@@ -1022,13 +1054,13 @@ public class TimetablePage extends JPanel {
         }
 
         if (slot.isLabSession() && onNavigateToLabMaintenance != null) {
-            JButton checkLabBtn = new JButton("⚙️ Check Lab Facilities");
+            JButton checkLabBtn = new JButton("Check Lab Facilities");
             checkLabBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            checkLabBtn.setBackground(tealLab);
-            checkLabBtn.setForeground(Color.WHITE);
+            checkLabBtn.setBackground(new Color(204, 251, 241));
+            checkLabBtn.setForeground(Color.BLACK);
             checkLabBtn.setFocusPainted(false);
             checkLabBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            checkLabBtn.setBorder(new EmptyBorder(8, 14, 8, 14));
+            checkLabBtn.setBorder(new CompoundBorder(new LineBorder(tealLab, 1), new EmptyBorder(8, 14, 8, 14)));
             checkLabBtn.addActionListener(e -> {
                 dialog.dispose();
                 onNavigateToLabMaintenance.run();
@@ -1036,7 +1068,7 @@ public class TimetablePage extends JPanel {
             btnPanel.add(checkLabBtn);
         }
 
-        JButton deleteBtn = new JButton("🗑️ Delete Slot");
+        JButton deleteBtn = new JButton("Delete Slot");
         deleteBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
         deleteBtn.setBackground(new Color(254, 226, 226));
         deleteBtn.setForeground(new Color(220, 38, 38));
@@ -1226,19 +1258,19 @@ public class TimetablePage extends JPanel {
 
         JButton saveBtn = new JButton("Save & Schedule Slot");
         saveBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        saveBtn.setBackground(primaryBlue);
-        saveBtn.setForeground(Color.WHITE);
+        saveBtn.setBackground(new Color(230, 242, 255));
+        saveBtn.setForeground(Color.BLACK);
         saveBtn.setFocusPainted(false);
         saveBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        saveBtn.setBorder(new EmptyBorder(9, 18, 9, 18));
+        saveBtn.setBorder(new CompoundBorder(new LineBorder(primaryBlue, 1), new EmptyBorder(8, 18, 8, 18)));
 
         JButton cancelBtn = new JButton("Cancel");
         cancelBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        cancelBtn.setBackground(new Color(241, 245, 249));
-        cancelBtn.setForeground(textDark);
+        cancelBtn.setBackground(Color.WHITE);
+        cancelBtn.setForeground(Color.BLACK);
         cancelBtn.setFocusPainted(false);
         cancelBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        cancelBtn.setBorder(new EmptyBorder(9, 18, 9, 18));
+        cancelBtn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(8, 18, 8, 18)));
         cancelBtn.addActionListener(e -> dialog.dispose());
 
         saveBtn.addActionListener(e -> {
@@ -1364,6 +1396,73 @@ public class TimetablePage extends JPanel {
             for (Component child : ((Container) comp).getComponents()) {
                 makeClickable(child, onClick);
             }
+        }
+    }
+
+    private void setupTableHeader(JTable table) {
+        JTableHeader header = table.getTableHeader();
+        header.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        header.setPreferredSize(new Dimension(header.getWidth(), 36));
+        header.setReorderingAllowed(false);
+        header.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                JLabel label = new JLabel(value != null ? value.toString() : "");
+                label.setOpaque(true);
+                label.setBackground(darkNavy);
+                label.setForeground(Color.WHITE);
+                label.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                label.setHorizontalAlignment(SwingConstants.CENTER);
+                label.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 0, 1, 1, new Color(45, 90, 135)),
+                        BorderFactory.createEmptyBorder(6, 10, 6, 10)
+                ));
+
+                if (table.getRowSorter() != null) {
+                    java.util.List<? extends RowSorter.SortKey> sortKeys = table.getRowSorter().getSortKeys();
+                    if (!sortKeys.isEmpty() && sortKeys.get(0).getColumn() == table.convertColumnIndexToModel(column)) {
+                        SortOrder order = sortKeys.get(0).getSortOrder();
+                        if (order == SortOrder.ASCENDING) {
+                            label.setText(label.getText() + " ▲");
+                        } else if (order == SortOrder.DESCENDING) {
+                            label.setText(label.getText() + " ▼");
+                        }
+                    }
+                }
+                return label;
+            }
+        });
+    }
+
+    private class AlternateRowRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                                                       boolean isSelected, boolean hasFocus,
+                                                       int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            if (!isSelected) {
+                c.setForeground(textDark);
+                if (row % 2 == 0) {
+                    c.setBackground(Color.WHITE);
+                } else {
+                    c.setBackground(new Color(248, 250, 252));
+                }
+            } else {
+                c.setForeground(darkNavy);
+                c.setBackground(new Color(237, 243, 248));
+            }
+            if (c instanceof JLabel) {
+                JLabel lbl = (JLabel) c;
+                if (column == 0 || column == 2 || column == 3 || column == 7) {
+                    lbl.setHorizontalAlignment(SwingConstants.CENTER);
+                } else {
+                    lbl.setHorizontalAlignment(SwingConstants.LEFT);
+                }
+                lbl.setBorder(new EmptyBorder(0, 8, 0, 8));
+            }
+            return c;
         }
     }
 }

@@ -31,8 +31,8 @@ public class TechnicalOfficerDashboard extends JFrame {
     // Theme Colors matching reference screenshot
     private final Color darkNavy = new Color(27, 67, 103); // #1B4367 exact navy
     private final Color contentBg = new Color(245, 247, 250); // #F5F7FA
-    private final Color sidebarBg = Color.WHITE; // Pure white sidebar
-    private final Color sidebarBorder = new Color(226, 232, 240); // #E2E8F0
+    private final Color sidebarBg = new Color(27, 67, 103); // Matching dark navy blue sidebar
+    private final Color sidebarBorder = new Color(20, 52, 82); // Subtle navy right border
     private final Color borderColor = new Color(226, 232, 240); // #E2E8F0
     private final Color textDark = new Color(30, 41, 59); // #1E293B
     private final Color textMuted = new Color(100, 116, 139); // #64748B
@@ -526,8 +526,8 @@ public class TechnicalOfficerDashboard extends JFrame {
         menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
 
         JLabel menuTitle = new JLabel("TECHNICAL OFFICER MENU");
-        menuTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        menuTitle.setForeground(new Color(148, 163, 184)); // Muted slate gray
+        menuTitle.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        menuTitle.setForeground(new Color(165, 195, 225)); // Soft ice-blue label on blue sidebar
         menuTitle.setBorder(BorderFactory.createEmptyBorder(22, 22, 14, 0));
         menuTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -1039,18 +1039,19 @@ public class TechnicalOfficerDashboard extends JFrame {
         private boolean active = false;
         private boolean hovered = false;
 
-        private final Color activeBg = new Color(237, 243, 248); // #EDF3F8 soft light blue
-        private final Color activeBorder = new Color(27, 67, 103); // #1B4367 dark navy left 4px bar
-        private final Color activeFg = new Color(27, 67, 103); // #1B4367 bold navy text
-        private final Color inactiveFg = new Color(74, 85, 104); // #4A5568 dark slate text
-        private final Color hoverBg = new Color(248, 250, 252); // #F8FAFC subtle hover tint
+        private final Color sidebarColor = new Color(27, 67, 103); // #1B4367 dark navy sidebar
+        private final Color activeBg = new Color(18, 48, 77); // Deeper navy for active tab
+        private final Color activeBorder = new Color(56, 189, 248); // Bright sky blue (#38BDF8) 4px left bar
+        private final Color activeFg = Color.WHITE; // Crisp bold white text
+        private final Color inactiveFg = new Color(226, 232, 240); // Soft crisp white-slate text (#E2E8F0)
+        private final Color hoverBg = new Color(38, 84, 126); // Lighter navy highlight on hover
 
         public SidebarMenuButton(String text) {
             super(text);
             setHorizontalAlignment(SwingConstants.LEFT);
             setFont(new Font("Segoe UI", Font.PLAIN, 13));
             setForeground(inactiveFg);
-            setBackground(Color.WHITE);
+            setBackground(sidebarColor);
             setFocusPainted(false);
             setBorderPainted(false);
             setContentAreaFilled(false);
@@ -1064,12 +1065,18 @@ public class TechnicalOfficerDashboard extends JFrame {
                 @Override
                 public void mouseEntered(MouseEvent e) {
                     hovered = true;
+                    if (!active) {
+                        setForeground(Color.WHITE);
+                    }
                     repaint();
                 }
 
                 @Override
                 public void mouseExited(MouseEvent e) {
                     hovered = false;
+                    if (!active) {
+                        setForeground(inactiveFg);
+                    }
                     repaint();
                 }
             });
@@ -1101,7 +1108,7 @@ public class TechnicalOfficerDashboard extends JFrame {
                 g2.setColor(hoverBg);
                 g2.fillRect(0, 0, getWidth(), getHeight());
             } else {
-                g2.setColor(Color.WHITE);
+                g2.setColor(sidebarColor);
                 g2.fillRect(0, 0, getWidth(), getHeight());
             }
 
