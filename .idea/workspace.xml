@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="28a03a90-0318-4efc-87b2-54b54003c04b" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$3.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$3.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$AlternateRowRenderer.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$AlternateRowRenderer.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$AttendanceStatusRenderer.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$AttendanceStatusRenderer.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/dao/AttendanceDAO.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/dao/AttendanceDAO.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/dao/DatabaseConnection.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/dao/DatabaseConnection.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/dao/MedicalDAO.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/dao/MedicalDAO.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/dao/NoticeDAO.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/dao/NoticeDAO.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/Attendance.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/Attendance.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/AttendanceRecord.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/AttendanceRecord.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/AttendanceScenarioResult.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/AttendanceScenarioResult.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/AttendanceSession.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/AttendanceSession.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/CourseOffering.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/CourseOffering.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/Medical.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/Medical.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/Notice.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/Notice.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/TechnicalOfficer.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/TechnicalOfficer.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/Undergraduate.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/Undergraduate.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/service/AttendanceService.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/service/AttendanceService.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/service/MedicalService.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/service/MedicalService.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/service/NoticeService$OperationResult.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/service/NoticeService$OperationResult.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/service/NoticeService.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/service/NoticeService.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$3.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$3.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$4.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$4.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$5.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$5.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$6.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$6.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$7.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$7.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$8.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$8.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$9.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$9.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$NoticeTableModel.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel$NoticeTableModel.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/admin/NoticeManagementPanel.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$3.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$3.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$4.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$4.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$AlternateRowRenderer.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$AlternateRowRenderer.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$AttendanceStatusRenderer.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$AttendanceStatusRenderer.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$EligibilityStatusRenderer.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$EligibilityStatusRenderer.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$ScenarioCodeRenderer.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage$ScenarioCodeRenderer.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/AttendanceManagementPage.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/MedicalManagementPage$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/MedicalManagementPage$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/MedicalManagementPage$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/MedicalManagementPage$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/MedicalManagementPage$3.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/MedicalManagementPage$3.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/MedicalManagementPage$4.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/MedicalManagementPage$4.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/MedicalManagementPage$AlternateRowRenderer.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/MedicalManagementPage$AlternateRowRenderer.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/MedicalManagementPage$MedicalStatusRenderer.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/MedicalManagementPage$MedicalStatusRenderer.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/MedicalManagementPage.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/MedicalManagementPage.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/TechnicalOfficerDashboard$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/TechnicalOfficerDashboard$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/TechnicalOfficerDashboard$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/TechnicalOfficerDashboard$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/TechnicalOfficerDashboard$ActivityRow$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/TechnicalOfficerDashboard$ActivityRow$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/TechnicalOfficerDashboard$ActivityRow.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/TechnicalOfficerDashboard$ActivityRow.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/TechnicalOfficerDashboard$CircleDot.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/TechnicalOfficerDashboard$CircleDot.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/TechnicalOfficerDashboard$SidebarMenuButton.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/TechnicalOfficerDashboard$SidebarMenuButton.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/TechnicalOfficerDashboard.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/ui/technicalofficer/TechnicalOfficerDashboard.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/util/AttendanceCalculator.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/util/AttendanceCalculator.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/dao/AttendanceDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/dao/AttendanceDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/dao/StudentDAO.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/dao/StudentDAO.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/DBConnection.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/DBConnection.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/login/LoginFrame.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/login/LoginFrame.java" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="3LPCyueZxY6pM4yJUVqTKcDN6Km" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.LecturerDashboard.executor": "Run",
+    "Application.Main.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "Developement-New",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/ASUS/OneDrive/Desktop/Mini_Project_OOP/OOPP-2026-GP-03",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.2"
+  }
+}]]></component>
+  <component name="RunManager" selected="Application.Main">
+    <configuration name="Main" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="Main" />
+      <module name="OOPP-2026-GP-03" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-a203e0a19954-intellij.indexing.shared.core-IU-262.10315.125" />
+        <option value="bundled-js-predefined-d6986cc7102b-4abd2a77f808-JavaScript-IU-262.10315.125" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="28a03a90-0318-4efc-87b2-54b54003c04b" name="Changes" comment="" />
+      <created>1793346574968</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1793346574968</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>

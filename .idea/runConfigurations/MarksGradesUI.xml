@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MarksGradesUI" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="ui.lecturer.MarksGradesUI" />
+    <module name="OOPP-2026-GP-03" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
