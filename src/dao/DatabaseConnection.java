@@ -13,7 +13,8 @@ public class DatabaseConnection {
 
     private static final String[] DB_NAMES = {"fams", "fams_db"};
     private static final String USER = "root";
-    private static final String PASSWORD = "";
+    private static final String PASSWORD = "21037";
+    private static final String[] PASSWORDS = {"21037", ""};
     private static String activeDbName = null;
 
     private static Connection connection = null;
@@ -47,13 +48,19 @@ public class DatabaseConnection {
             // Try connecting to fams (from fams.sql) first, then fallback to fams_db
             SQLException lastEx = null;
             for (String db : DB_NAMES) {
-                try {
-                    String url = "jdbc:mysql://localhost:3306/" + db + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-                    connection = DriverManager.getConnection(url, USER, PASSWORD);
-                    activeDbName = db;
-                    return connection;
-                } catch (SQLException ex) {
-                    lastEx = ex;
+                for (String pwd : PASSWORDS) {
+                    try {
+                        String url = "jdbc:mysql://localhost:3306/" + db + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+                        connection = DriverManager.getConnection(url, USER, pwd);
+                        activeDbName = db;
+                        if (!connectionAttempted) {
+                            System.out.println("[DatabaseConnection] Connected successfully to MySQL database '" + db + "' on localhost:3306 as user '" + USER + "'.");
+                            connectionAttempted = true;
+                        }
+                        return connection;
+                    } catch (SQLException ex) {
+                        lastEx = ex;
+                    }
                 }
             }
 
