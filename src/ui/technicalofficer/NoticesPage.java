@@ -17,9 +17,6 @@ import javax.swing.SortOrder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -315,7 +312,7 @@ public class NoticesPage extends JPanel {
         card.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(14, 16, 14, 16)));
 
         String[] columns = { "Indicator", "Notice ID", "Notice Title", "Department", "Published Date", "Expiry Date",
-                "Published By", "Attachment", "Status" };
+                "Published By", "Status" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -340,14 +337,13 @@ public class NoticesPage extends JPanel {
 
         // Column widths
         noticeTable.getColumnModel().getColumn(0).setPreferredWidth(95); // Indicator (NEW / URGENT)
-        noticeTable.getColumnModel().getColumn(1).setPreferredWidth(80); // Notice ID
-        noticeTable.getColumnModel().getColumn(2).setPreferredWidth(270); // Title
-        noticeTable.getColumnModel().getColumn(3).setPreferredWidth(170); // Department
-        noticeTable.getColumnModel().getColumn(4).setPreferredWidth(105); // Published Date
-        noticeTable.getColumnModel().getColumn(5).setPreferredWidth(105); // Expiry Date
-        noticeTable.getColumnModel().getColumn(6).setPreferredWidth(140); // Published By
-        noticeTable.getColumnModel().getColumn(7).setPreferredWidth(130); // Attachment
-        noticeTable.getColumnModel().getColumn(8).setPreferredWidth(90); // Status
+        noticeTable.getColumnModel().getColumn(1).setPreferredWidth(85); // Notice ID
+        noticeTable.getColumnModel().getColumn(2).setPreferredWidth(320); // Title
+        noticeTable.getColumnModel().getColumn(3).setPreferredWidth(210); // Department
+        noticeTable.getColumnModel().getColumn(4).setPreferredWidth(110); // Published Date
+        noticeTable.getColumnModel().getColumn(5).setPreferredWidth(110); // Expiry Date
+        noticeTable.getColumnModel().getColumn(6).setPreferredWidth(160); // Published By
+        noticeTable.getColumnModel().getColumn(7).setPreferredWidth(95); // Status
 
         // Column 0 Renderer: Priority & Unread Badge
         noticeTable.getColumnModel().getColumn(0).setCellRenderer(new DefaultTableCellRenderer() {
@@ -414,32 +410,8 @@ public class NoticesPage extends JPanel {
             }
         });
 
-        // Column 7 Renderer: Attachment Icon & Name
+        // Column 7 Renderer: Status (Active vs Expired)
         noticeTable.getColumnModel().getColumn(7).setCellRenderer(new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value,
-                    boolean isSelected, boolean hasFocus, int row, int column) {
-                JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row,
-                        column);
-                Color rowBg = isSelected ? new Color(237, 243, 248) : ((row % 2 == 0) ? Color.WHITE : new Color(248, 250, 252));
-                lbl.setBackground(rowBg);
-                String val = (value != null) ? value.toString() : "--";
-                if (!val.equals("--")) {
-                    lbl.setText(val);
-                    lbl.setForeground(primaryBlue);
-                    lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
-                } else {
-                    lbl.setText("--");
-                    lbl.setForeground(new Color(156, 163, 175));
-                    lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-                }
-                lbl.setBorder(new EmptyBorder(0, 8, 0, 8));
-                return lbl;
-            }
-        });
-
-        // Column 8 Renderer: Status (Active vs Expired)
-        noticeTable.getColumnModel().getColumn(8).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
                     boolean isSelected, boolean hasFocus, int row, int column) {
@@ -483,7 +455,7 @@ public class NoticesPage extends JPanel {
         footer.setOpaque(false);
 
         JLabel tip = new JLabel(
-                "Tip: Double-click any notice row to open full content and download available attachments.");
+                "Tip: Double-click any notice row to open and read the full announcement.");
         tip.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         tip.setForeground(textMuted);
 
@@ -628,7 +600,6 @@ public class NoticesPage extends JPanel {
                     n.getFormattedDate(),
                     n.getFormattedExpiryDate(),
                     n.getCreatorName(),
-                    n.hasAttachment() ? n.getAttachmentName() : "--",
                     n.isActive() ? "ACTIVE" : "EXPIRED"
             });
         }
@@ -737,58 +708,16 @@ public class NoticesPage extends JPanel {
         JScrollPane scroll = new JScrollPane(descArea);
         scroll.setBorder(null);
 
-        // Attachment Download Card
-        JPanel centerContainer = new JPanel(new BorderLayout(0, 12));
+        JPanel centerContainer = new JPanel(new BorderLayout());
         centerContainer.setOpaque(false);
         centerContainer.add(scroll, BorderLayout.CENTER);
-
-        if (notice.hasAttachment()) {
-            JPanel attachCard = new JPanel(new BorderLayout(12, 0));
-            attachCard.setBackground(new Color(239, 246, 255)); // Soft blue bg
-            attachCard.setBorder(
-                    new CompoundBorder(new LineBorder(new Color(191, 219, 254), 1), new EmptyBorder(10, 14, 10, 14)));
-
-            JLabel attachIcon = new JLabel("[FILE]");
-            attachIcon.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            attachIcon.setForeground(primaryBlue);
-
-            JPanel attachInfo = new JPanel(new GridLayout(2, 1, 0, 2));
-            attachInfo.setOpaque(false);
-            JLabel attachName = new JLabel(notice.getAttachmentName());
-            attachName.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            attachName.setForeground(darkNavy);
-
-            JLabel attachSize = new JLabel("Official Department Document • Ready for offline inspection");
-            attachSize.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-            attachSize.setForeground(textMuted);
-
-            attachInfo.add(attachName);
-            attachInfo.add(attachSize);
-
-            JButton downloadBtn = new JButton("Download Document");
-            downloadBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            downloadBtn.setBackground(darkNavy);
-            downloadBtn.setForeground(Color.WHITE);
-            downloadBtn.setFocusPainted(false);
-            downloadBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            downloadBtn.setBorder(new EmptyBorder(6, 14, 6, 14));
-            downloadBtn.addActionListener(e -> downloadAttachment(notice, dialog));
-
-            attachCard.add(attachIcon, BorderLayout.WEST);
-            attachCard.add(attachInfo, BorderLayout.CENTER);
-            attachCard.add(downloadBtn, BorderLayout.EAST);
-
-            centerContainer.add(attachCard, BorderLayout.SOUTH);
-        }
 
         // Close & Action Buttons
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         btnPanel.setOpaque(false);
 
         if (notice.getTitle().toLowerCase().contains("timetable")
-                || notice.getDescription().toLowerCase().contains("timetable")
-                || (notice.getAttachmentName() != null
-                        && notice.getAttachmentName().toLowerCase().contains("timetable"))) {
+                || notice.getDescription().toLowerCase().contains("timetable")) {
             JButton timetableJumpBtn = new JButton("Open Timetable View");
             timetableJumpBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
             timetableJumpBtn.setBackground(darkNavy);
@@ -822,44 +751,6 @@ public class NoticesPage extends JPanel {
 
         dialog.setContentPane(p);
         dialog.setVisible(true);
-    }
-
-    private void downloadAttachment(Notice notice, JDialog parentDialog) {
-        JFileChooser chooser = new JFileChooser();
-        chooser.setSelectedFile(new File(notice.getAttachmentName()));
-        int result = chooser.showSaveDialog(parentDialog);
-        if (result == JFileChooser.APPROVE_OPTION) {
-            File dest = chooser.getSelectedFile();
-            try (FileWriter writer = new FileWriter(dest)) {
-                writer.write("============================================================\n");
-                writer.write("FACULTY ACADEMIC MANAGEMENT SYSTEM (FAMS)\n");
-                writer.write("DEPARTMENT NOTICE ATTACHMENT\n");
-                writer.write("============================================================\n\n");
-                writer.write("Notice ID: " + notice.getNoticeId() + "\n");
-                writer.write("Notice Title: " + notice.getTitle() + "\n");
-                writer.write("Target Department: " + notice.getTargetDepartment() + "\n");
-                writer.write("Publish Date: " + notice.getFormattedDate() + "\n");
-                writer.write("Expiry Date: " + notice.getFormattedExpiryDate() + "\n");
-                writer.write("Published By: " + notice.getCreatorName() + " (" + notice.getCreatedBy() + ")\n\n");
-                writer.write("OFFICIAL NOTICE TEXT:\n");
-                writer.write(notice.getDescription() + "\n\n");
-                writer.write("============================================================\n");
-                writer.write("Attached File: " + notice.getAttachmentName() + "\n");
-                writer.write("Verification Hash: FAMS-" + Integer.toHexString(notice.hashCode()) + "\n");
-                writer.write("Downloaded successfully for Technical Officer offline operations.\n");
-
-                JOptionPane.showMessageDialog(parentDialog,
-                        "Document '" + notice.getAttachmentName() + "' downloaded successfully to:\n"
-                                + dest.getAbsolutePath(),
-                        "Download Complete",
-                        JOptionPane.INFORMATION_MESSAGE);
-            } catch (IOException ex) {
-                JOptionPane.showMessageDialog(parentDialog,
-                        "Failed to save attachment: " + ex.getMessage(),
-                        "Download Error",
-                        JOptionPane.ERROR_MESSAGE);
-            }
-        }
     }
 
     private JPanel createMetaLabel(String label, String value) {
@@ -934,7 +825,7 @@ public class NoticesPage extends JPanel {
             }
             if (c instanceof JLabel) {
                 JLabel lbl = (JLabel) c;
-                if (column == 1 || column == 4 || column == 5 || column == 8) {
+                if (column == 1 || column == 4 || column == 5 || column == 7) {
                     lbl.setHorizontalAlignment(SwingConstants.CENTER);
                 } else {
                     lbl.setHorizontalAlignment(SwingConstants.LEFT);
