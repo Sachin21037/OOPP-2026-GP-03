@@ -1,4 +1,29 @@
-out/
+# Compiled class files
 *.class
-.DS_Store
 
+# Build / Output directories
+out/
+bin/
+
+# Package / Archive Files
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Log files
+*.log
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# IntelliJ IDEA project files (optional per developer)
+.idea/shelf/
+.idea/workspace.xml
+.idea/httpRequests/
+.idea/queries/
+.idea/dataSources/
+.idea/dataSources.local.xml

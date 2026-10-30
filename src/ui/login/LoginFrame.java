@@ -1,15 +1,20 @@
 package ui.login;
 
+import dao.StudentDAO;
 import database.DBConnection;
-import ui.lecturer.LecturerDashboardUI;
+import model.Student;
+import ui.admin.AdminDashboard;
+import ui.admin.NoticeViewerFrame;
+import ui.admin.TimetableViewerFrame;
+import ui.student.StudentDashboard;
+import ui.technicalofficer.TechnicalOfficerDashboard;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.Path2D;
-import java.awt.geom.RoundRectangle2D;
+import java.awt.geom.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URL;
@@ -19,14 +24,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-/**
- * Faculty Academic Management System (FAMS) - Modern Sign In Frame.
- * Designed with a two-column responsive layout, 3D academic illustration,
- * smooth rounded inputs, vector eye visibility toggle, and secure authentication.
- */
 public class LoginFrame extends JFrame {
 
-    // Theme Palette - Harmonized with System Palette
+    // Theme Palette - Harmonized with Admin Dashboard
     private static final Color PRIMARY_NAVY    = new Color(16, 40, 74);    // #10284A
     private static final Color SECONDARY_BLUE  = new Color(29, 78, 216);   // #1D4ED8
     private static final Color LIGHT_BLUE      = new Color(234, 242, 255); // #EAF2FF
@@ -54,6 +54,8 @@ public class LoginFrame extends JFrame {
     private char defaultEchoChar = '•';
     private BufferedImage illustrationImage;
 
+    private final StudentDAO studentDAO = new StudentDAO();
+
     public LoginFrame() {
         setTitle("Faculty Academic Management System - Sign In");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -67,29 +69,37 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * Loads the exact 3D illustration image from resources or file path.
+     * Loads the 3D illustration image from resources or local file paths (supporting PNG and JPG).
      */
     private void loadIllustrationImage() {
         try {
-            URL imgUrl = getClass().getResource("/ui/login/login_illustration.jpg");
-            if (imgUrl == null) {
-                imgUrl = getClass().getResource("login_illustration.jpg");
+            String[] resourcePaths = {
+                    "/ui/login/login_illustration.png",
+                    "/ui/login/login_illustration.jpg",
+                    "login_illustration.png",
+                    "login_illustration.jpg"
+            };
+            for (String path : resourcePaths) {
+                URL imgUrl = getClass().getResource(path);
+                if (imgUrl != null) {
+                    illustrationImage = ImageIO.read(imgUrl);
+                    if (illustrationImage != null) return;
+                }
             }
-            if (imgUrl != null) {
-                illustrationImage = ImageIO.read(imgUrl);
-            } else {
-                File file = new File("src/ui/login/login_illustration.jpg");
-                if (!file.exists()) {
-                    file = new File("login_illustration.jpg");
-                }
-                if (!file.exists()) {
-                    file = new File("out/ui/login/login_illustration.jpg");
-                }
-                if (!file.exists()) {
-                    file = new File("C:/Users/ASUS/OneDrive/Desktop/login_illustration.jpg");
-                }
+
+            String[] filePaths = {
+                    "src/ui/login/login_illustration.png",
+                    "src/ui/login/login_illustration.jpg",
+                    "out/production/OOPP-2026-GP-03/ui/login/login_illustration.png",
+                    "out/production/OOPP-2026-GP-03/ui/login/login_illustration.jpg",
+                    "login_illustration.png",
+                    "login_illustration.jpg"
+            };
+            for (String path : filePaths) {
+                File file = new File(path);
                 if (file.exists()) {
                     illustrationImage = ImageIO.read(file);
+                    if (illustrationImage != null) return;
                 }
             }
         } catch (Exception e) {
@@ -128,11 +138,11 @@ public class LoginFrame extends JFrame {
         getRootPane().setDefaultButton(loginButton);
     }
 
-    /**
-     * Creates the Left Panel (42% width):
-     * Soft light-blue gradient background, FAMS header branding, descriptive platform summary,
-     * and the exact 3D academic/technology illustration image card.
-     */
+
+     //Creates the Left Panel (42% width):
+     //Soft light-blue gradient background, FAMS header branding, descriptive platform summary,
+     // the exact 3D academic/technology illustration image card.
+
     private JPanel createLeftPanel() {
         JPanel leftPanel = new JPanel() {
             @Override
@@ -151,13 +161,13 @@ public class LoginFrame extends JFrame {
                 g2.setPaint(bgGradient);
                 g2.fillRect(0, 0, getWidth(), getHeight());
 
-                // Subtle ambient geometric shapes
+                // Subtle ambient geometric shapes in Admin Navy & Blue
                 g2.setColor(new Color(16, 40, 74, 15));
                 g2.fillOval(-40, -40, 160, 160);
                 g2.setColor(new Color(29, 78, 216, 20));
                 g2.fillOval(getWidth() - 90, getHeight() / 2 - 50, 150, 150);
 
-                // Draw exact 3D illustration image in the lower section
+                // Draw exact 3D illustration image in the lower section with Admin Dashboard colors
                 if (illustrationImage != null) {
                     int padX = 24;
                     int targetW = getWidth() - (padX * 2);
@@ -169,12 +179,12 @@ public class LoginFrame extends JFrame {
                     g2.setColor(new Color(16, 40, 74, 38));
                     g2.fill(new RoundRectangle2D.Float(padX - 2, targetY + 3, targetW + 4, targetH + 4, 18, 18));
 
-                    // 2. Light Blue container mat / backing
+                    // 2. Admin Light Blue container mat / backing
                     RoundRectangle2D.Float matRect = new RoundRectangle2D.Float(padX - 3, targetY - 3, targetW + 6, targetH + 6, 18, 18);
                     g2.setColor(LIGHT_BLUE);
                     g2.fill(matRect);
 
-                    // 3. Secondary Blue accent border around the mat
+                    // 3. Admin Secondary Blue accent border around the mat
                     g2.setColor(new Color(29, 78, 216, 120));
                     g2.setStroke(new BasicStroke(1.5f));
                     g2.draw(matRect);
@@ -198,22 +208,25 @@ public class LoginFrame extends JFrame {
         leftPanel.setLayout(new BorderLayout());
         leftPanel.setPreferredSize(new Dimension(378, 550));
 
-        // Content branding & description panel
+        // Content branding & description panel (Logo removed, title sized up)
         JPanel contentPanel = new JPanel();
         contentPanel.setOpaque(false);
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setBorder(new EmptyBorder(30, 28, 8, 28));
 
+        // Sized-up Faculty Academic Management System title matching sign button color
         JLabel appCategoryLabel = new JLabel("Faculty Academic Management System");
         appCategoryLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         appCategoryLabel.setForeground(SECONDARY_BLUE);
         appCategoryLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        // Main Welcome Heading
         JLabel welcomeHeading = new JLabel("Welcome Back!");
         welcomeHeading.setFont(new Font("SansSerif", Font.BOLD, 22));
         welcomeHeading.setForeground(TEXT_PRIMARY);
         welcomeHeading.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        // FAMS Description Section
         JLabel famsHeadline = new JLabel("One Platform. Every Academic Need.");
         famsHeadline.setFont(new Font("SansSerif", Font.BOLD, 12));
         famsHeadline.setForeground(SECONDARY_BLUE);
@@ -240,16 +253,15 @@ public class LoginFrame extends JFrame {
         return leftPanel;
     }
 
-    /**
-     * Creates the Right Panel (58% width):
-     * Pure white background, clean Sign In header, modern rounded inputs, custom vector eye
-     * password visibility toggle, remember me, forgot password, prominent royal-blue login button.
-     */
+      //Creates the Right Panel (58% width):
+    //Pure white background, clean Sign In header, modern rounded inputs, custom vector eye
+     //password visibility toggle, remember me, forgot password, prominent royal-blue login button.
     private JPanel createRightPanel() {
         JPanel rightWrapper = new JPanel(new GridBagLayout());
         rightWrapper.setBackground(Color.WHITE);
         rightWrapper.setPreferredSize(new Dimension(522, 550));
 
+        // Inner form container with fixed comfortable width
         JPanel formPanel = new JPanel();
         formPanel.setBackground(Color.WHITE);
         formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
@@ -309,6 +321,7 @@ public class LoginFrame extends JFrame {
         passwordField.setForeground(TEXT_PRIMARY);
         passwordField.setOpaque(false);
         passwordField.setBorder(new EmptyBorder(8, 12, 8, 4));
+
         defaultEchoChar = passwordField.getEchoChar();
 
         // Eye Button painted directly with Java2D
@@ -411,7 +424,7 @@ public class LoginFrame extends JFrame {
         optionsRow.add(rememberMeCheckbox, BorderLayout.WEST);
         optionsRow.add(forgotPasswordLabel, BorderLayout.EAST);
 
-        // 5. Prominent Navy & Blue LOGIN Button
+        // 5. Prominent Navy & Blue LOGIN Button (Admin Dashboard Theme)
         loginButton = new RoundedButton("LOGIN", PRIMARY_NAVY, SECONDARY_BLUE, PRIMARY_PRESSED, 8);
         loginButton.setFont(new Font("SansSerif", Font.BOLD, 13));
         loginButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
@@ -483,8 +496,8 @@ public class LoginFrame extends JFrame {
         return rightWrapper;
     }
 
-    /**
-     * Toggles password visibility between masked and plain text.
+    /*
+      Toggles password visibility between masked and plain text.
      */
     private void togglePasswordVisibility() {
         if (passwordField != null && defaultEchoChar == '•') {
@@ -504,8 +517,8 @@ public class LoginFrame extends JFrame {
         eyeButton.repaint();
     }
 
-    /**
-     * Displays a notice for the Forgot Password action.
+    /*
+     Displays a temporary placeholder notice for the Forgot Password action.
      */
     private void showForgotPasswordMessage() {
         JOptionPane.showMessageDialog(
@@ -517,12 +530,9 @@ public class LoginFrame extends JFrame {
         );
     }
 
-    /**
-     * Handles the database-authenticated login action:
-     * - Validates username and password inputs.
-     * - Authenticates against users table in MySQL.
-     * - Routes to the active module dashboard on success.
-     */
+
+     //Handles the database-authenticated login action:
+
     private void handleLogin() {
         String usernameInput = usernameField.getText().trim();
         char[] passwordChars = passwordField.getPassword();
@@ -552,7 +562,7 @@ public class LoginFrame extends JFrame {
         }
 
         // 2. Query database for user credentials
-        String sql = "SELECT user_id, username, password, role, first_name, last_name, email, status "
+        String sql = "SELECT user_id, username, password, role, first_name, last_name, email, phone, address, status "
                    + "FROM users WHERE username = ? OR email = ? OR user_id = ?";
 
         try (Connection conn = DBConnection.getConnection();
@@ -571,6 +581,9 @@ public class LoginFrame extends JFrame {
                     String lastName = rs.getString("last_name");
                     String dbUsername = rs.getString("username");
                     String userId = rs.getString("user_id");
+                    String email = rs.getString("email");
+                    String phone = rs.getString("phone");
+                    String address = rs.getString("address");
 
                     // 3. Verify account status
                     if ("INACTIVE".equalsIgnoreCase(status)) {
@@ -589,33 +602,76 @@ public class LoginFrame extends JFrame {
                                 ? (firstName + " " + (lastName != null ? lastName : "")).trim()
                                 : dbUsername;
 
-                        // 5. Open dashboard based on authenticated role
-                        if ("LECTURER".equalsIgnoreCase(role)) {
-                            dispose();
+                        // 5. Open appropriate dashboard based on authenticated role
+                        if ("ADMIN".equalsIgnoreCase(role)) {
                             SwingUtilities.invokeLater(() -> {
-                                new LecturerDashboardUI(userId).setVisible(true);
+                                AdminDashboard dashboard = new AdminDashboard(displayName);
+                                dashboard.setVisible(true);
                             });
+                            dispose();
+                        } else if ("UNDERGRADUATE".equalsIgnoreCase(role)) {
+                            Student student = studentDAO.getStudentProfile(userId);
+                            if (student == null) {
+                                student = new Student(
+                                        userId, dbUsername, role, firstName, lastName,
+                                        email, phone, address, status,
+                                        "TG/2024/2001", "2024/2025", "Level II",
+                                        "Information and Communication Technology", "REGULAR"
+                                );
+                            }
+                            final Student s = student;
+                            SwingUtilities.invokeLater(() -> {
+                                dispose();
+                                new StudentDashboard(s).setVisible(true);
+                            });
+                        } else if ("LECTURER".equalsIgnoreCase(role)) {
+                            Student lecturerUser = new Student(
+                                    userId, dbUsername, role, firstName, lastName,
+                                    email, phone, address, status,
+                                    "STAFF-" + userId, "Academic Staff", "2026/2027",
+                                    "Department of Information & Communication Technology", "ACTIVE"
+                            );
+                            SwingUtilities.invokeLater(() -> {
+                                dispose();
+                                StudentDashboard dash = new StudentDashboard(lecturerUser);
+                                dash.setVisible(true);
+                                dash.navigateToSection("Announcements");
+                            });
+                        } else if ("TECHNICAL_OFFICER".equalsIgnoreCase(role)) {
+                            final String finalOfficerId = (userId != null && !userId.isBlank()) ? userId : "TO001";
+                            final String finalOfficerName = displayName;
+                            SwingUtilities.invokeLater(() -> {
+                                TechnicalOfficerDashboard toDash = new TechnicalOfficerDashboard(finalOfficerId, finalOfficerName);
+                                toDash.setVisible(true);
+                            });
+                            dispose();
                         } else {
                             String roleName = formatRoleName(role);
+                            Object[] options = {"View Academic Timetable", "View Notices", "Close"};
                             int choice = JOptionPane.showOptionDialog(
                                     this,
                                     "<html><body style='font-family: sans-serif; width: 320px;'>" +
                                     "<h4 style='color: #10284A; margin-bottom: 6px;'>Welcome, " + displayName + "!</h4>" +
                                     "<p style='color: #4A5568; line-height: 1.4;'>" +
                                     "You have successfully authenticated as <b>" + roleName + "</b>.<br><br>" +
-                                    "Would you like to open the Lecturer Academic Portal?" +
+                                    "You can view your published academic timetable schedules and faculty notices below." +
                                     "</p></body></html>",
                                     "Login Successful - " + roleName,
-                                    JOptionPane.YES_NO_OPTION,
+                                    JOptionPane.DEFAULT_OPTION,
                                     JOptionPane.INFORMATION_MESSAGE,
                                     null,
-                                    new Object[]{"Open Lecturer Portal", "Close"},
-                                    "Open Lecturer Portal"
+                                    options,
+                                    options[0]
                             );
                             if (choice == 0) {
-                                dispose();
                                 SwingUtilities.invokeLater(() -> {
-                                    new LecturerDashboardUI(userId).setVisible(true);
+                                    TimetableViewerFrame viewer = new TimetableViewerFrame(role, displayName);
+                                    viewer.setVisible(true);
+                                });
+                            } else if (choice == 1) {
+                                SwingUtilities.invokeLater(() -> {
+                                    NoticeViewerFrame viewer = new NoticeViewerFrame(role, displayName);
+                                    viewer.setVisible(true);
                                 });
                             }
                         }
@@ -670,9 +726,8 @@ public class LoginFrame extends JFrame {
         }
     }
 
-    /**
-     * Custom container panel with smooth rounded borders and dynamic focus highlighting.
-     */
+
+    // Custom container panel with smooth rounded borders and dynamic focus highlighting
     private static class RoundedFieldContainer extends JPanel {
         private final int radius = 8;
         private boolean focused = false;
@@ -719,9 +774,9 @@ public class LoginFrame extends JFrame {
         }
     }
 
-    /**
-     * Custom button with rounded corners, anti-aliased rendering, and hover/press feedback.
-     */
+
+     //Custom button with rounded corners, anti-aliased rendering, and hover/press feedback.
+
     private static class RoundedButton extends JButton {
         private final Color normalColor;
         private final Color hoverColor;
@@ -760,15 +815,5 @@ public class LoginFrame extends JFrame {
 
             super.paintComponent(g);
         }
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            } catch (Exception ignored) {
-            }
-            new LoginFrame().setVisible(true);
-        });
     }
 }
