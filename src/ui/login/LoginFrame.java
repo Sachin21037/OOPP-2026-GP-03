@@ -1,21 +1,15 @@
 package ui.login;
 
-import dao.StudentDAO;
-import dao.UserDAO;
 import database.DBConnection;
-import model.Student;
-import model.User;
-import ui.student.StudentDashboard;
-
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
+import ui.admin.AdminDashboard;
+import ui.admin.NoticeViewerFrame;
+import ui.admin.TimetableViewerFrame;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.Path2D;
-import java.awt.geom.RoundRectangle2D;
+import java.awt.geom.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.net.URL;
@@ -27,7 +21,7 @@ import java.util.Arrays;
 
 public class LoginFrame extends JFrame {
 
-    // Theme Palette - Harmonized with modern FAMS Dashboard
+    // Theme Palette - Harmonized with Admin Dashboard
     private static final Color PRIMARY_NAVY    = new Color(16, 40, 74);    // #10284A
     private static final Color SECONDARY_BLUE  = new Color(29, 78, 216);   // #1D4ED8
     private static final Color LIGHT_BLUE      = new Color(234, 242, 255); // #EAF2FF
@@ -55,55 +49,33 @@ public class LoginFrame extends JFrame {
     private char defaultEchoChar = '•';
     private BufferedImage illustrationImage;
 
-    private final StudentDAO studentDAO = new StudentDAO();
-    private final UserDAO userDAO = new UserDAO();
-
     public LoginFrame() {
         setTitle("Faculty Academic Management System - Sign In");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setPreferredSize(new Dimension(920, 560));
-        setMinimumSize(new Dimension(820, 500));
-        setSize(920, 560);
+        setPreferredSize(new Dimension(900, 550));
+        setMinimumSize(new Dimension(800, 500));
+        setSize(900, 550);
         setLocationRelativeTo(null);
 
         loadIllustrationImage();
         initUI();
     }
 
-    /**
-     * Loads the 3D illustration image from resources or local file paths (supporting PNG and JPG).
-     */
+
+     //Loads the exact 3D illustration image from resources or file path.
+
     private void loadIllustrationImage() {
         try {
-            // Search classpath resources first
-            String[] resourcePaths = {
-                    "/ui/login/login_illustration.png",
-                    "/ui/login/login_illustration.jpg",
-                    "login_illustration.png",
-                    "login_illustration.jpg"
-            };
-            for (String path : resourcePaths) {
-                URL imgUrl = getClass().getResource(path);
-                if (imgUrl != null) {
-                    illustrationImage = ImageIO.read(imgUrl);
-                    if (illustrationImage != null) return;
-                }
+            URL imgUrl = getClass().getResource("/ui/login/login_illustration.jpg");
+            if (imgUrl == null) {
+                imgUrl = getClass().getResource("login_illustration.jpg");
             }
-
-            // Search filesystem paths
-            String[] filePaths = {
-                    "src/ui/login/login_illustration.png",
-                    "src/ui/login/login_illustration.jpg",
-                    "out/ui/login/login_illustration.png",
-                    "out/ui/login/login_illustration.jpg",
-                    "login_illustration.png",
-                    "login_illustration.jpg"
-            };
-            for (String path : filePaths) {
-                File file = new File(path);
+            if (imgUrl != null) {
+                illustrationImage = ImageIO.read(imgUrl);
+            } else {
+                File file = new File("src/ui/login/login_illustration.jpg");
                 if (file.exists()) {
                     illustrationImage = ImageIO.read(file);
-                    if (illustrationImage != null) return;
                 }
             }
         } catch (Exception e) {
@@ -142,11 +114,11 @@ public class LoginFrame extends JFrame {
         getRootPane().setDefaultButton(loginButton);
     }
 
-    /**
-     * Creates the Left Panel (42% width):
-     * Soft light-blue gradient background, FAMS header branding, descriptive platform summary,
-     * and the 3D academic/technology illustration image card.
-     */
+
+     //Creates the Left Panel (42% width):
+     //Soft light-blue gradient background, FAMS header branding, descriptive platform summary,
+     // the exact 3D academic/technology illustration image card.
+
     private JPanel createLeftPanel() {
         JPanel leftPanel = new JPanel() {
             @Override
@@ -171,58 +143,56 @@ public class LoginFrame extends JFrame {
                 g2.setColor(new Color(29, 78, 216, 20));
                 g2.fillOval(getWidth() - 90, getHeight() / 2 - 50, 150, 150);
 
-                // Draw 3D illustration image in the lower section
+                // Draw exact 3D illustration image in the lower section with Admin Dashboard colors
                 if (illustrationImage != null) {
                     int padX = 24;
                     int targetW = getWidth() - (padX * 2);
-                    // Maintain aspect ratio (approx 3:2)
+                    // Maintain aspect ratio (735 x 490 = 3:2)
                     int targetH = (int) (targetW * (490.0 / 735.0));
                     int targetY = getHeight() - targetH - 24;
 
-                    if (targetH > 0 && targetY > 160) {
-                        // 1. Soft Navy card shadow
-                        g2.setColor(new Color(16, 40, 74, 38));
-                        g2.fill(new RoundRectangle2D.Float(padX - 2, targetY + 3, targetW + 4, targetH + 4, 18, 18));
+                    // 1. Soft Navy card shadow
+                    g2.setColor(new Color(16, 40, 74, 38));
+                    g2.fill(new RoundRectangle2D.Float(padX - 2, targetY + 3, targetW + 4, targetH + 4, 18, 18));
 
-                        // 2. Light Blue container mat / backing
-                        RoundRectangle2D.Float matRect = new RoundRectangle2D.Float(padX - 3, targetY - 3, targetW + 6, targetH + 6, 18, 18);
-                        g2.setColor(LIGHT_BLUE);
-                        g2.fill(matRect);
+                    // 2. Admin Light Blue container mat / backing
+                    RoundRectangle2D.Float matRect = new RoundRectangle2D.Float(padX - 3, targetY - 3, targetW + 6, targetH + 6, 18, 18);
+                    g2.setColor(LIGHT_BLUE);
+                    g2.fill(matRect);
 
-                        // 3. Secondary Blue accent border around the mat
-                        g2.setColor(new Color(29, 78, 216, 120));
-                        g2.setStroke(new BasicStroke(1.5f));
-                        g2.draw(matRect);
+                    // 3. Admin Secondary Blue accent border around the mat
+                    g2.setColor(new Color(29, 78, 216, 120));
+                    g2.setStroke(new BasicStroke(1.5f));
+                    g2.draw(matRect);
 
-                        // 4. Rounded card clip for the image
-                        RoundRectangle2D.Float clipRect = new RoundRectangle2D.Float(padX, targetY, targetW, targetH, 14, 14);
-                        Shape oldClip = g2.getClip();
-                        g2.clip(clipRect);
-                        g2.drawImage(illustrationImage, padX, targetY, targetW, targetH, null);
-                        g2.setClip(oldClip);
+                    // 4. Rounded card clip for the image
+                    RoundRectangle2D.Float clipRect = new RoundRectangle2D.Float(padX, targetY, targetW, targetH, 14, 14);
+                    Shape oldClip = g2.getClip();
+                    g2.clip(clipRect);
+                    g2.drawImage(illustrationImage, padX, targetY, targetW, targetH, null);
+                    g2.setClip(oldClip);
 
-                        // 5. Crisp inner border
-                        g2.setColor(new Color(255, 255, 255, 230));
-                        g2.setStroke(new BasicStroke(1.2f));
-                        g2.draw(clipRect);
-                    }
+                    // 5. Crisp inner border
+                    g2.setColor(new Color(255, 255, 255, 230));
+                    g2.setStroke(new BasicStroke(1.2f));
+                    g2.draw(clipRect);
                 }
 
                 g2.dispose();
             }
         };
         leftPanel.setLayout(new BorderLayout());
-        leftPanel.setPreferredSize(new Dimension(385, 560));
+        leftPanel.setPreferredSize(new Dimension(378, 550));
 
-        // Content branding & description panel
+        // Content branding & description panel (Logo removed, title sized up)
         JPanel contentPanel = new JPanel();
         contentPanel.setOpaque(false);
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBorder(new EmptyBorder(28, 28, 8, 28));
+        contentPanel.setBorder(new EmptyBorder(30, 28, 8, 28));
 
-        // Faculty Academic Management System title
+        // Sized-up Faculty Academic Management System title matching sign button color
         JLabel appCategoryLabel = new JLabel("Faculty Academic Management System");
-        appCategoryLabel.setFont(new Font("SansSerif", Font.BOLD, 15));
+        appCategoryLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         appCategoryLabel.setForeground(SECONDARY_BLUE);
         appCategoryLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -239,10 +209,10 @@ public class LoginFrame extends JFrame {
         famsHeadline.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel famsDesc = new JLabel(
-                "<html><body style='width: 310px; color: #475569; font-family: sans-serif; font-size: 11px; line-height: 1.4;'>" +
-                        "FAMS is a user-friendly Faculty Academic Management System designed to simplify " +
-                        "academic activities for students, lecturers, technical officers, and administrators." +
-                        "</body></html>"
+                "<html><body style='width: 315px; color: #475569; font-family: sans-serif; font-size: 10px; line-height: 1.4;'>" +
+                "FAMS is a user-friendly Faculty Academic Management System designed to simplify " +
+                "academic activities for students, lecturers, technical officers, and administrators." +
+                "</body></html>"
         );
         famsDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -259,23 +229,21 @@ public class LoginFrame extends JFrame {
         return leftPanel;
     }
 
-    /**
-     * Creates the Right Panel (58% width):
-     * Pure white background, clean Sign In header, modern rounded inputs, custom vector eye
-     * password visibility toggle, remember me, forgot password, prominent login button, and demo login options.
-     */
+      //Creates the Right Panel (58% width):
+    //Pure white background, clean Sign In header, modern rounded inputs, custom vector eye
+     //password visibility toggle, remember me, forgot password, prominent royal-blue login button.
     private JPanel createRightPanel() {
         JPanel rightWrapper = new JPanel(new GridBagLayout());
         rightWrapper.setBackground(Color.WHITE);
-        rightWrapper.setPreferredSize(new Dimension(535, 560));
+        rightWrapper.setPreferredSize(new Dimension(522, 550));
 
-        // Inner form container
+        // Inner form container with fixed comfortable width
         JPanel formPanel = new JPanel();
         formPanel.setBackground(Color.WHITE);
         formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-        formPanel.setBorder(new EmptyBorder(16, 44, 16, 44));
-        formPanel.setPreferredSize(new Dimension(420, 500));
-        formPanel.setMaximumSize(new Dimension(440, 520));
+        formPanel.setBorder(new EmptyBorder(20, 48, 20, 48));
+        formPanel.setPreferredSize(new Dimension(420, 480));
+        formPanel.setMaximumSize(new Dimension(440, 500));
 
         // 1. Heading & Subtitle
         JLabel signInHeading = new JLabel("Sign In");
@@ -289,7 +257,7 @@ public class LoginFrame extends JFrame {
         signInSubtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         // 2. Username Label & Field
-        JLabel usernameLabel = new JLabel("Username / Student ID");
+        JLabel usernameLabel = new JLabel("Username");
         usernameLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
         usernameLabel.setForeground(TEXT_PRIMARY);
         usernameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -303,8 +271,8 @@ public class LoginFrame extends JFrame {
         RoundedFieldContainer usernameContainer = new RoundedFieldContainer();
         usernameContainer.setLayout(new BorderLayout());
         usernameContainer.add(usernameField, BorderLayout.CENTER);
-        usernameContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        usernameContainer.setPreferredSize(new Dimension(320, 40));
+        usernameContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        usernameContainer.setPreferredSize(new Dimension(320, 42));
         usernameContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         usernameField.addFocusListener(new FocusAdapter() {
@@ -381,8 +349,8 @@ public class LoginFrame extends JFrame {
         passwordContainer.setLayout(new BorderLayout());
         passwordContainer.add(passwordField, BorderLayout.CENTER);
         passwordContainer.add(eyeButton, BorderLayout.EAST);
-        passwordContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        passwordContainer.setPreferredSize(new Dimension(320, 40));
+        passwordContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        passwordContainer.setPreferredSize(new Dimension(320, 42));
         passwordContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         passwordField.addFocusListener(new FocusAdapter() {
@@ -399,7 +367,7 @@ public class LoginFrame extends JFrame {
         // 4. Remember Me & Forgot Password Row
         JPanel optionsRow = new JPanel(new BorderLayout());
         optionsRow.setBackground(Color.WHITE);
-        optionsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
+        optionsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
         optionsRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         rememberMeCheckbox = new JCheckBox("Remember Me");
@@ -432,11 +400,11 @@ public class LoginFrame extends JFrame {
         optionsRow.add(rememberMeCheckbox, BorderLayout.WEST);
         optionsRow.add(forgotPasswordLabel, BorderLayout.EAST);
 
-        // 5. Prominent Navy & Blue LOGIN Button
+        // 5. Prominent Navy & Blue LOGIN Button (Admin Dashboard Theme)
         loginButton = new RoundedButton("LOGIN", PRIMARY_NAVY, SECONDARY_BLUE, PRIMARY_PRESSED, 8);
         loginButton.setFont(new Font("SansSerif", Font.BOLD, 13));
-        loginButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        loginButton.setPreferredSize(new Dimension(320, 40));
+        loginButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        loginButton.setPreferredSize(new Dimension(320, 42));
         loginButton.setAlignmentX(Component.LEFT_ALIGNMENT);
         loginButton.addActionListener(e -> handleLogin());
 
@@ -444,49 +412,10 @@ public class LoginFrame extends JFrame {
         usernameField.addActionListener(e -> handleLogin());
         passwordField.addActionListener(e -> handleLogin());
 
-        // Demo credentials buttons for quick testing
-        JPanel demoPanel = new JPanel(new GridLayout(1, 2, 8, 0));
-        demoPanel.setBackground(Color.WHITE);
-        demoPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
-        demoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JButton studentDemoBtn = new JButton("Sample Student");
-        studentDemoBtn.setFont(new Font("SansSerif", Font.BOLD, 11));
-        studentDemoBtn.setForeground(SECONDARY_BLUE);
-        studentDemoBtn.setBackground(new Color(234, 242, 255));
-        studentDemoBtn.setBorder(new CompoundBorder(
-                new LineBorder(new Color(191, 219, 254), 1, true),
-                new EmptyBorder(5, 8, 5, 8)
-        ));
-        studentDemoBtn.setFocusPainted(false);
-        studentDemoBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        studentDemoBtn.addActionListener(e -> {
-            usernameField.setText("stu001");
-            passwordField.setText("Stu@123");
-        });
-
-        JButton lecturerDemoBtn = new JButton("Sample Lecturer");
-        lecturerDemoBtn.setFont(new Font("SansSerif", Font.BOLD, 11));
-        lecturerDemoBtn.setForeground(SECONDARY_BLUE);
-        lecturerDemoBtn.setBackground(new Color(234, 242, 255));
-        lecturerDemoBtn.setBorder(new CompoundBorder(
-                new LineBorder(new Color(191, 219, 254), 1, true),
-                new EmptyBorder(5, 8, 5, 8)
-        ));
-        lecturerDemoBtn.setFocusPainted(false);
-        lecturerDemoBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        lecturerDemoBtn.addActionListener(e -> {
-            usernameField.setText("lec001");
-            passwordField.setText("Lec@123");
-        });
-
-        demoPanel.add(studentDemoBtn);
-        demoPanel.add(lecturerDemoBtn);
-
         // 6. Security Footer
         JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
         footerPanel.setBackground(Color.WHITE);
-        footerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
+        footerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
         footerPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JComponent lockIcon = new JComponent() {
@@ -516,28 +445,25 @@ public class LoginFrame extends JFrame {
         // Assemble Form Components with balanced spacing
         formPanel.add(Box.createVerticalGlue());
         formPanel.add(signInHeading);
-        formPanel.add(Box.createVerticalStrut(3));
+        formPanel.add(Box.createVerticalStrut(4));
         formPanel.add(signInSubtitle);
-        formPanel.add(Box.createVerticalStrut(18));
+        formPanel.add(Box.createVerticalStrut(24));
 
         formPanel.add(usernameLabel);
-        formPanel.add(Box.createVerticalStrut(5));
+        formPanel.add(Box.createVerticalStrut(6));
         formPanel.add(usernameContainer);
-        formPanel.add(Box.createVerticalStrut(12));
+        formPanel.add(Box.createVerticalStrut(14));
 
         formPanel.add(passwordLabel);
-        formPanel.add(Box.createVerticalStrut(5));
+        formPanel.add(Box.createVerticalStrut(6));
         formPanel.add(passwordContainer);
-        formPanel.add(Box.createVerticalStrut(10));
+        formPanel.add(Box.createVerticalStrut(12));
 
         formPanel.add(optionsRow);
-        formPanel.add(Box.createVerticalStrut(16));
+        formPanel.add(Box.createVerticalStrut(20));
 
         formPanel.add(loginButton);
-        formPanel.add(Box.createVerticalStrut(10));
-
-        formPanel.add(demoPanel);
-        formPanel.add(Box.createVerticalStrut(16));
+        formPanel.add(Box.createVerticalStrut(22));
 
         formPanel.add(footerPanel);
         formPanel.add(Box.createVerticalGlue());
@@ -546,8 +472,8 @@ public class LoginFrame extends JFrame {
         return rightWrapper;
     }
 
-    /**
-     * Toggles password visibility between masked and plain text.
+    /*
+      Toggles password visibility between masked and plain text.
      */
     private void togglePasswordVisibility() {
         if (passwordField != null && defaultEchoChar == '•') {
@@ -567,22 +493,22 @@ public class LoginFrame extends JFrame {
         eyeButton.repaint();
     }
 
-    /**
-     * Displays a placeholder notice for the Forgot Password action.
+    /*
+     Displays a temporary placeholder notice for the Forgot Password action.
      */
     private void showForgotPasswordMessage() {
         JOptionPane.showMessageDialog(
                 this,
                 "The self-service password reset feature is currently being integrated.\n" +
-                        "Please contact your university administrator or IT department for assistance.",
+                "Please contact your university administrator for assistance.",
                 "Forgot Password",
                 JOptionPane.INFORMATION_MESSAGE
         );
     }
 
-    /**
-     * Handles authentication and directs users to the appropriate dashboard.
-     */
+
+     //Handles the database-authenticated login action:
+
     private void handleLogin() {
         String usernameInput = usernameField.getText().trim();
         char[] passwordChars = passwordField.getPassword();
@@ -592,7 +518,7 @@ public class LoginFrame extends JFrame {
         if (usernameInput.isEmpty()) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Username cannot be empty. Please enter your username, email, or Student ID.",
+                    "Username cannot be empty. Please enter your username, email, or ID.",
                     "Validation Error",
                     JOptionPane.WARNING_MESSAGE
             );
@@ -612,8 +538,8 @@ public class LoginFrame extends JFrame {
         }
 
         // 2. Query database for user credentials
-        String sql = "SELECT user_id, username, password, role, first_name, last_name, email, phone, address, profile_picture, status "
-                + "FROM users WHERE username = ? OR email = ? OR user_id = ?";
+        String sql = "SELECT user_id, username, password, role, first_name, last_name, email, status "
+                   + "FROM users WHERE username = ? OR email = ? OR user_id = ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -630,10 +556,6 @@ public class LoginFrame extends JFrame {
                     String firstName = rs.getString("first_name");
                     String lastName = rs.getString("last_name");
                     String dbUsername = rs.getString("username");
-                    String userId = rs.getString("user_id");
-                    String email = rs.getString("email");
-                    String phone = rs.getString("phone");
-                    String address = rs.getString("address");
 
                     // 3. Verify account status
                     if ("INACTIVE".equalsIgnoreCase(status)) {
@@ -652,49 +574,42 @@ public class LoginFrame extends JFrame {
                                 ? (firstName + " " + (lastName != null ? lastName : "")).trim()
                                 : dbUsername;
 
-                        // 5. Open corresponding dashboard based on user role
-                        if ("UNDERGRADUATE".equalsIgnoreCase(role)) {
-                            Student student = studentDAO.getStudentProfile(userId);
-                            if (student == null) {
-                                student = new Student(
-                                        userId, dbUsername, role, firstName, lastName,
-                                        email, phone, address, status,
-                                        "TG/2024/2001", "2024/2025", "Level II",
-                                        "Information and Communication Technology", "REGULAR"
-                                );
-                            }
-                            final Student s = student;
+                        // 5. Open appropriate dashboard based on authenticated role
+                        if ("ADMIN".equalsIgnoreCase(role)) {
                             SwingUtilities.invokeLater(() -> {
-                                dispose();
-                                new StudentDashboard(s).setVisible(true);
+                                AdminDashboard dashboard = new AdminDashboard(displayName);
+                                dashboard.setVisible(true);
                             });
-                        } else if ("LECTURER".equalsIgnoreCase(role)) {
-                            Student lecturerUser = new Student(
-                                    userId, dbUsername, role, firstName, lastName,
-                                    email, phone, address, status,
-                                    "STAFF-" + userId, "Academic Staff", "2026/2027",
-                                    "Department of Information & Communication Technology", "ACTIVE"
-                            );
-                            SwingUtilities.invokeLater(() -> {
-                                dispose();
-                                StudentDashboard dash = new StudentDashboard(lecturerUser);
-                                dash.setVisible(true);
-                                dash.navigateToSection("Announcements");
-                            });
+                            dispose();
                         } else {
-                            // Administrator or other staff roles
                             String roleName = formatRoleName(role);
-                            JOptionPane.showMessageDialog(
+                            Object[] options = {"View Academic Timetable", "View Notices", "Close"};
+                            int choice = JOptionPane.showOptionDialog(
                                     this,
                                     "<html><body style='font-family: sans-serif; width: 320px;'>" +
-                                            "<h4 style='color: #10284A; margin-bottom: 6px;'>Welcome, " + displayName + "!</h4>" +
-                                            "<p style='color: #4A5568; line-height: 1.4;'>" +
-                                            "You have successfully authenticated as <b>" + roleName + "</b>.<br><br>" +
-                                            "Portal view for " + roleName + " is ready." +
-                                            "</p></body></html>",
+                                    "<h4 style='color: #10284A; margin-bottom: 6px;'>Welcome, " + displayName + "!</h4>" +
+                                    "<p style='color: #4A5568; line-height: 1.4;'>" +
+                                    "You have successfully authenticated as <b>" + roleName + "</b>.<br><br>" +
+                                    "You can view your published academic timetable schedules and faculty notices below." +
+                                    "</p></body></html>",
                                     "Login Successful - " + roleName,
-                                    JOptionPane.INFORMATION_MESSAGE
+                                    JOptionPane.DEFAULT_OPTION,
+                                    JOptionPane.INFORMATION_MESSAGE,
+                                    null,
+                                    options,
+                                    options[0]
                             );
+                            if (choice == 0) {
+                                SwingUtilities.invokeLater(() -> {
+                                    TimetableViewerFrame viewer = new TimetableViewerFrame(role, displayName);
+                                    viewer.setVisible(true);
+                                });
+                            } else if (choice == 1) {
+                                SwingUtilities.invokeLater(() -> {
+                                    NoticeViewerFrame viewer = new NoticeViewerFrame(role, displayName);
+                                    viewer.setVisible(true);
+                                });
+                            }
                         }
                     } else {
                         JOptionPane.showMessageDialog(
@@ -721,13 +636,13 @@ public class LoginFrame extends JFrame {
             JOptionPane.showMessageDialog(
                     this,
                     "<html><body style='font-family: sans-serif; width: 300px;'>" +
-                            "<h4 style='color: #DC2626; margin-bottom: 6px;'>Database Connection Error</h4>" +
-                            "<p style='color: #4A5568; line-height: 1.4;'>" +
-                            "Unable to connect to the database.<br><br>" +
-                            "• Please verify that MySQL is started in XAMPP.<br>" +
-                            "• Ensure the database <b>fams</b> is active.<br><br>" +
-                            "<small style='color: #718096;'>Details: " + ex.getMessage() + "</small>" +
-                            "</p></body></html>",
+                    "<h4 style='color: #DC2626; margin-bottom: 6px;'>Database Connection Error</h4>" +
+                    "<p style='color: #4A5568; line-height: 1.4;'>" +
+                    "Unable to connect to the database.<br><br>" +
+                    "• Please verify that MySQL is started in XAMPP.<br>" +
+                    "• Ensure the database <b>fams</b> is active.<br><br>" +
+                    "<small style='color: #718096;'>Details: " + ex.getMessage() + "</small>" +
+                    "</p></body></html>",
                     "Database Error",
                     JOptionPane.ERROR_MESSAGE
             );
@@ -747,9 +662,8 @@ public class LoginFrame extends JFrame {
         }
     }
 
-    /**
-     * Custom container panel with smooth rounded borders and dynamic focus highlighting.
-     */
+
+    // Custom container panel with smooth rounded borders and dynamic focus highlighting
     private static class RoundedFieldContainer extends JPanel {
         private final int radius = 8;
         private boolean focused = false;
@@ -796,9 +710,9 @@ public class LoginFrame extends JFrame {
         }
     }
 
-    /**
-     * Custom button with rounded corners, anti-aliased gradient rendering, and hover/press feedback.
-     */
+
+     //Custom button with rounded corners, anti-aliased rendering, and hover/press feedback.
+
     private static class RoundedButton extends JButton {
         private final Color normalColor;
         private final Color hoverColor;
@@ -837,15 +751,5 @@ public class LoginFrame extends JFrame {
 
             super.paintComponent(g);
         }
-    }
-
-    public static void main(String[] args) {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ignored) {}
-
-        SwingUtilities.invokeLater(() -> {
-            new LoginFrame().setVisible(true);
-        });
     }
 }
