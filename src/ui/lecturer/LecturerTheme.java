@@ -1,15 +1,15 @@
-package ui;
+package ui.lecturer;
 
-import database.DBConnection;
+
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+
+
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -74,7 +74,7 @@ public final class LecturerTheme {
      */
     public static String getLecturerDisplayName(String lecturerId) {
         if (lecturerId == null || lecturerId.trim().isEmpty()) {
-            String active = LecturerDashboard.getActiveLecturerId();
+            String active = LecturerDashboardUI.getActiveLecturerId();
             if (active != null && !active.trim().isEmpty()) {
                 lecturerId = active.trim();
             } else {
@@ -87,23 +87,10 @@ public final class LecturerTheme {
             return LECTURER_NAME_CACHE.get(lecturerId);
         }
 
-        try (Connection conn = DBConnection.getConnection()) {
-            String sql = "SELECT u.first_name, u.last_name FROM users u WHERE u.user_id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, lecturerId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        String first = rs.getString("first_name");
-                        String last = rs.getString("last_name");
-                        String fullName = ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
-                        if (!fullName.isEmpty()) {
-                            LECTURER_NAME_CACHE.put(lecturerId, fullName);
-                            return fullName;
-                        }
-                    }
-                }
-            }
-        } catch (Exception ignored) {
+        String resolvedName = dao.LecturerDashboardDAO.getLecturerFullName(lecturerId);
+        if (resolvedName != null && !resolvedName.isEmpty() && !"Lecturer".equals(resolvedName)) {
+            LECTURER_NAME_CACHE.put(lecturerId, resolvedName);
+            return resolvedName;
         }
 
         return "Lecturer";
@@ -138,7 +125,7 @@ public final class LecturerTheme {
      * Default overload creating the modern white top header with active session lecturer.
      */
     public static JPanel createHeader() {
-        return createHeader(LecturerDashboard.getActiveLecturerId(), null);
+        return createHeader(LecturerDashboardUI.getActiveLecturerId(), null);
     }
 
     /**
@@ -151,12 +138,12 @@ public final class LecturerTheme {
      */
     public static JPanel createHeader(String lecturerId, JFrame currentFrame) {
         if (lecturerId != null && !lecturerId.trim().isEmpty()) {
-            LecturerDashboard.setActiveLecturerId(lecturerId.trim());
+            LecturerDashboardUI.setActiveLecturerId(lecturerId.trim());
         }
 
         final String activeId = (lecturerId != null && !lecturerId.trim().isEmpty())
                 ? lecturerId.trim()
-                : LecturerDashboard.getActiveLecturerId();
+                : LecturerDashboardUI.getActiveLecturerId();
 
         final String displayName = getLecturerDisplayName(activeId);
         final String initials = getInitials(displayName);
@@ -323,8 +310,8 @@ public final class LecturerTheme {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (currentFrame != null && !(currentFrame instanceof LecturerProfile)) {
-                    new LecturerProfile(activeId).setVisible(true);
+                if (currentFrame != null && !(currentFrame instanceof LecturerProfileUI)) {
+                    new LecturerProfileUI(activeId).setVisible(true);
                     currentFrame.dispose();
                 }
             }
@@ -347,7 +334,7 @@ public final class LecturerTheme {
     public static JPanel createSidebar(String activePage, String lecturerId, JFrame currentFrame) {
         final String safeLecturerId = (lecturerId != null && !lecturerId.trim().isEmpty())
                 ? lecturerId.trim()
-                : LecturerDashboard.getActiveLecturerId();
+                : LecturerDashboardUI.getActiveLecturerId();
 
         JPanel sidebar = new JPanel() {
             @Override
@@ -378,61 +365,61 @@ public final class LecturerTheme {
         menu.add(menuTitle);
 
         menu.add(createNavItem("Dashboard", "Dashboard".equalsIgnoreCase(activePage), () -> {
-            new LecturerDashboard(safeLecturerId).setVisible(true);
+            new LecturerDashboardUI(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("My Courses", "My Courses".equalsIgnoreCase(activePage), () -> {
-            new MyCourses(safeLecturerId).setVisible(true);
+            new MyCoursesUI(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Students", "Students".equalsIgnoreCase(activePage), () -> {
-            new Student(safeLecturerId).setVisible(true);
+            new StudentUI(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Attendance", "Attendance".equalsIgnoreCase(activePage), () -> {
-            new Attendance(safeLecturerId).setVisible(true);
+            new AttendanceUI(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Marks / Grades", "Marks / Grades".equalsIgnoreCase(activePage), () -> {
-            new MarksGrades(safeLecturerId).setVisible(true);
+            new MarksGradesUI(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Assignments", "Assignments".equalsIgnoreCase(activePage), () -> {
-            new Assignments(safeLecturerId).setVisible(true);
+            new AssignmentsUI(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Course Materials", "Course Materials".equalsIgnoreCase(activePage), () -> {
-            new CourseMaterials(safeLecturerId).setVisible(true);
+            new CourseMaterialsUI(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Medical Records", "Medical Records".equalsIgnoreCase(activePage), () -> {
-            new MedicalRecords(safeLecturerId).setVisible(true);
+            new MedicalRecordsUI(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Notices", "Notices".equalsIgnoreCase(activePage), () -> {
-            new Notices(safeLecturerId).setVisible(true);
+            new NoticesUI(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Profile", "Profile".equalsIgnoreCase(activePage), () -> {
-            new LecturerProfile(safeLecturerId).setVisible(true);
+            new LecturerProfileUI(safeLecturerId).setVisible(true);
             currentFrame.dispose();
         }));
 
@@ -451,7 +438,7 @@ public final class LecturerTheme {
                     JOptionPane.YES_NO_OPTION
             );
             if (answer == JOptionPane.YES_OPTION) {
-                LecturerDashboard.setActiveLecturerId(null);
+                LecturerDashboardUI.setActiveLecturerId(null);
                 LecturerTheme.clearLecturerNameCache(null);
                 currentFrame.dispose();
                 SwingUtilities.invokeLater(() -> {
