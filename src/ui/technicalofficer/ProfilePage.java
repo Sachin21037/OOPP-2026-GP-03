@@ -1,6 +1,5 @@
 package ui.technicalofficer;
 
-import model.LabFacility;
 import model.TechnicalOfficer;
 import service.TechnicalOfficerService;
 
@@ -12,34 +11,30 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Technical Officer profile and account management view.
- * Displays employment details, assigned labs, security settings, and activity logs.
+ * Technical Officer Profile Page in FAMS.
+ * Implements profile viewing and updating except username and password,
+ * matching the official role specification.
  */
 public class ProfilePage extends JPanel {
 
     // Theme color palette matching TechnicalOfficerDashboard
     private final Color darkNavy = new Color(27, 67, 103);
+    private final Color primaryBlue = new Color(45, 100, 160);
     private final Color lightBackground = new Color(245, 247, 250);
     private final Color cardWhite = Color.WHITE;
-    private final Color primaryBlue = new Color(45, 100, 160);
     private final Color successGreen = new Color(20, 165, 145);
-    private final Color alertRed = new Color(210, 60, 60);
-    private final Color warningAmber = new Color(217, 119, 6);
     private final Color borderColor = new Color(225, 228, 232);
-    private final Color textDark = new Color(35, 45, 55);
-    private final Color textMuted = new Color(110, 120, 130);
-    private final Color tableStripe = new Color(240, 244, 249);
-    private final Color tableGridColor = new Color(218, 224, 233);
-    private final Color tableSelectionBg = new Color(193, 218, 243);
+    private final Color textDark = new Color(30, 41, 59);
+    private final Color textMuted = new Color(100, 116, 139);
 
-    // Business service
     private final TechnicalOfficerService service = new TechnicalOfficerService();
-    private TechnicalOfficer currentOfficer;
     private final String currentOfficerId = "TO001";
+    private TechnicalOfficer currentOfficer;
 
     // Hero Profile Labels
     private JLabel avatarLabel;
@@ -51,26 +46,12 @@ public class ProfilePage extends JPanel {
     private JLabel staffPillLabel;
     private JLabel sysIdPillLabel;
 
-    // Cross-module navigation callback
-    private Runnable onNavigateToTimetable;
-
-    public void setOnNavigateToTimetable(Runnable onNavigateToTimetable) {
-        this.onNavigateToTimetable = onNavigateToTimetable;
-    }
-
-    // Top KPI Labels
-    private JLabel kpiLabsValueLabel;
-    private JLabel kpiWorkstationsValueLabel;
-    private JLabel kpiUptimeValueLabel;
-    private JLabel kpiTicketsValueLabel;
-
     // Tab Navigation
     private CardLayout tabCardLayout;
     private JPanel tabContentContainer;
     private JButton tab1Btn;
     private JButton tab2Btn;
     private JButton tab3Btn;
-    private JButton tab4Btn;
 
     // Tab 1 (Details) Labels
     private JLabel detStaffNoLabel;
@@ -87,20 +68,20 @@ public class ProfilePage extends JPanel {
     private JLabel detOfficeRoomLabel;
     private JLabel detAddressLabel;
 
-    // Tab 2 (Labs) Table
-    private JTable assignedLabsTable;
-    private DefaultTableModel assignedLabsTableModel;
-
-    // Tab 3 (Security) Fields
-    private JPasswordField currentPasswordField;
-    private JPasswordField newPasswordField;
-    private JPasswordField confirmPasswordField;
+    // Tab 2 (Security / Account) Labels
     private JLabel secUsernameLabel;
     private JLabel secRoleLabel;
 
-    // Tab 4 (Audit) Table
+    // Tab 3 (Audit) Table
     private JTable auditTable;
     private DefaultTableModel auditTableModel;
+
+    // Cross-module navigation callback
+    private Runnable onNavigateToTimetable;
+
+    public void setOnNavigateToTimetable(Runnable onNavigateToTimetable) {
+        this.onNavigateToTimetable = onNavigateToTimetable;
+    }
 
     public ProfilePage() {
         setLayout(new BorderLayout());
@@ -115,19 +96,18 @@ public class ProfilePage extends JPanel {
         mainContainer.setBackground(lightBackground);
         mainContainer.setBorder(new EmptyBorder(20, 24, 24, 24));
 
-        // 1. Top Section (Header + Hero Card + KPI ribbon + Tabs)
+        // 1. Top Section (Header + Hero Card + Tabs)
         JPanel topSection = new JPanel(new BorderLayout(0, 14));
         topSection.setOpaque(false);
 
         topSection.add(createPageHeader(), BorderLayout.NORTH);
 
-        JPanel heroAndKpiPanel = new JPanel(new BorderLayout(0, 12));
-        heroAndKpiPanel.setOpaque(false);
-        heroAndKpiPanel.add(createHeroCard(), BorderLayout.NORTH);
-        heroAndKpiPanel.add(createKpiCardsPanel(), BorderLayout.CENTER);
-        heroAndKpiPanel.add(createNavTabBar(), BorderLayout.SOUTH);
+        JPanel heroAndTabPanel = new JPanel(new BorderLayout(0, 14));
+        heroAndTabPanel.setOpaque(false);
+        heroAndTabPanel.add(createHeroCard(), BorderLayout.NORTH);
+        heroAndTabPanel.add(createNavTabBar(), BorderLayout.SOUTH);
 
-        topSection.add(heroAndKpiPanel, BorderLayout.CENTER);
+        topSection.add(heroAndTabPanel, BorderLayout.CENTER);
 
         // 2. Tab Content Container
         tabCardLayout = new CardLayout();
@@ -135,14 +115,12 @@ public class ProfilePage extends JPanel {
         tabContentContainer.setOpaque(false);
 
         tabContentContainer.add(createPersonalDetailsTab(), "TAB_DETAILS");
-        tabContentContainer.add(createAssignedLabsTab(), "TAB_LABS");
         tabContentContainer.add(createSecurityTab(), "TAB_SECURITY");
         tabContentContainer.add(createAuditTrailTab(), "TAB_AUDIT");
 
         mainContainer.add(topSection, BorderLayout.NORTH);
         mainContainer.add(tabContentContainer, BorderLayout.CENTER);
 
-        // Wrap in smooth JScrollPane for seamless scrolling on smaller displays
         JScrollPane rootScroll = new JScrollPane(mainContainer);
         rootScroll.setBorder(null);
         rootScroll.getVerticalScrollBar().setUnitIncrement(16);
@@ -160,12 +138,11 @@ public class ProfilePage extends JPanel {
         JPanel titleBox = new JPanel(new GridLayout(2, 1, 0, 2));
         titleBox.setOpaque(false);
 
-        JLabel title = new JLabel("Technical Officer Profile & Account Settings");
+        JLabel title = new JLabel("Technical Officer Profile & Settings");
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(textDark);
 
-        JLabel subtitle = new JLabel(
-                "View employment records, manage assigned laboratory infrastructure, update security credentials, and review activity logs.");
+        JLabel subtitle = new JLabel("Manage personal information, review departmental authorizations, and view activity history.");
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subtitle.setForeground(textMuted);
 
@@ -178,14 +155,10 @@ public class ProfilePage extends JPanel {
         JButton editBtn = createStyledButton("Edit Profile", primaryBlue, Color.WHITE);
         editBtn.addActionListener(e -> showEditProfileDialog());
 
-        JButton changePassBtn = createStyledButton("Change Password", Color.WHITE, textDark);
-        changePassBtn.addActionListener(e -> switchTab(3));
-
-        JButton refreshBtn = createStyledButton("Refresh", Color.WHITE, textDark);
+        JButton refreshBtn = createStyledButton("Refresh", Color.WHITE, Color.BLACK);
         refreshBtn.addActionListener(e -> refreshProfile());
 
         actions.add(editBtn);
-        actions.add(changePassBtn);
         actions.add(refreshBtn);
 
         header.add(titleBox, BorderLayout.WEST);
@@ -241,104 +214,35 @@ public class ProfilePage extends JPanel {
 
         staffPillLabel = createPillLabel("STAFF: TO-STF-001", primaryBlue, new Color(239, 246, 255));
         sysIdPillLabel = createPillLabel("ID: TO001", textDark, new Color(241, 245, 249));
-        heroStatusBadge = createPillLabel("● ACTIVE", successGreen, new Color(230, 247, 244));
+        heroStatusBadge = createPillLabel("ACTIVE", successGreen, new Color(230, 247, 244));
 
         nameAndBadgesRow.add(heroNameLabel);
         nameAndBadgesRow.add(staffPillLabel);
         nameAndBadgesRow.add(sysIdPillLabel);
         nameAndBadgesRow.add(heroStatusBadge);
 
-        heroRoleLabel = new JLabel("Technical Officer (Grade II) • Faculty of Technology");
-        heroRoleLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        heroRoleLabel.setForeground(primaryBlue);
-        heroRoleLabel.setBorder(new EmptyBorder(3, 4, 3, 0));
+        heroRoleLabel = new JLabel("Technical Officer (Grade II) - Faculty of Technology");
+        heroRoleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        heroRoleLabel.setForeground(textMuted);
 
         heroDeptLabel = new JLabel("Department of Information and Communication Technology");
-        heroDeptLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        heroDeptLabel.setForeground(textDark);
-        heroDeptLabel.setBorder(new EmptyBorder(0, 4, 3, 0));
+        heroDeptLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        heroDeptLabel.setForeground(primaryBlue);
 
-        heroContactLabel = new JLabel(
-                "Email: dinesh.to@uor.lk   |   Phone: 0710000007   |   Office: Room A-204, IT Technical Office");
+        heroContactLabel = new JLabel("Email: dinesh.to@uor.lk   |   Phone: 0710000007   |   Office: Room A-204");
         heroContactLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         heroContactLabel.setForeground(textMuted);
-        heroContactLabel.setBorder(new EmptyBorder(0, 4, 0, 0));
 
         centerBox.add(nameAndBadgesRow);
+        centerBox.add(Box.createVerticalStrut(4));
         centerBox.add(heroRoleLabel);
+        centerBox.add(Box.createVerticalStrut(2));
         centerBox.add(heroDeptLabel);
+        centerBox.add(Box.createVerticalStrut(4));
         centerBox.add(heroContactLabel);
 
         card.add(avatarPanel, BorderLayout.WEST);
         card.add(centerBox, BorderLayout.CENTER);
-
-        return card;
-    }
-
-    private JPanel createKpiCardsPanel() {
-        JPanel panel = new JPanel(new GridLayout(1, 4, 14, 0));
-        panel.setOpaque(false);
-        panel.setPreferredSize(new Dimension(800, 85));
-
-        kpiLabsValueLabel = new JLabel("4 Labs");
-        kpiWorkstationsValueLabel = new JLabel("170 PCs");
-        kpiUptimeValueLabel = new JLabel("97.1%");
-        kpiTicketsValueLabel = new JLabel("12 Handled");
-
-        panel.add(createSummaryCard("ASSIGNED LABS", kpiLabsValueLabel, "Under primary officer supervision", darkNavy));
-        panel.add(createSummaryCard("WORKSTATIONS MANAGED", kpiWorkstationsValueLabel,
-                "Active computer fleet across labs", primaryBlue));
-        panel.add(createSummaryCard("LAB FLEET HEALTH", kpiUptimeValueLabel, "Average operational equipment uptime",
-                successGreen));
-        panel.add(createSummaryCard("MAINTENANCE TICKETS", kpiTicketsValueLabel, "Service & fault tickets processed",
-                warningAmber));
-
-        return panel;
-    }
-
-    private JPanel createSummaryCard(String title, JLabel valueLabel, String subtitle, Color accentColor) {
-        JPanel card = createCardPanel();
-        card.setLayout(new BorderLayout(8, 2));
-        card.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(10, 14, 10, 14)));
-
-        JPanel topRow = new JPanel(new BorderLayout());
-        topRow.setOpaque(false);
-
-        JLabel titleLbl = new JLabel(title);
-        titleLbl.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        titleLbl.setForeground(textMuted);
-
-        JPanel dot = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(accentColor);
-                g2.fillOval(0, 0, 8, 8);
-                g2.dispose();
-            }
-        };
-        dot.setPreferredSize(new Dimension(8, 8));
-        dot.setOpaque(false);
-
-        topRow.add(titleLbl, BorderLayout.WEST);
-        topRow.add(dot, BorderLayout.EAST);
-
-        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        valueLabel.setForeground(textDark);
-
-        JLabel subLbl = new JLabel(subtitle);
-        subLbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        subLbl.setForeground(textMuted);
-
-        JPanel contentBox = new JPanel(new GridLayout(2, 1, 0, 1));
-        contentBox.setOpaque(false);
-        contentBox.add(valueLabel);
-        contentBox.add(subLbl);
-
-        card.add(topRow, BorderLayout.NORTH);
-        card.add(contentBox, BorderLayout.CENTER);
 
         return card;
     }
@@ -350,19 +254,15 @@ public class ProfilePage extends JPanel {
         tab1Btn = createTabButton("Personal & Employment Details", true);
         tab1Btn.addActionListener(e -> switchTab(1));
 
-        tab2Btn = createTabButton("Assigned Laboratories & Fleet", false);
+        tab2Btn = createTabButton("Account Credentials & Policy", false);
         tab2Btn.addActionListener(e -> switchTab(2));
 
-        tab3Btn = createTabButton("Account Security & Password", false);
+        tab3Btn = createTabButton("Activity & System Audit Trail", false);
         tab3Btn.addActionListener(e -> switchTab(3));
-
-        tab4Btn = createTabButton("Activity & System Audit Trail", false);
-        tab4Btn.addActionListener(e -> switchTab(4));
 
         bar.add(tab1Btn);
         bar.add(tab2Btn);
         bar.add(tab3Btn);
-        bar.add(tab4Btn);
 
         return bar;
     }
@@ -372,7 +272,7 @@ public class ProfilePage extends JPanel {
         btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setPreferredSize(new Dimension(210, 36));
+        btn.setPreferredSize(new Dimension(230, 36));
         updateTabButtonStyle(btn, active);
         return btn;
     }
@@ -393,16 +293,12 @@ public class ProfilePage extends JPanel {
         updateTabButtonStyle(tab1Btn, tabIndex == 1);
         updateTabButtonStyle(tab2Btn, tabIndex == 2);
         updateTabButtonStyle(tab3Btn, tabIndex == 3);
-        updateTabButtonStyle(tab4Btn, tabIndex == 4);
 
         if (tabIndex == 1) {
             tabCardLayout.show(tabContentContainer, "TAB_DETAILS");
         } else if (tabIndex == 2) {
-            tabCardLayout.show(tabContentContainer, "TAB_LABS");
-            loadAssignedLabsTable();
-        } else if (tabIndex == 3) {
             tabCardLayout.show(tabContentContainer, "TAB_SECURITY");
-        } else {
+        } else if (tabIndex == 3) {
             tabCardLayout.show(tabContentContainer, "TAB_AUDIT");
             loadAuditTable();
         }
@@ -417,12 +313,12 @@ public class ProfilePage extends JPanel {
         JPanel grid = new JPanel(new GridLayout(1, 2, 14, 0));
         grid.setOpaque(false);
 
-        // Left Card: Employment & University Data
+        // Left Card: Employment Overview
         JPanel employmentCard = createCardPanel();
         employmentCard.setLayout(new BorderLayout(0, 12));
         employmentCard.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(16, 18, 16, 18)));
 
-        JLabel empHeader = new JLabel("Employment & Academic Appointment");
+        JLabel empHeader = new JLabel("Official University Appointment Details");
         empHeader.setFont(new Font("Segoe UI", Font.BOLD, 14));
         empHeader.setForeground(darkNavy);
 
@@ -436,16 +332,16 @@ public class ProfilePage extends JPanel {
         detFacultyLabel = new JLabel("Faculty of Technology");
         detDepartmentLabel = new JLabel("Information and Communication Technology");
         detStatusLabel = new JLabel("Permanent Staff (ACTIVE)");
-        detAppointedLabel = new JLabel("2026-10-07 14:51:10");
+        detAppointedLabel = new JLabel("2026-10-07");
 
-        addDetailRow(empFields, "Staff Registration No:", detStaffNoLabel);
-        addDetailRow(empFields, "System Officer ID:", detSysIdLabel);
+        addDetailRow(empFields, "Staff Member No:", detStaffNoLabel);
+        addDetailRow(empFields, "System User ID:", detSysIdLabel);
         addDetailRow(empFields, "Full Legal Name:", detFullNameLabel);
-        addDetailRow(empFields, "Designation / Grade:", detDesignationLabel);
-        addDetailRow(empFields, "Faculty:", detFacultyLabel);
-        addDetailRow(empFields, "Academic Department:", detDepartmentLabel);
-        addDetailRow(empFields, "Employment Status:", detStatusLabel);
-        addDetailRow(empFields, "Appointment Date:", detAppointedLabel);
+        addDetailRow(empFields, "Academic Designation:", detDesignationLabel);
+        addDetailRow(empFields, "Faculty Affiliation:", detFacultyLabel);
+        addDetailRow(empFields, "Assigned Department:", detDepartmentLabel);
+        addDetailRow(empFields, "Appointment Status:", detStatusLabel);
+        addDetailRow(empFields, "Date of Appointment:", detAppointedLabel);
 
         employmentCard.add(empHeader, BorderLayout.NORTH);
         employmentCard.add(empFields, BorderLayout.CENTER);
@@ -482,29 +378,7 @@ public class ProfilePage extends JPanel {
         grid.add(employmentCard);
         grid.add(contactCard);
 
-        // Bottom Card: Technical Specializations & Duties
-        JPanel dutiesCard = createCardPanel();
-        dutiesCard.setLayout(new BorderLayout(0, 10));
-        dutiesCard.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(14, 18, 14, 18)));
-
-        JLabel dutiesTitle = new JLabel("Assigned Operational Roles & System Authorizations");
-        dutiesTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        dutiesTitle.setForeground(darkNavy);
-
-        JPanel badgesRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 6));
-        badgesRow.setOpaque(false);
-
-        badgesRow.add(createSpecializationBadge("Network & Server Maintenance (Cisco / VLANs / DHCP)", primaryBlue));
-        badgesRow.add(createSpecializationBadge("Workstation OS Imaging & Lab Deployment", darkNavy));
-        badgesRow.add(createSpecializationBadge("Practical Attendance Logging & 80% Threshold Audits", successGreen));
-        badgesRow.add(createSpecializationBadge("Medical Certificate Authenticity Verification", warningAmber));
-        badgesRow.add(createSpecializationBadge("Preventive Servicing & Equipment Replacement", alertRed));
-
-        dutiesCard.add(dutiesTitle, BorderLayout.NORTH);
-        dutiesCard.add(badgesRow, BorderLayout.CENTER);
-
         panel.add(grid, BorderLayout.CENTER);
-        panel.add(dutiesCard, BorderLayout.SOUTH);
 
         return panel;
     }
@@ -521,288 +395,82 @@ public class ProfilePage extends JPanel {
         panel.add(valueLabel);
     }
 
-    private JPanel createSpecializationBadge(String text, Color color) {
-        JPanel badge = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 4));
-        badge.setBackground(new Color(color.getRed(), color.getGreen(), color.getBlue(), 18));
-        badge.setBorder(new CompoundBorder(new LineBorder(color, 1), new EmptyBorder(2, 6, 2, 6)));
-
-        JLabel lbl = new JLabel("✓  " + text);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lbl.setForeground(color);
-
-        badge.add(lbl);
-        return badge;
-    }
-
-    // --- Tab 2: Assigned Laboratories & Fleet ---
-
-    private JPanel createAssignedLabsTab() {
-        JPanel panel = new JPanel(new BorderLayout(0, 12));
-        panel.setOpaque(false);
-
-        // Header info banner
-        JPanel noteCard = createCardPanel();
-        noteCard.setLayout(new BorderLayout());
-        noteCard.setBorder(
-                new CompoundBorder(new LineBorder(new Color(191, 219, 254), 1), new EmptyBorder(12, 16, 12, 16)));
-        noteCard.setBackground(new Color(239, 246, 255));
-
-        JLabel noteText = new JLabel(
-                "<html><b>Primary Laboratory Fleet Assignment:</b> Officer <b>TO001 (Dinesh Kumara)</b> is designated as the officer-in-charge "
-                        +
-                        "for all academic computing, networking, and hardware facilities under the Department of Information and Communication Technology. "
-                        +
-                        "Direct all equipment maintenance tickets and practical timetable setups through this module.</html>");
-        noteText.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        noteText.setForeground(darkNavy);
-        noteCard.add(noteText, BorderLayout.CENTER);
-
-        JButton viewTimetableBtn = createStyledButton("🗓️ View Timetables", darkNavy, Color.WHITE);
-        viewTimetableBtn.setToolTipText("View Academic Timetable & Lab Sessions");
-        viewTimetableBtn.addActionListener(e -> {
-            if (onNavigateToTimetable != null) {
-                onNavigateToTimetable.run();
-            }
-        });
-        JPanel btnWrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 4));
-        btnWrapper.setOpaque(false);
-        btnWrapper.add(viewTimetableBtn);
-        noteCard.add(btnWrapper, BorderLayout.EAST);
-
-        // Labs Table Card
-        JPanel tableCard = createCardPanel();
-        tableCard.setLayout(new BorderLayout(0, 10));
-        tableCard.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(16, 18, 16, 18)));
-
-        JLabel tableTitle = new JLabel("Laboratories Under Supervision");
-        tableTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        tableTitle.setForeground(darkNavy);
-
-        String[] cols = {
-                "Lab ID", "Lab Name", "Campus Location", "Department",
-                "Total Stations", "Operational", "Availability", "Status", "Equipment Highlights"
-        };
-
-        assignedLabsTableModel = new DefaultTableModel(cols, 0) {
-            @Override
-            public boolean isCellEditable(int row, int col) {
-                return false;
-            }
-        };
-
-        assignedLabsTable = new JTable(assignedLabsTableModel);
-        styleTable(assignedLabsTable);
-
-        JScrollPane scrollPane = new JScrollPane(assignedLabsTable);
-        scrollPane.setBorder(new LineBorder(borderColor, 1));
-        scrollPane.getViewport().setBackground(Color.WHITE);
-
-        tableCard.add(tableTitle, BorderLayout.NORTH);
-        tableCard.add(scrollPane, BorderLayout.CENTER);
-
-        panel.add(noteCard, BorderLayout.NORTH);
-        panel.add(tableCard, BorderLayout.CENTER);
-
-        return panel;
-    }
-
-    private void loadAssignedLabsTable() {
-        if (assignedLabsTableModel == null)
-            return;
-        assignedLabsTableModel.setRowCount(0);
-
-        List<LabFacility> labs = service.getAssignedLabs();
-        for (LabFacility lab : labs) {
-            assignedLabsTableModel.addRow(new Object[] {
-                    lab.getLabId(),
-                    lab.getLabName(),
-                    lab.getLocation(),
-                    lab.getDepartment(),
-                    lab.getTotalWorkstations() + " units",
-                    lab.getOperationalWorkstations() + " operational",
-                    String.format("%.1f%%", lab.getOperationalPercentage()),
-                    lab.getStatus(),
-                    lab.getEquipmentSummary()
-            });
-        }
-    }
-
-    // --- Tab 3: Account Security & Credentials ---
+    // --- Tab 2: Account Credentials & Policy ---
 
     private JPanel createSecurityTab() {
-        JPanel panel = new JPanel(new GridLayout(1, 2, 14, 0));
+        JPanel panel = new JPanel(new BorderLayout(0, 14));
         panel.setOpaque(false);
 
-        // Left Card: Authentication & Security Overview
         JPanel secOverviewCard = createCardPanel();
-        secOverviewCard.setLayout(new BorderLayout(0, 14));
-        secOverviewCard.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(16, 18, 16, 18)));
+        secOverviewCard.setLayout(new BorderLayout(0, 16));
+        secOverviewCard.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(20, 24, 20, 24)));
 
-        JLabel secTitle = new JLabel("Security & Session Authentication");
-        secTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        JLabel secTitle = new JLabel("Account Credentials & Access Authorization");
+        secTitle.setFont(new Font("Segoe UI", Font.BOLD, 15));
         secTitle.setForeground(darkNavy);
 
-        JPanel secGrid = new JPanel(new GridLayout(6, 2, 8, 12));
+        JPanel secGrid = new JPanel(new GridLayout(4, 2, 12, 14));
         secGrid.setOpaque(false);
 
         secUsernameLabel = new JLabel("to001");
         secRoleLabel = new JLabel("TECHNICAL_OFFICER (Privileged Staff)");
-        JLabel sec2fa = new JLabel("Enabled (SMS / Institutional Mail)");
-        sec2fa.setForeground(successGreen);
-        JLabel secSession = new JLabel("Secured Local Session (127.0.0.1)");
-        JLabel secPolicy = new JLabel("Strict 8-char mix policy");
-        JLabel secLastLogin = new JLabel("Today, System Launch Time");
+        JLabel secStatus = new JLabel("ACTIVE");
+        secStatus.setForeground(successGreen);
+        secStatus.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        JLabel secTerminal = new JLabel("FAMS Technical Officer Terminal (Localhost)");
 
         addDetailRow(secGrid, "Login Username:", secUsernameLabel);
         addDetailRow(secGrid, "Access Role Level:", secRoleLabel);
-        addDetailRow(secGrid, "Two-Factor Auth:", sec2fa);
-        addDetailRow(secGrid, "Current Terminal Session:", secSession);
-        addDetailRow(secGrid, "Password Security Policy:", secPolicy);
-        addDetailRow(secGrid, "Last System Login:", secLastLogin);
+        addDetailRow(secGrid, "Account Status:", secStatus);
+        addDetailRow(secGrid, "Terminal Access:", secTerminal);
 
-        JPanel tipBox = new JPanel(new BorderLayout());
-        tipBox.setBackground(new Color(254, 243, 199));
-        tipBox.setBorder(
-                new CompoundBorder(new LineBorder(new Color(245, 158, 11), 1), new EmptyBorder(10, 12, 10, 12)));
+        JPanel policyBox = new JPanel(new BorderLayout());
+        policyBox.setBackground(new Color(239, 246, 255));
+        policyBox.setBorder(new CompoundBorder(new LineBorder(new Color(191, 219, 254), 1), new EmptyBorder(14, 16, 14, 16)));
 
-        JLabel tipText = new JLabel(
-                "<html><b>Security Notice:</b> Technical Officer credentials grant direct access to " +
-                        "examination attendance records, lab workstation settings, and medical certificate verifications. "
-                        +
-                        "Never share your password or leave your terminal unlocked.</html>");
-        tipText.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        tipText.setForeground(new Color(146, 64, 14));
-        tipBox.add(tipText, BorderLayout.CENTER);
+        JLabel policyText = new JLabel(
+                "<html><b>FAMS Policy Specification:</b> Technical Officers can update their profile information " +
+                "(name, contact details, assigned department, address) except username and password. " +
+                "Username and password credentials are managed directly by Faculty System Administrators.</html>");
+        policyText.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        policyText.setForeground(darkNavy);
+        policyBox.add(policyText, BorderLayout.CENTER);
 
         secOverviewCard.add(secTitle, BorderLayout.NORTH);
         secOverviewCard.add(secGrid, BorderLayout.CENTER);
-        secOverviewCard.add(tipBox, BorderLayout.SOUTH);
+        secOverviewCard.add(policyBox, BorderLayout.SOUTH);
 
-        // Right Card: Change Password Form
-        JPanel changePassCard = createCardPanel();
-        changePassCard.setLayout(new BorderLayout(0, 12));
-        changePassCard.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(16, 18, 16, 18)));
-
-        JLabel changeTitle = new JLabel("Change Account Password");
-        changeTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        changeTitle.setForeground(darkNavy);
-
-        JPanel formGrid = new JPanel(new GridBagLayout());
-        formGrid.setOpaque(false);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        gbc.insets = new Insets(6, 0, 6, 0);
-
-        currentPasswordField = new JPasswordField();
-        stylePasswordField(currentPasswordField);
-
-        newPasswordField = new JPasswordField();
-        stylePasswordField(newPasswordField);
-
-        confirmPasswordField = new JPasswordField();
-        stylePasswordField(confirmPasswordField);
-
-        int y = 0;
-        gbc.gridx = 0;
-        gbc.gridy = y++;
-        formGrid.add(createLabeledField("Current System Password:", currentPasswordField), gbc);
-        gbc.gridx = 0;
-        gbc.gridy = y++;
-        formGrid.add(createLabeledField("New Secure Password (min 6 characters):", newPasswordField), gbc);
-        gbc.gridx = 0;
-        gbc.gridy = y++;
-        formGrid.add(createLabeledField("Confirm New Password:", confirmPasswordField), gbc);
-
-        JLabel pwdHint = new JLabel(
-                "<html>• Must be at least 6 characters long<br>• Cannot match your current password<br>• Stored securely with immediate synchronization</html>");
-        pwdHint.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        pwdHint.setForeground(textMuted);
-        gbc.gridx = 0;
-        gbc.gridy = y++;
-        formGrid.add(pwdHint, gbc);
-
-        JButton savePassBtn = createStyledButton("Update Account Password", darkNavy, Color.WHITE);
-        savePassBtn.addActionListener(e -> handleChangePassword());
-
-        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 8));
-        btnRow.setOpaque(false);
-        btnRow.add(savePassBtn);
-
-        changePassCard.add(changeTitle, BorderLayout.NORTH);
-        changePassCard.add(formGrid, BorderLayout.CENTER);
-        changePassCard.add(btnRow, BorderLayout.SOUTH);
-
-        panel.add(secOverviewCard);
-        panel.add(changePassCard);
+        panel.add(secOverviewCard, BorderLayout.NORTH);
 
         return panel;
     }
 
-    private void handleChangePassword() {
-        String currentPass = new String(currentPasswordField.getPassword()).trim();
-        String newPass = new String(newPasswordField.getPassword()).trim();
-        String confirmPass = new String(confirmPasswordField.getPassword()).trim();
-
-        if (currentPass.isEmpty() || newPass.isEmpty() || confirmPass.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Please fill in all three password fields.",
-                    "Input Error", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        if (newPass.length() < 6) {
-            JOptionPane.showMessageDialog(this,
-                    "New password must be at least 6 characters long.",
-                    "Security Validation", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        if (newPass.equals(currentPass)) {
-            JOptionPane.showMessageDialog(this,
-                    "New password cannot be identical to the current password.",
-                    "Validation Error", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        if (!newPass.equals(confirmPass)) {
-            JOptionPane.showMessageDialog(this,
-                    "The new password and confirmation password do not match.",
-                    "Mismatch Error", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        boolean success = service.changePassword(currentOfficerId, currentPass, newPass);
-        if (success) {
-            JOptionPane.showMessageDialog(this,
-                    "Password updated successfully! Your account credentials have been synchronized.",
-                    "Success", JOptionPane.INFORMATION_MESSAGE);
-            currentPasswordField.setText("");
-            newPasswordField.setText("");
-            confirmPasswordField.setText("");
-            loadAuditTable();
-        } else {
-            JOptionPane.showMessageDialog(this,
-                    "The current password you entered is incorrect. Please verify and try again.",
-                    "Authentication Failed", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    // --- Tab 4: Activity & System Audit Trail ---
+    // --- Tab 3: Activity & System Audit Trail ---
 
     private JPanel createAuditTrailTab() {
-        JPanel panel = new JPanel(new BorderLayout(0, 12));
-        panel.setOpaque(false);
+        JPanel card = createCardPanel();
+        card.setLayout(new BorderLayout(0, 10));
+        card.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(16, 18, 16, 18)));
 
-        JPanel tableCard = createCardPanel();
-        tableCard.setLayout(new BorderLayout(0, 10));
-        tableCard.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(16, 18, 16, 18)));
+        JPanel headRow = new JPanel(new BorderLayout());
+        headRow.setOpaque(false);
 
-        JLabel title = new JLabel("Audit Trail & Administrative Activity History");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        title.setForeground(darkNavy);
+        JLabel auditTitle = new JLabel("Technical Officer Activity & Audit Log");
+        auditTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        auditTitle.setForeground(darkNavy);
 
-        String[] cols = { "Timestamp", "Action Category", "Activity Description", "Result Status" };
+        JLabel auditSub = new JLabel("Real-time chronological log of attendance recordings, medical validations, and profile updates.");
+        auditSub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        auditSub.setForeground(textMuted);
+
+        JPanel titleBox = new JPanel(new GridLayout(2, 1, 0, 2));
+        titleBox.setOpaque(false);
+        titleBox.add(auditTitle);
+        titleBox.add(auditSub);
+
+        headRow.add(titleBox, BorderLayout.WEST);
+
+        String[] cols = { "Timestamp", "Activity Category", "Description / Action Taken", "Outcome" };
         auditTableModel = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
@@ -813,29 +481,23 @@ public class ProfilePage extends JPanel {
         auditTable = new JTable(auditTableModel);
         styleTable(auditTable);
 
-        // Center align category and status
-        DefaultTableCellRenderer centerRender = new DefaultTableCellRenderer();
-        centerRender.setHorizontalAlignment(SwingConstants.CENTER);
         auditTable.getColumnModel().getColumn(0).setPreferredWidth(140);
         auditTable.getColumnModel().getColumn(1).setPreferredWidth(160);
         auditTable.getColumnModel().getColumn(2).setPreferredWidth(450);
-        auditTable.getColumnModel().getColumn(3).setPreferredWidth(120);
+        auditTable.getColumnModel().getColumn(3).setPreferredWidth(100);
 
-        JScrollPane scroll = new JScrollPane(auditTable);
-        scroll.setBorder(new LineBorder(borderColor, 1));
-        scroll.getViewport().setBackground(Color.WHITE);
+        JScrollPane scrollPane = new JScrollPane(auditTable);
+        scrollPane.setBorder(new LineBorder(borderColor, 1));
+        scrollPane.getViewport().setBackground(Color.WHITE);
 
-        tableCard.add(title, BorderLayout.NORTH);
-        tableCard.add(scroll, BorderLayout.CENTER);
+        card.add(headRow, BorderLayout.NORTH);
+        card.add(scrollPane, BorderLayout.CENTER);
 
-        panel.add(tableCard, BorderLayout.CENTER);
-
-        return panel;
+        return card;
     }
 
     private void loadAuditTable() {
-        if (auditTableModel == null)
-            return;
+        if (auditTableModel == null) return;
         auditTableModel.setRowCount(0);
 
         List<String[]> logs = service.getAuditLogs();
@@ -844,7 +506,7 @@ public class ProfilePage extends JPanel {
         }
     }
 
-    // --- Edit Profile Dialog ---
+    // --- Edit Profile Dialog (Profile details except username and password) ---
 
     private void showEditProfileDialog() {
         if (currentOfficer == null) {
@@ -853,7 +515,7 @@ public class ProfilePage extends JPanel {
 
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
                 "Edit Technical Officer Profile - " + currentOfficer.getTechnicalOfficerId(), true);
-        dialog.setSize(520, 500);
+        dialog.setSize(520, 480);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
 
@@ -896,7 +558,7 @@ public class ProfilePage extends JPanel {
         form.add(createLabeledField("Last Name:", lnField), gbc);
         gbc.gridx = 0;
         gbc.gridy = y++;
-        form.add(createLabeledField("University Email Address:", emailField), gbc);
+        form.add(createLabeledField("Official Email:", emailField), gbc);
         gbc.gridx = 0;
         gbc.gridy = y++;
         form.add(createLabeledField("Official Contact Phone:", phoneField), gbc);
@@ -968,8 +630,7 @@ public class ProfilePage extends JPanel {
 
     public void refreshProfile() {
         currentOfficer = service.getProfile(currentOfficerId);
-        if (currentOfficer == null)
-            return;
+        if (currentOfficer == null) return;
 
         // Update Avatar initials
         String initials = "";
@@ -979,15 +640,14 @@ public class ProfilePage extends JPanel {
         if (currentOfficer.getLastName() != null && !currentOfficer.getLastName().isEmpty()) {
             initials += currentOfficer.getLastName().substring(0, 1).toUpperCase();
         }
-        if (initials.isEmpty())
-            initials = "TO";
+        if (initials.isEmpty()) initials = "TO";
         avatarLabel.setText(initials);
 
         // Update Hero Card
         heroNameLabel.setText(currentOfficer.getFullName());
         staffPillLabel.setText("STAFF: " + currentOfficer.getStaffNo());
         sysIdPillLabel.setText("ID: " + currentOfficer.getTechnicalOfficerId());
-        heroRoleLabel.setText(currentOfficer.getDesignation() + " • " + currentOfficer.getFaculty());
+        heroRoleLabel.setText(currentOfficer.getDesignation() + " - " + currentOfficer.getFaculty());
         heroDeptLabel.setText(currentOfficer.getDepartment());
         heroContactLabel.setText("Email: " + currentOfficer.getEmail() + "   |   Phone: " + currentOfficer.getPhone()
                 + "   |   Office: " + currentOfficer.getOfficeRoom());
@@ -1007,51 +667,13 @@ public class ProfilePage extends JPanel {
         detOfficeRoomLabel.setText(currentOfficer.getOfficeRoom());
         detAddressLabel.setText(currentOfficer.getAddress());
 
-        // Update Tab 3 Security
+        // Update Tab 2 Security
         secUsernameLabel.setText(currentOfficer.getUsername() != null ? currentOfficer.getUsername() : "to001");
 
-        // Update Top KPI ribbon
-        Map<String, Object> stats = service.getProfileStats();
-        kpiLabsValueLabel.setText(stats.get("totalLabs") + " Labs");
-        kpiWorkstationsValueLabel.setText(stats.get("totalWorkstations") + " PCs");
-        kpiUptimeValueLabel.setText((String) stats.get("uptimePercentage"));
-        kpiTicketsValueLabel.setText(stats.get("maintenanceTickets") + " Handled");
-
-        // Reload active table
-        loadAssignedLabsTable();
         loadAuditTable();
     }
 
     // --- UI Helpers & Styling ---
-
-    private JPanel createCardPanel() {
-        JPanel card = new JPanel();
-        card.setBackground(cardWhite);
-        return card;
-    }
-
-    private void styleTextField(JTextField tf) {
-        tf.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tf.setBackground(Color.WHITE);
-        tf.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(6, 8, 6, 8)));
-    }
-
-    private void stylePasswordField(JPasswordField pf) {
-        pf.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        pf.setBackground(Color.WHITE);
-        pf.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(6, 8, 6, 8)));
-    }
-
-    private JButton createStyledButton(String text, Color bg, Color fg) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btn.setBackground(bg);
-        btn.setForeground(fg);
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new CompoundBorder(new LineBorder(bg.darker(), 1), new EmptyBorder(6, 14, 6, 14)));
-        return btn;
-    }
 
     private JLabel createPillLabel(String text, Color fg, Color bg) {
         JLabel pill = new JLabel(text, SwingConstants.CENTER);
@@ -1061,6 +683,23 @@ public class ProfilePage extends JPanel {
         pill.setBackground(bg);
         pill.setBorder(new CompoundBorder(new LineBorder(bg.darker(), 1), new EmptyBorder(2, 8, 2, 8)));
         return pill;
+    }
+
+    private JPanel createCardPanel() {
+        JPanel p = new JPanel();
+        p.setBackground(cardWhite);
+        return p;
+    }
+
+    private JButton createStyledButton(String text, Color bg, Color fg) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btn.setBackground(bg);
+        btn.setForeground(fg);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(7, 16, 7, 16)));
+        return btn;
     }
 
     private JPanel createLabeledField(String labelText, JComponent field) {
@@ -1076,27 +715,35 @@ public class ProfilePage extends JPanel {
         return p;
     }
 
+    private void styleTextField(JTextField f) {
+        f.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        f.setPreferredSize(new Dimension(300, 32));
+        f.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(4, 8, 4, 8)));
+    }
+
     private void styleTable(JTable table) {
-        table.setRowHeight(32);
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        table.setForeground(textDark);
-        table.setGridColor(tableGridColor);
+        table.setRowHeight(34);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setShowGrid(true);
         table.setShowHorizontalLines(true);
         table.setShowVerticalLines(true);
-        table.setSelectionBackground(tableSelectionBg);
+        table.setGridColor(borderColor);
+        table.setSelectionBackground(new Color(237, 243, 248));
         table.setSelectionForeground(darkNavy);
         table.setDefaultRenderer(Object.class, new AlternateRowRenderer());
 
         JTableHeader header = table.getTableHeader();
         header.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        header.setBackground(darkNavy);
+        header.setForeground(Color.WHITE);
         header.setPreferredSize(new Dimension(header.getWidth(), 36));
+        header.setOpaque(true);
         header.setReorderingAllowed(false);
         header.setDefaultRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
-                                                           boolean isSelected, boolean hasFocus,
-                                                           int row, int column) {
+                    boolean isSelected, boolean hasFocus, int row, int column) {
                 JLabel label = new JLabel(value != null ? value.toString() : "");
                 label.setOpaque(true);
                 label.setBackground(darkNavy);
@@ -1105,42 +752,21 @@ public class ProfilePage extends JPanel {
                 label.setHorizontalAlignment(SwingConstants.CENTER);
                 label.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createMatteBorder(0, 0, 1, 1, new Color(45, 90, 135)),
-                        BorderFactory.createEmptyBorder(6, 10, 6, 10)
-                ));
-
-                if (table.getRowSorter() != null) {
-                    java.util.List<? extends RowSorter.SortKey> sortKeys = table.getRowSorter().getSortKeys();
-                    if (!sortKeys.isEmpty() && sortKeys.get(0).getColumn() == table.convertColumnIndexToModel(column)) {
-                        SortOrder order = sortKeys.get(0).getSortOrder();
-                        if (order == SortOrder.ASCENDING) {
-                            label.setText(label.getText() + " ▲");
-                        } else if (order == SortOrder.DESCENDING) {
-                            label.setText(label.getText() + " ▼");
-                        }
-                    }
-                }
+                        BorderFactory.createEmptyBorder(6, 10, 6, 10)));
                 return label;
             }
         });
     }
 
-    // Striped Row Renderer
-    private class AlternateRowRenderer extends DefaultTableCellRenderer {
+    private static class AlternateRowRenderer extends DefaultTableCellRenderer {
         @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-                boolean hasFocus, int row, int column) {
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                boolean isSelected, boolean hasFocus, int row, int column) {
             Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-
             if (!isSelected) {
-                c.setForeground(textDark);
-                if (row % 2 == 0) {
-                    c.setBackground(Color.WHITE);
-                } else {
-                    c.setBackground(tableStripe);
-                }
+                c.setBackground((row % 2 == 0) ? Color.WHITE : new Color(248, 250, 252));
             } else {
-                c.setForeground(darkNavy);
-                c.setBackground(tableSelectionBg);
+                c.setBackground(new Color(237, 243, 248));
             }
 
             if (c instanceof JLabel) {

@@ -8,150 +8,13 @@ import java.util.List;
 
 /**
  * Data Access Object for Academic Timetables in FAMS.
- * Interfaces with the 'timetables' table and joins with 'course_offerings',
+ * Interfaces strictly with the 'timetables' table joined with 'course_offerings',
  * 'courses', 'course_lecturers', and 'users'.
- * Provides high-fidelity in-memory fallback when MySQL is offline.
- * Supports multi-dimensional filtering by department, day of week, session type,
- * academic year, semester, and text keyword search.
+ * All timetable data originates directly from the MySQL database schema.
  */
 public class TimetableDAO {
 
-    private final List<TimetableEntry> mockEntries = new ArrayList<>();
-
     public TimetableDAO() {
-        initMockData();
-    }
-
-    private void initMockData() {
-        // Monday - Lab Session
-        TimetableEntry e1 = new TimetableEntry("TBL001", "OFF001", "MONDAY",
-                Time.valueOf("08:30:00"), Time.valueOf("10:30:00"), "ICT Lab 01", "2024/2025",
-                "Information and Communication Technology");
-        e1.setCourseCode("ICT2132");
-        e1.setCourseName("Object Oriented Programming");
-        e1.setCredits(3);
-        e1.setAcademicYear("2026/2027");
-        e1.setSemester("SEMESTER 1");
-        e1.setLecturers("Kasun Perera");
-        mockEntries.add(e1);
-
-        // Wednesday - Lecture Session
-        TimetableEntry e2 = new TimetableEntry("TBL002", "OFF001", "WEDNESDAY",
-                Time.valueOf("13:00:00"), Time.valueOf("15:00:00"), "Lecture Hall 02", "2024/2025",
-                "Information and Communication Technology");
-        e2.setCourseCode("ICT2132");
-        e2.setCourseName("Object Oriented Programming");
-        e2.setCredits(3);
-        e2.setAcademicYear("2026/2027");
-        e2.setSemester("SEMESTER 1");
-        e2.setLecturers("Kasun Perera");
-        mockEntries.add(e2);
-
-        // Tuesday - Lecture Session
-        TimetableEntry e3 = new TimetableEntry("TBL003", "OFF002", "TUESDAY",
-                Time.valueOf("08:30:00"), Time.valueOf("10:30:00"), "Lecture Hall 03", "2024/2025",
-                "Information and Communication Technology");
-        e3.setCourseCode("ICT2112");
-        e3.setCourseName("Data Structures and Algorithms");
-        e3.setCredits(2);
-        e3.setAcademicYear("2026/2027");
-        e3.setSemester("SEMESTER 1");
-        e3.setLecturers("Nadeesha Fernando");
-        mockEntries.add(e3);
-
-        // Thursday - Database Management Lecture
-        TimetableEntry e4 = new TimetableEntry("TBL004", "OFF003", "THURSDAY",
-                Time.valueOf("10:30:00"), Time.valueOf("12:30:00"), "Lecture Hall 01", "2024/2025",
-                "Information and Communication Technology");
-        e4.setCourseCode("ICT2122");
-        e4.setCourseName("Database Systems");
-        e4.setCredits(2);
-        e4.setAcademicYear("2026/2027");
-        e4.setSemester("SEMESTER 1");
-        e4.setLecturers("Tharindu Silva");
-        mockEntries.add(e4);
-
-        // Friday - Web Development Lab Practical
-        TimetableEntry e5 = new TimetableEntry("TBL005", "OFF004", "FRIDAY",
-                Time.valueOf("08:30:00"), Time.valueOf("10:30:00"), "ICT Lab 02", "2024/2025",
-                "Information and Communication Technology");
-        e5.setCourseCode("ICT2152");
-        e5.setCourseName("Web Development");
-        e5.setCredits(3);
-        e5.setAcademicYear("2026/2027");
-        e5.setSemester("SEMESTER 2");
-        e5.setLecturers("Ayesha Bandara");
-        mockEntries.add(e5);
-
-        // Saturday - Software Engineering Practical
-        TimetableEntry e6 = new TimetableEntry("TBL006", "OFF005", "SATURDAY",
-                Time.valueOf("09:00:00"), Time.valueOf("11:00:00"), "ICT Lab 03", "2024/2025",
-                "Information and Communication Technology");
-        e6.setCourseCode("ICT2142");
-        e6.setCourseName("Software Engineering");
-        e6.setCredits(2);
-        e6.setAcademicYear("2026/2027");
-        e6.setSemester("SEMESTER 2");
-        e6.setLecturers("Ruwan Jayasinghe");
-        mockEntries.add(e6);
-
-        // Biosystems Technology Timetable Entries
-        TimetableEntry e7 = new TimetableEntry("TBL007", "OFF006", "MONDAY",
-                Time.valueOf("10:30:00"), Time.valueOf("12:30:00"), "Bio Tech Lab 01", "2024/2025",
-                "Biosystems Technology");
-        e7.setCourseCode("BST2113");
-        e7.setCourseName("Food Processing Technology");
-        e7.setCredits(3);
-        e7.setAcademicYear("2026/2027");
-        e7.setSemester("SEMESTER 1");
-        e7.setLecturers("Dr. H. M. Senarathne");
-        mockEntries.add(e7);
-
-        TimetableEntry e8 = new TimetableEntry("TBL008", "OFF007", "WEDNESDAY",
-                Time.valueOf("08:30:00"), Time.valueOf("10:30:00"), "Agriculture Lab 02", "2024/2025",
-                "Biosystems Technology");
-        e8.setCourseCode("BST2122");
-        e8.setCourseName("Agricultural Biotechnology");
-        e8.setCredits(2);
-        e8.setAcademicYear("2026/2027");
-        e8.setSemester("SEMESTER 1");
-        e8.setLecturers("Prof. K. Jayawardena");
-        mockEntries.add(e8);
-
-        // Engineering Technology Timetable Entries
-        TimetableEntry e9 = new TimetableEntry("TBL009", "OFF008", "TUESDAY",
-                Time.valueOf("13:00:00"), Time.valueOf("15:00:00"), "Mechanical Workshop", "2024/2025",
-                "Engineering Technology");
-        e9.setCourseCode("ENT2113");
-        e9.setCourseName("Applied Thermodynamics");
-        e9.setCredits(3);
-        e9.setAcademicYear("2026/2027");
-        e9.setSemester("SEMESTER 1");
-        e9.setLecturers("Dr. S. Wickramasinghe");
-        mockEntries.add(e9);
-
-        TimetableEntry e10 = new TimetableEntry("TBL010", "OFF009", "THURSDAY",
-                Time.valueOf("08:30:00"), Time.valueOf("10:30:00"), "Electronics Lab 01", "2024/2025",
-                "Engineering Technology");
-        e10.setCourseCode("ENT2123");
-        e10.setCourseName("Circuits and Systems");
-        e10.setCredits(3);
-        e10.setAcademicYear("2026/2027");
-        e10.setSemester("SEMESTER 1");
-        e10.setLecturers("Eng. N. Gamage");
-        mockEntries.add(e10);
-
-        // Multidisciplinary Studies Timetable Entry
-        TimetableEntry e11 = new TimetableEntry("TBL011", "OFF010", "FRIDAY",
-                Time.valueOf("10:30:00"), Time.valueOf("12:30:00"), "Main Auditorium", "2024/2025",
-                "Multidisciplinary Studies");
-        e11.setCourseCode("MDS2112");
-        e11.setCourseName("Professional Ethics and Law");
-        e11.setCredits(2);
-        e11.setAcademicYear("2026/2027");
-        e11.setSemester("SEMESTER 1");
-        e11.setLecturers("Attorney D. De Silva");
-        mockEntries.add(e11);
     }
 
     private static final String BASE_SELECT =
@@ -184,12 +47,11 @@ public class TimetableDAO {
                 while (rs.next()) {
                     list.add(mapResultSetToEntry(rs));
                 }
-                return list;
             } catch (SQLException e) {
                 System.err.println("[TimetableDAO ERROR] getAllTimetables failed: " + e.getMessage());
             }
         }
-        return new ArrayList<>(mockEntries);
+        return list;
     }
 
     public List<TimetableEntry> getTimetablesForDepartment(String department) {
@@ -207,16 +69,9 @@ public class TimetableDAO {
                     while (rs.next()) {
                         list.add(mapResultSetToEntry(rs));
                     }
-                    return list;
                 }
             } catch (SQLException e) {
                 System.err.println("[TimetableDAO ERROR] getTimetablesForDepartment failed: " + e.getMessage());
-            }
-        }
-
-        for (TimetableEntry e : mockEntries) {
-            if (e.getDepartment() != null && e.getDepartment().equalsIgnoreCase(department)) {
-                list.add(e);
             }
         }
         return list;
@@ -237,11 +92,6 @@ public class TimetableDAO {
                 }
             } catch (SQLException e) {
                 System.err.println("[TimetableDAO ERROR] getAvailableDepartments failed: " + e.getMessage());
-            }
-        }
-        for (TimetableEntry e : mockEntries) {
-            if (e.getDepartment() != null && !e.getDepartment().isBlank() && !depts.contains(e.getDepartment())) {
-                depts.add(e.getDepartment());
             }
         }
         if (!depts.contains("Information and Communication Technology")) {
@@ -364,16 +214,12 @@ public class TimetableDAO {
                 ps.setString(8, entry.getDepartment() != null ? entry.getDepartment() : "Information and Communication Technology");
 
                 ps.executeUpdate();
+                return true;
             } catch (SQLException ex) {
                 System.err.println("[TimetableDAO ERROR] addTimetableEntry failed: " + ex.getMessage());
             }
         }
-
-        // Always update mockEntries so in-memory store and offline mode reflect the new entry
-        mockEntries.removeIf(e -> e.getTimetableId().equalsIgnoreCase(entry.getTimetableId()));
-        mockEntries.add(entry);
-
-        return true;
+        return false;
     }
 
     public boolean deleteTimetableEntry(String timetableId) {
@@ -384,12 +230,12 @@ public class TimetableDAO {
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, timetableId);
                 ps.executeUpdate();
+                return true;
             } catch (SQLException ex) {
                 System.err.println("[TimetableDAO ERROR] deleteTimetableEntry failed: " + ex.getMessage());
             }
         }
-        mockEntries.removeIf(e -> e.getTimetableId().equalsIgnoreCase(timetableId));
-        return true;
+        return false;
     }
 
     private TimetableEntry mapResultSetToEntry(ResultSet rs) throws SQLException {
@@ -408,7 +254,13 @@ public class TimetableDAO {
         e.setCourseCode(rs.getString("course_code"));
         e.setCourseName(rs.getString("course_name"));
         e.setCredits(rs.getInt("credits"));
-        e.setLecturers(rs.getString("lecturers"));
+
+        String lecs = rs.getString("lecturers");
+        if (lecs != null && !lecs.isBlank()) {
+            e.setLecturers(lecs);
+        } else {
+            e.setLecturers("Assigned Department Faculty");
+        }
         return e;
     }
 }

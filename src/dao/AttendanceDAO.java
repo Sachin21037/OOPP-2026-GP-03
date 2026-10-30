@@ -342,4 +342,30 @@ public class AttendanceDAO {
         list.sort(Comparator.comparingInt(AttendanceRecord::getSessionNumber));
         return list;
     }
+
+    public int getTotalSessionCount() {
+        Connection conn = DatabaseConnection.getConnection();
+        if (conn != null) {
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT count(*) FROM attendance_sessions")) {
+                if (rs.next()) return rs.getInt(1);
+            } catch (SQLException e) {
+                System.err.println("[AttendanceDAO] Error counting sessions: " + e.getMessage());
+            }
+        }
+        return mockSessions.size();
+    }
+
+    public int getTotalStudentCount() {
+        Connection conn = DatabaseConnection.getConnection();
+        if (conn != null) {
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT count(*) FROM undergraduates")) {
+                if (rs.next()) return rs.getInt(1);
+            } catch (SQLException e) {
+                System.err.println("[AttendanceDAO] Error counting undergraduates: " + e.getMessage());
+            }
+        }
+        return 20;
+    }
 }

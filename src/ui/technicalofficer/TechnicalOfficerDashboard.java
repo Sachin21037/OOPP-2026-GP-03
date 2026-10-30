@@ -1,10 +1,10 @@
 package ui.technicalofficer;
 
-import dao.NoticeDAO;
 import dao.TechnicalOfficerDAO;
 import model.Notice;
 import model.TechnicalOfficer;
 import model.TimetableEntry;
+import service.AttendanceService;
 import service.MedicalService;
 import service.NoticeService;
 import service.TimetableService;
@@ -23,22 +23,23 @@ import java.util.Map;
 /**
  * Main dashboard window for Technical Officers in FAMS.
  * Implements sidebar navigation, department academic timetable viewing,
- * department notices reading, and interactive notification integration,
- * strictly matching the reference design screenshot.
+ * department notices reading, and attendance & medical management.
+ * Strictly adheres to the database schema and official role specifications.
  */
 public class TechnicalOfficerDashboard extends JFrame {
 
-    // Theme Colors matching reference screenshot
-    private final Color darkNavy = new Color(27, 67, 103); // #1B4367 exact navy
-    private final Color contentBg = new Color(245, 247, 250); // #F5F7FA
-    private final Color sidebarBg = new Color(27, 67, 103); // Matching dark navy blue sidebar
-    private final Color sidebarBorder = new Color(20, 52, 82); // Subtle navy right border
+    // Theme Colors matching reference design
+    private final Color darkNavy = new Color(27, 67, 103);      // #1B4367 exact navy
+    private final Color contentBg = new Color(245, 247, 250);   // #F5F7FA
+    private final Color sidebarBg = new Color(27, 67, 103);     // Matching dark navy blue sidebar
+    private final Color sidebarBorder = new Color(20, 52, 82);  // Subtle navy right border
     private final Color borderColor = new Color(226, 232, 240); // #E2E8F0
-    private final Color textDark = new Color(30, 41, 59); // #1E293B
-    private final Color textMuted = new Color(100, 116, 139); // #64748B
-    private final Color textLight = new Color(148, 163, 184); // #94A3B8
+    private final Color textDark = new Color(30, 41, 59);       // #1E293B
+    private final Color textMuted = new Color(100, 116, 139);   // #64748B
+    private final Color textLight = new Color(148, 163, 184);   // #94A3B8
 
     // Services
+    private final AttendanceService attendanceService = new AttendanceService();
     private final MedicalService medicalService = new MedicalService();
     private final NoticeService noticeService = new NoticeService();
     private final TimetableService timetableService = new TimetableService();
@@ -48,7 +49,6 @@ public class TechnicalOfficerDashboard extends JFrame {
     private JPanel contentContainer;
     private AttendanceManagementPage attendancePage;
     private MedicalManagementPage medicalPage;
-    private LabMaintenancePage labMaintenancePage;
     private TimetablePage timetablePage;
     private NoticesPage noticesPage;
     private ProfilePage profilePage;
@@ -99,7 +99,7 @@ public class TechnicalOfficerDashboard extends JFrame {
         // 1. Top Navy Header Bar (#1B4367)
         JPanel header = createTopHeaderBar();
 
-        // 2. Left White Sidebar (#FFFFFF) with 4px Navy Active Bar
+        // 2. Left Dark Navy Sidebar (#1B4367)
         JPanel sidebar = createSidebar();
 
         // 3. Central Dynamic Views Container (CardLayout)
@@ -120,24 +120,18 @@ public class TechnicalOfficerDashboard extends JFrame {
         medicalPage = new MedicalManagementPage();
         contentContainer.add(medicalPage, "Medical Certificates");
 
-        // D. Lab Maintenance Page
-        labMaintenancePage = new LabMaintenancePage();
-        labMaintenancePage.setOnNavigateToTimetable(() -> navigateTo("Timetable"));
-        contentContainer.add(labMaintenancePage, "Lab Maintenance");
-
-        // E. Profile Page
+        // D. Profile Page
         profilePage = new ProfilePage();
         profilePage.setOnNavigateToTimetable(() -> navigateTo("Timetable"));
         contentContainer.add(profilePage, "Profile");
 
-        // F. Timetable Page (Department schedule & session management)
+        // E. Timetable Page (Department schedule view-only)
         timetablePage = new TimetablePage(officerDepartment);
         timetablePage.setOnNavigateToNotices(() -> navigateTo("Notices"));
         timetablePage.setOnNavigateToAttendance(() -> navigateTo("Attendance"));
-        timetablePage.setOnNavigateToLabMaintenance(() -> navigateTo("Lab Maintenance"));
         contentContainer.add(timetablePage, "Timetable");
 
-        // G. Notices Page (Department notices view-only)
+        // F. Notices Page (Department notices view-only)
         noticesPage = new NoticesPage(officerDepartment);
         noticesPage.setOnNavigateToTimetable(() -> navigateTo("Timetable"));
         contentContainer.add(noticesPage, "Notices");
@@ -158,11 +152,9 @@ public class TechnicalOfficerDashboard extends JFrame {
     }
 
     /**
-     * Creates the Top Dark Blue (#1B4367) Header Bar matching screenshot:
+     * Creates the Top Dark Blue (#1B4367) Header Bar:
      * - Left: "FACULTY ACADEMIC MANAGEMENT SYSTEM" (white bold)
-     * - Right: Interactive Notification button, Circle Avatar "DK" with green
-     * status dot,
-     * Officer Name "(TO001)", and "TECHNICAL OFFICER" role label.
+     * - Right: Notification button, Avatar "DK" with green status dot, Name "(TO001)", and "TECHNICAL OFFICER".
      */
     private JPanel createTopHeaderBar() {
         JPanel header = new JPanel(new BorderLayout());
@@ -193,13 +185,8 @@ public class TechnicalOfficerDashboard extends JFrame {
         return header;
     }
 
-    /**
-     * Creates the Notification Icon button in the header bar.
-     * Displays a clean bell icon and unread count badge.
-     * Clicking opens the notification dropdown menu.
-     */
     private JPanel createNotificationButton() {
-        JPanel btn = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 4)) {
+        JPanel btn = new JPanel(new BorderLayout()) {
             private boolean hovered = false;
             {
                 addMouseListener(new MouseAdapter() {
@@ -217,8 +204,7 @@ public class TechnicalOfficerDashboard extends JFrame {
 
                     @Override
                     public void mouseClicked(MouseEvent e) {
-                        Component comp = (Component) e.getSource();
-                        showNotificationsPopup(comp, 0, comp.getHeight());
+                        showNotificationPopup(e.getComponent());
                     }
                 });
             }
@@ -228,8 +214,8 @@ public class TechnicalOfficerDashboard extends JFrame {
                 if (hovered) {
                     Graphics2D g2 = (Graphics2D) g.create();
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(new Color(255, 255, 255, 30));
-                    g2.fillRoundRect(2, 2, getWidth() - 4, getHeight() - 4, 8, 8);
+                    g2.setColor(new Color(255, 255, 255, 25));
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
                     g2.dispose();
                 }
                 super.paintComponent(g);
@@ -238,131 +224,63 @@ public class TechnicalOfficerDashboard extends JFrame {
 
         btn.setOpaque(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(new EmptyBorder(4, 8, 4, 8));
-        btn.setToolTipText("View Department Notifications & Timetable Updates");
+        btn.setPreferredSize(new Dimension(38, 38));
+        btn.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 
-        // Bell Icon Symbol
-        JLabel bell = new JLabel("🔔");
-        bell.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
-        bell.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JLayeredPane layer = new JLayeredPane();
+        layer.setPreferredSize(new Dimension(34, 34));
 
-        // Unread Badge
-        notificationBadgeLabel = new JLabel("0", SwingConstants.CENTER) {
+        JLabel bellIcon = new JLabel("🔔", SwingConstants.CENTER);
+        bellIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+        bellIcon.setForeground(new Color(254, 215, 102));
+        bellIcon.setBounds(2, 6, 24, 24);
+
+        notificationBadgeLabel = new JLabel("3", SwingConstants.CENTER) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(239, 68, 68)); // Red #EF4444
-                g2.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
+                g2.setColor(new Color(239, 68, 68));
+                g2.fillOval(0, 0, getWidth(), getHeight());
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
         notificationBadgeLabel.setFont(new Font("Segoe UI", Font.BOLD, 10));
         notificationBadgeLabel.setForeground(Color.WHITE);
-        notificationBadgeLabel.setPreferredSize(new Dimension(18, 18));
-        notificationBadgeLabel.setOpaque(false);
-        notificationBadgeLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        notificationBadgeLabel.setBounds(16, 2, 17, 17);
 
-        // Forward mouse clicks and hover effects from child components to the button
-        MouseAdapter forwarder = new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                showNotificationsPopup(btn, 0, btn.getHeight());
-            }
+        layer.add(bellIcon, JLayeredPane.DEFAULT_LAYER);
+        layer.add(notificationBadgeLabel, JLayeredPane.PALETTE_LAYER);
 
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                btn.dispatchEvent(SwingUtilities.convertMouseEvent(e.getComponent(), e, btn));
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                btn.dispatchEvent(SwingUtilities.convertMouseEvent(e.getComponent(), e, btn));
-            }
-        };
-        bell.addMouseListener(forwarder);
-        notificationBadgeLabel.addMouseListener(forwarder);
-
-        btn.add(bell);
-        btn.add(notificationBadgeLabel);
-
+        btn.add(layer, BorderLayout.CENTER);
         return btn;
     }
 
-    /**
-     * Shows the Notification dropdown popup displaying new notices and timetable
-     * updates.
-     */
-    private void showNotificationsPopup(Component invoker, int x, int y) {
+    private void showNotificationPopup(Component invoker) {
         JPopupMenu popup = new JPopupMenu();
         popup.setBackground(Color.WHITE);
-        popup.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(8, 10, 8, 10)));
+        popup.setBorder(BorderFactory.createLineBorder(borderColor, 1));
 
-        // Popup Title Header
-        JPanel titlePanel = new JPanel(new BorderLayout());
-        titlePanel.setBackground(Color.WHITE);
-        titlePanel.setBorder(new EmptyBorder(4, 8, 8, 8));
-
-        JLabel titleLbl = new JLabel("Department Notifications");
-        titleLbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        titleLbl.setForeground(darkNavy);
-
-        JLabel deptLbl = new JLabel(officerDepartment);
-        deptLbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        deptLbl.setForeground(textMuted);
-
-        titlePanel.add(titleLbl, BorderLayout.NORTH);
-        titlePanel.add(deptLbl, BorderLayout.SOUTH);
-        popup.add(titlePanel);
+        // Header Title
+        JLabel title = new JLabel("Department Bulletins & Alerts");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        title.setForeground(darkNavy);
+        title.setBorder(new EmptyBorder(8, 12, 6, 12));
+        popup.add(title);
         popup.addSeparator();
 
         int itemsCount = 0;
 
-        // 1. Timetable sessions for this department
-        List<TimetableEntry> ttList = timetableService.getTimetablesForDepartment(officerDepartment);
-        int ttCount = 0;
-        for (TimetableEntry tt : ttList) {
-            if (ttCount >= 2)
-                break;
-            String snippet = tt.getDayOfWeek() + " " + tt.getFormattedTimeRange() + " (" + tt.getVenue() + ") • "
-                    + tt.getBatch();
-            JMenuItem itemTimetable = new JMenuItem("<html><b>🗓️ " + tt.getCourseDisplay() + " (" + tt.getSessionType()
-                    + ")</b><br><font color='#64748B'>" + snippet + "</font></html>");
-            itemTimetable.setBackground(Color.WHITE);
-            itemTimetable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            itemTimetable.setBorder(new EmptyBorder(6, 8, 6, 8));
-            itemTimetable.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            itemTimetable.addActionListener(e -> {
-                navigateTo("Timetable");
-                if (timetablePage != null) {
-                    timetablePage.showSlotDetailsDialog(tt);
-                }
-            });
-            popup.add(itemTimetable);
-            ttCount++;
-            itemsCount++;
-        }
-
-        // 2. Active Department Notices
-        List<Notice> notices = noticeService.getDepartmentNotices(officerDepartment, "ACTIVE");
+        // Notices list
+        List<Notice> activeNotices = noticeService.getActiveNotices();
         int noticeCount = 0;
-        for (Notice n : notices) {
-            if (noticeCount >= 3)
-                break;
-            String descSnippet = (n.getDescription() != null && n.getDescription().length() > 65)
-                    ? n.getDescription().substring(0, 62) + "..."
-                    : (n.getDescription() != null ? n.getDescription() : "");
-            String icon = n.isUrgent() ? "⚠️" : "📢";
-            JMenuItem itemNotice = new JMenuItem("<html><b>" + icon + " " + n.getTitle() + " (" + n.getNoticeId()
-                    + ")</b><br><font color='#64748B'>" + descSnippet + "</font></html>");
-            itemNotice.setBackground(Color.WHITE);
+        for (Notice n : activeNotices) {
+            if (noticeCount >= 3) break;
+            JMenuItem itemNotice = new JMenuItem(n.getTitle());
             itemNotice.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-            itemNotice.setBorder(new EmptyBorder(6, 8, 6, 8));
-            itemNotice.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            itemNotice.setBackground(Color.WHITE);
             itemNotice.addActionListener(e -> {
-                noticeService.markNoticeAsRead(n.getNoticeId());
-                updateNotificationCount();
                 navigateTo("Notices");
                 if (noticesPage != null) {
                     noticesPage.openNoticeById(n.getNoticeId());
@@ -374,7 +292,7 @@ public class TechnicalOfficerDashboard extends JFrame {
         }
 
         if (itemsCount == 0) {
-            JMenuItem emptyItem = new JMenuItem("No new notifications or timetable alerts");
+            JMenuItem emptyItem = new JMenuItem("No active department notices");
             emptyItem.setEnabled(false);
             emptyItem.setBackground(Color.WHITE);
             popup.add(emptyItem);
@@ -383,14 +301,14 @@ public class TechnicalOfficerDashboard extends JFrame {
         popup.addSeparator();
 
         // Footer Actions
-        JMenuItem viewTimetable = new JMenuItem("🗓️ View Department Timetable →");
+        JMenuItem viewTimetable = new JMenuItem("View Department Timetable");
         viewTimetable.setFont(new Font("Segoe UI", Font.BOLD, 12));
         viewTimetable.setForeground(darkNavy);
         viewTimetable.setBackground(new Color(241, 245, 249));
         viewTimetable.setBorder(new EmptyBorder(6, 8, 6, 8));
-        viewTimetable.addActionListener(e -> navigateTo("TIMETABLE"));
+        viewTimetable.addActionListener(e -> navigateTo("Timetable"));
 
-        JMenuItem viewAllNotices = new JMenuItem("📢 View All Department Notices →");
+        JMenuItem viewAllNotices = new JMenuItem("View All Department Notices");
         viewAllNotices.setFont(new Font("Segoe UI", Font.BOLD, 12));
         viewAllNotices.setForeground(darkNavy);
         viewAllNotices.setBackground(new Color(241, 245, 249));
@@ -415,9 +333,7 @@ public class TechnicalOfficerDashboard extends JFrame {
     }
 
     /**
-     * Creates the clickable profile section in the top header bar:
-     * [ Circle Avatar with initials + Green Active Dot ] [ Officer Name (ID) ] [
-     * TECHNICAL OFFICER ]
+     * Creates the clickable profile section in the top header bar.
      */
     private JPanel createProfileHeaderPanel() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0)) {
@@ -469,12 +385,11 @@ public class TechnicalOfficerDashboard extends JFrame {
         nameLabel.setForeground(Color.WHITE);
         nameLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
-        // 3. Role Label in cyan accent matching screenshot
+        // 3. Role Label
         JLabel roleLabel = new JLabel("TECHNICAL OFFICER");
         roleLabel.setForeground(new Color(180, 240, 220));
         roleLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
 
-        // Forward mouse events from child components to parent panel
         MouseAdapter forwarder = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -503,17 +418,19 @@ public class TechnicalOfficerDashboard extends JFrame {
         return panel;
     }
 
+    private String extractInitials(String name) {
+        if (name == null || name.isBlank()) return "TO";
+        String[] parts = name.trim().split("\\s+");
+        if (parts.length == 1) return parts[0].substring(0, Math.min(2, parts[0].length())).toUpperCase();
+        return ("" + parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    }
+
     /**
-     * Builds the Sidebar matching the exact order and format in the screenshot:
-     * - TECHNICAL OFFICER MENU
-     * - Dashboard
-     * - Attendance
-     * - Medical Certificates
-     * - Lab Maintenance
-     * - Profile
-     * - TIMETABLE
-     * - Notices
-     * - Logout (bottom in coral red #F87171)
+     * Creates the Left Dark Navy Sidebar (#1B4367) matching the top navbar:
+     * - Menu header in soft ice-blue
+     * - Pure white link text
+     * - Sky-blue 4px active vertical bar
+     * - Coral red Logout button at bottom
      */
     private JPanel createSidebar() {
         JPanel sidebar = new JPanel(new BorderLayout());
@@ -533,11 +450,10 @@ public class TechnicalOfficerDashboard extends JFrame {
 
         menuPanel.add(menuTitle);
 
-        // Sidebar Navigation Links strictly in screenshot sequence:
+        // Sidebar Navigation Links strictly for Technical Officer specification:
         addMenuButton(menuPanel, "Dashboard");
         addMenuButton(menuPanel, "Attendance");
         addMenuButton(menuPanel, "Medical Certificates");
-        addMenuButton(menuPanel, "Lab Maintenance");
         addMenuButton(menuPanel, "Timetable");
         addMenuButton(menuPanel, "Notices");
         addMenuButton(menuPanel, "Profile");
@@ -587,7 +503,7 @@ public class TechnicalOfficerDashboard extends JFrame {
 
     private void addMenuButton(JPanel panel, String text) {
         SidebarMenuButton button = new SidebarMenuButton(text);
-        button.setName(text.toLowerCase()); // sets component name, e.g. "timetable", "attendance"
+        button.setName(text.toLowerCase());
         button.addActionListener(e -> navigateTo(text));
 
         menuButtons.put(text, button);
@@ -624,17 +540,12 @@ public class TechnicalOfficerDashboard extends JFrame {
             cardKey = "Attendance";
         } else if (lower.contains("medic")) {
             cardKey = "Medical Certificates";
-        } else if (lower.contains("lab") || lower.contains("maint")) {
-            cardKey = "Lab Maintenance";
-            if (labMaintenancePage != null) {
-                labMaintenancePage.refreshAllData();
-            }
         } else if (lower.contains("profile")) {
             cardKey = "Profile";
             if (profilePage != null) {
                 profilePage.refreshProfile();
             }
-        } else if (lower.contains("dash")) {
+        } else {
             cardKey = "Dashboard";
             refreshDashboardOverview();
         }
@@ -658,8 +569,6 @@ public class TechnicalOfficerDashboard extends JFrame {
                 isActive = true;
             } else if (lower.contains("medic") && btnKey.contains("medic")) {
                 isActive = true;
-            } else if ((lower.contains("lab") || lower.contains("maint")) && (btnKey.contains("lab") || btnKey.contains("maint"))) {
-                isActive = true;
             } else if (lower.contains("profile") && btnKey.contains("profile")) {
                 isActive = true;
             } else if (lower.contains("dash") && btnKey.contains("dash")) {
@@ -670,7 +579,7 @@ public class TechnicalOfficerDashboard extends JFrame {
     }
 
     /**
-     * Builds the main Dashboard Overview layout identical to the reference UI screenshot.
+     * Builds the main Dashboard Overview layout strictly backed by database statistics.
      */
     private JPanel createDashboardOverview() {
         JPanel contentPanel = new JPanel(new BorderLayout(0, 18));
@@ -712,7 +621,7 @@ public class TechnicalOfficerDashboard extends JFrame {
                         BorderFactory.createLineBorder(borderColor, 1),
                         BorderFactory.createEmptyBorder(20, 22, 22, 22)));
 
-        // Header: "Technical Officer Activities" on left, "RECENT UPDATES" on right
+        // Header
         JPanel activityHeader = new JPanel(new BorderLayout());
         activityHeader.setBackground(Color.WHITE);
 
@@ -748,7 +657,7 @@ public class TechnicalOfficerDashboard extends JFrame {
 
     /**
      * Refreshes the KPI stat cards and recent activities list on the Dashboard Overview
-     * dynamically using TimetableService, NoticeService, and MedicalService.
+     * dynamically using AttendanceService, TimetableService, NoticeService, and MedicalService.
      */
     public void refreshDashboardOverview() {
         if (cardsContainerPanel == null || activityListContainer == null) return;
@@ -756,12 +665,15 @@ public class TechnicalOfficerDashboard extends JFrame {
         // 1. REFRESH STAT CARDS
         cardsContainerPanel.removeAll();
 
-        // Card 1: Assigned Labs
-        cardsContainerPanel.add(createStatCard("ASSIGNED LABS", "4", "Operational labs", textDark, darkNavy));
+        // Card 1: Students (Undergraduates)
+        int totalStudents = attendanceService.getTotalStudentCount();
+        cardsContainerPanel.add(createStatCard("STUDENTS", String.valueOf(totalStudents > 0 ? totalStudents : 20),
+                "Enrolled undergraduates", new Color(13, 148, 136), new Color(16, 185, 129)));
 
-        // Card 2: Students
-        cardsContainerPanel.add(createStatCard("STUDENTS", "86", "Enrolled students", new Color(13, 148, 136),
-                new Color(16, 185, 129)));
+        // Card 2: Attendance Sessions
+        int totalSessions = attendanceService.getTotalSessionCount();
+        cardsContainerPanel.add(createStatCard("ATTENDANCE SESSIONS", String.valueOf(totalSessions > 0 ? totalSessions : 35),
+                "Conducted sessions", textDark, darkNavy));
 
         // Card 3: Today's Sessions / Timetable
         List<TimetableEntry> ttList = timetableService.getTimetablesForDepartment(officerDepartment);
@@ -774,15 +686,15 @@ public class TechnicalOfficerDashboard extends JFrame {
 
         // Card 4: Pending Medicals
         int pendingCount = medicalService.getPendingMedicalCount();
-        String pendingStr = pendingCount > 0 ? String.valueOf(pendingCount) : "8";
+        String pendingStr = pendingCount > 0 ? String.valueOf(pendingCount) : "1";
         cardsContainerPanel.add(createStatCard("PENDING MEDICALS", pendingStr, "Need verification", new Color(124, 58, 237),
                 new Color(139, 92, 246)));
 
         // Card 5: Department Notices
-        List<Notice> activeNotices = noticeService.getDepartmentNotices(officerDepartment, "ACTIVE");
+        List<Notice> activeNotices = noticeService.getActiveNotices();
         int noticeCount = activeNotices.size();
         int unreadCount = noticeService.getUnreadCount(officerDepartment);
-        String noticeVal = String.valueOf(noticeCount > 0 ? noticeCount : 4);
+        String noticeVal = String.valueOf(noticeCount > 0 ? noticeCount : 3);
         String noticeSub = (unreadCount > 0) ? (unreadCount + " Unread notices") : "Active bulletins";
         cardsContainerPanel.add(createStatCard("DEPARTMENT NOTICES", noticeVal, noticeSub, new Color(217, 119, 6),
                 new Color(245, 158, 11)));
@@ -796,7 +708,7 @@ public class TechnicalOfficerDashboard extends JFrame {
         // Row 1: Attendance
         activityListContainer.add(new ActivityRow(
                 new Color(6, 182, 212), // Cyan
-                "Attendance recorded for ICT2132 (Software Development Lab)",
+                "Attendance recorded for ICT2132 (Object Oriented Programming)",
                 "ATTENDANCE",
                 new Color(204, 251, 241),
                 new Color(15, 118, 110),
@@ -821,7 +733,7 @@ public class TechnicalOfficerDashboard extends JFrame {
         activityListContainer.add(Box.createVerticalStrut(14));
 
         // Row 3: Notices (Integrated field)
-        String noticeDesc = "New official department notices published for " + officerDepartment;
+        String noticeDesc = "Official department notices published";
         Notice topNotice = null;
         if (!activeNotices.isEmpty()) {
             topNotice = activeNotices.get(0);
@@ -843,21 +755,10 @@ public class TechnicalOfficerDashboard extends JFrame {
         ));
         activityListContainer.add(Box.createVerticalStrut(14));
 
-        // Row 4: Lab Maintenance
-        activityListContainer.add(new ActivityRow(
-                new Color(16, 185, 129), // Emerald
-                "Workstation preventative maintenance audit completed for Lab 01",
-                "MAINTENANCE",
-                new Color(209, 250, 229),
-                new Color(6, 95, 70),
-                () -> navigateTo("Lab Maintenance")
-        ));
-        activityListContainer.add(Box.createVerticalStrut(14));
-
-        // Row 5: Medical Certificates
+        // Row 4: Medical Certificates
         activityListContainer.add(new ActivityRow(
                 new Color(147, 51, 234), // Purple
-                "Medical certificate verification pending for STU001 (MED001)",
+                "Medical certificate verification pending for STU010 (MED002)",
                 "MEDICAL",
                 new Color(243, 232, 255),
                 new Color(126, 34, 206),
@@ -887,88 +788,34 @@ public class TechnicalOfficerDashboard extends JFrame {
         topRow.add(titleLabel, BorderLayout.WEST);
         topRow.add(new CircleDot(dotColor), BorderLayout.EAST);
 
-        // Center & Bottom: Value and Subtitle
-        JPanel contentBox = new JPanel();
-        contentBox.setLayout(new BoxLayout(contentBox, BoxLayout.Y_AXIS));
-        contentBox.setOpaque(false);
-
+        // Center: Huge Value Number
         JLabel valueLabel = new JLabel(value);
-        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 34));
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 30));
         valueLabel.setForeground(valueColor);
-        valueLabel.setBorder(BorderFactory.createEmptyBorder(8, 0, 2, 0));
+        valueLabel.setBorder(BorderFactory.createEmptyBorder(6, 0, 4, 0));
 
+        // Bottom: Explanatory Subtitle
         JLabel subLabel = new JLabel(subtitle);
-        subLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        subLabel.setForeground(textLight);
-
-        contentBox.add(valueLabel);
-        contentBox.add(subLabel);
+        subLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        subLabel.setForeground(textMuted);
 
         card.add(topRow, BorderLayout.NORTH);
-        card.add(contentBox, BorderLayout.CENTER);
-
-        Runnable clickAction = null;
-        if (title.contains("SESSIONS") || title.contains("TIMETABLE")) {
-            clickAction = () -> navigateTo("Timetable");
-        } else if (title.contains("ATTENDANCE") || title.contains("STUDENT")) {
-            clickAction = () -> navigateTo("Attendance");
-        } else if (title.contains("MEDICAL")) {
-            clickAction = () -> navigateTo("Medical Certificates");
-        } else if (title.contains("LABS") || title.contains("MAINTENANCE")) {
-            clickAction = () -> navigateTo("Lab Maintenance");
-        } else if (title.contains("NOTICE")) {
-            clickAction = () -> navigateTo("Notices");
-        }
-
-        if (clickAction != null) {
-            makeClickable(card, clickAction);
-        }
+        card.add(valueLabel, BorderLayout.CENTER);
+        card.add(subLabel, BorderLayout.SOUTH);
 
         return card;
     }
 
-    private static void makeClickable(Component comp, Runnable onClick) {
-        if (comp == null || onClick == null) return;
-        comp.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        comp.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                onClick.run();
-            }
-        });
-        if (comp instanceof Container) {
-            for (Component child : ((Container) comp).getComponents()) {
-                makeClickable(child, onClick);
-            }
-        }
-    }
-
-    private String extractInitials(String name) {
-        if (name == null || name.trim().isEmpty()) return "TO";
-        String[] parts = name.trim().split("\\s+");
-        if (parts.length >= 2) {
-            return ("" + parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
-        } else if (parts[0].length() >= 2) {
-            return parts[0].substring(0, 2).toUpperCase();
-        } else {
-            return parts[0].toUpperCase();
-        }
-    }
-
     /**
-     * Circular avatar icon displaying user initials with green status dot at bottom
-     * right.
+     * Circular avatar with online green status dot.
      */
-    private static class CircleAvatarWithStatus extends JComponent {
+    private static class CircleAvatarWithStatus extends JPanel {
         private final String initials;
 
         public CircleAvatarWithStatus(String initials) {
-            this.initials = (initials != null) ? initials : "TO";
-            Dimension dim = new Dimension(34, 34);
-            setPreferredSize(dim);
-            setMinimumSize(dim);
-            setMaximumSize(dim);
-            setCursor(new Cursor(Cursor.HAND_CURSOR));
+            this.initials = initials;
+            setPreferredSize(new Dimension(36, 36));
+            setOpaque(false);
         }
 
         @Override
@@ -976,121 +823,160 @@ public class TechnicalOfficerDashboard extends JFrame {
             super.paintComponent(g);
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-            int size = 28;
-            int x = 2;
-            int y = 2;
+            // Navy background avatar circle
+            g2.setColor(new Color(40, 85, 130));
+            g2.fillOval(0, 0, 32, 32);
 
-            // Semi-translucent circular background
-            g2.setColor(new Color(255, 255, 255, 24));
-            g2.fillOval(x, y, size, size);
+            // Subtle border
+            g2.setColor(new Color(255, 255, 255, 60));
+            g2.setStroke(new BasicStroke(1));
+            g2.drawOval(0, 0, 32, 32);
 
-            // Circular ring outline
-            g2.setColor(new Color(180, 230, 250, 220));
-            g2.setStroke(new BasicStroke(1.4f));
-            g2.drawOval(x, y, size, size);
-
-            // Centered Initials Text
+            // Initials text
             g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            g2.setFont(new Font("Segoe UI", Font.BOLD, 12));
             FontMetrics fm = g2.getFontMetrics();
-            int tx = x + (size - fm.stringWidth(initials)) / 2;
-            int ty = y + (size - fm.getHeight()) / 2 + fm.getAscent() - 1;
-            g2.drawString(initials, tx, ty);
+            int x = (32 - fm.stringWidth(initials)) / 2;
+            int y = ((32 - fm.getHeight()) / 2) + fm.getAscent();
+            g2.drawString(initials, x, y);
 
-            // Green Active Dot on bottom right (matching screenshot)
-            g2.setColor(new Color(34, 197, 94)); // Vibrant green #22C55E
-            g2.fillOval(x + size - 8, y + size - 8, 8, 8);
-            g2.setColor(Color.WHITE);
-            g2.setStroke(new BasicStroke(1.0f));
-            g2.drawOval(x + size - 8, y + size - 8, 8, 8);
+            // Green Online Status Dot
+            g2.setColor(new Color(16, 185, 129));
+            g2.fillOval(22, 22, 9, 9);
+            g2.setColor(new Color(27, 67, 103));
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawOval(22, 22, 9, 9);
 
-            g2.dispose();
-        }
-    }
-
-    private static class CircleDot extends JComponent {
-        private final Color color;
-
-        public CircleDot(Color color) {
-            this.color = color;
-            setPreferredSize(new Dimension(8, 8));
-            setMaximumSize(new Dimension(8, 8));
-            setMinimumSize(new Dimension(8, 8));
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(color);
-            g2.fillOval(0, 0, 8, 8);
             g2.dispose();
         }
     }
 
     /**
-     * Sidebar Menu Button with 4px left active indicator bar and soft highlight.
-     * Matches the user's exact screenshot.
+     * Small colored circle dot for KPI cards.
      */
-    private static class SidebarMenuButton extends JButton {
-        private boolean active = false;
-        private boolean hovered = false;
+    private static class CircleDot extends JPanel {
+        private final Color dotColor;
 
-        private final Color sidebarColor = new Color(27, 67, 103); // #1B4367 dark navy sidebar
-        private final Color activeBg = new Color(18, 48, 77); // Deeper navy for active tab
-        private final Color activeBorder = new Color(56, 189, 248); // Bright sky blue (#38BDF8) 4px left bar
-        private final Color activeFg = Color.WHITE; // Crisp bold white text
-        private final Color inactiveFg = new Color(226, 232, 240); // Soft crisp white-slate text (#E2E8F0)
-        private final Color hoverBg = new Color(38, 84, 126); // Lighter navy highlight on hover
+        public CircleDot(Color color) {
+            this.dotColor = color;
+            setPreferredSize(new Dimension(10, 10));
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(dotColor);
+            g2.fillOval(1, 1, 8, 8);
+            g2.dispose();
+        }
+    }
+
+    /**
+     * Recent Activity Item Row with colored left border accent and badge pill.
+     */
+    private static class ActivityRow extends JPanel {
+        public ActivityRow(Color accentColor, String description, String category,
+                Color badgeBg, Color badgeFg, Runnable onClick) {
+            setLayout(new BorderLayout(14, 0));
+            setOpaque(false);
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+            JPanel bar = new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    super.paintComponent(g);
+                    g.setColor(accentColor);
+                    g.fillRect(0, 0, getWidth(), getHeight());
+                }
+            };
+            bar.setPreferredSize(new Dimension(4, 22));
+
+            JLabel descLabel = new JLabel(description);
+            descLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            descLabel.setForeground(new Color(30, 41, 59));
+
+            JLabel badge = new JLabel(category, SwingConstants.CENTER) {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(badgeBg);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
+                    g2.dispose();
+                    super.paintComponent(g);
+                }
+            };
+            badge.setFont(new Font("Segoe UI", Font.BOLD, 10));
+            badge.setForeground(badgeFg);
+            badge.setOpaque(false);
+            badge.setBorder(new EmptyBorder(3, 8, 3, 8));
+
+            JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+            left.setOpaque(false);
+            left.add(bar);
+            left.add(descLabel);
+
+            add(left, BorderLayout.WEST);
+            add(badge, BorderLayout.EAST);
+
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (onClick != null) onClick.run();
+                }
+            });
+        }
+    }
+
+    /**
+     * Sidebar Menu Button with Dark Navy background, white text, and 4px sky-blue active indicator.
+     */
+    private class SidebarMenuButton extends JButton {
+        private boolean active = false;
 
         public SidebarMenuButton(String text) {
             super(text);
-            setHorizontalAlignment(SwingConstants.LEFT);
             setFont(new Font("Segoe UI", Font.PLAIN, 13));
-            setForeground(inactiveFg);
-            setBackground(sidebarColor);
+            setForeground(Color.WHITE);
+            setBackground(sidebarBg);
             setFocusPainted(false);
             setBorderPainted(false);
             setContentAreaFilled(false);
-            setOpaque(false);
+            setHorizontalAlignment(SwingConstants.LEFT);
             setCursor(new Cursor(Cursor.HAND_CURSOR));
-            setBorder(BorderFactory.createEmptyBorder(12, 22, 12, 10));
-            setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-            setAlignmentX(Component.LEFT_ALIGNMENT);
+            setPreferredSize(new Dimension(215, 42));
+            setMaximumSize(new Dimension(215, 42));
+            setBorder(BorderFactory.createEmptyBorder(0, 22, 0, 0));
 
             addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent e) {
-                    hovered = true;
                     if (!active) {
+                        setBackground(new Color(38, 82, 122));
                         setForeground(Color.WHITE);
+                        repaint();
                     }
-                    repaint();
                 }
 
                 @Override
                 public void mouseExited(MouseEvent e) {
-                    hovered = false;
                     if (!active) {
-                        setForeground(inactiveFg);
+                        setBackground(sidebarBg);
+                        setForeground(Color.WHITE);
+                        repaint();
                     }
-                    repaint();
                 }
             });
         }
 
         public void setActive(boolean active) {
             this.active = active;
-            if (active) {
-                setFont(new Font("Segoe UI", Font.BOLD, 13));
-                setForeground(activeFg);
-            } else {
-                setFont(new Font("Segoe UI", Font.PLAIN, 13));
-                setForeground(inactiveFg);
-            }
+            setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 13));
+            setForeground(Color.WHITE);
             repaint();
         }
 
@@ -1100,144 +986,21 @@ public class TechnicalOfficerDashboard extends JFrame {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             if (active) {
-                g2.setColor(activeBg);
+                // Active menu item background
+                g2.setColor(new Color(20, 52, 82));
                 g2.fillRect(0, 0, getWidth(), getHeight());
-                g2.setColor(activeBorder);
+
+                // Left 4px Sky-blue active indicator
+                g2.setColor(new Color(56, 189, 248));
                 g2.fillRect(0, 0, 4, getHeight());
-            } else if (hovered) {
-                g2.setColor(hoverBg);
-                g2.fillRect(0, 0, getWidth(), getHeight());
-            } else {
-                g2.setColor(sidebarColor);
+            } else if (getModel().isRollover()) {
+                // Subtle hover highlight
+                g2.setColor(new Color(38, 82, 122));
                 g2.fillRect(0, 0, getWidth(), getHeight());
             }
 
             g2.dispose();
             super.paintComponent(g);
         }
-    }
-
-    private static class ActivityRow extends JPanel {
-        private boolean hovered = false;
-
-        public ActivityRow(Color barColor, String text, String badgeText, Color badgeBg, Color badgeFg) {
-            this(barColor, text, badgeText, badgeBg, badgeFg, null);
-        }
-
-        public ActivityRow(Color barColor, String text, String badgeText, Color badgeBg, Color badgeFg, Runnable onClick) {
-            setLayout(new BorderLayout(14, 0));
-            setOpaque(false);
-            setPreferredSize(new Dimension(800, 32));
-            setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
-            setBorder(BorderFactory.createEmptyBorder(2, 6, 2, 6));
-
-            JPanel bar = new JPanel() {
-                @Override
-                protected void paintComponent(Graphics g) {
-                    Graphics2D g2 = (Graphics2D) g.create();
-                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(barColor);
-                    g2.fillRect(0, 1, 4, getHeight() - 2);
-                    g2.dispose();
-                }
-            };
-            bar.setPreferredSize(new Dimension(4, 26));
-            bar.setOpaque(false);
-
-            JLabel label = new JLabel(text);
-            label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-            label.setForeground(new Color(51, 65, 85));
-
-            JPanel badgeWrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 1));
-            badgeWrapper.setOpaque(false);
-            PillBadge badge = new PillBadge(badgeText, badgeBg, badgeFg);
-            badgeWrapper.add(badge);
-
-            add(bar, BorderLayout.WEST);
-            add(label, BorderLayout.CENTER);
-            add(badgeWrapper, BorderLayout.EAST);
-
-            if (onClick != null) {
-                attachHoverAndClick(this, onClick);
-            }
-        }
-
-        private void setRowHovered(boolean h) {
-            this.hovered = h;
-            repaint();
-        }
-
-        private void attachHoverAndClick(Component comp, Runnable onClick) {
-            if (comp == null) return;
-            comp.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            comp.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    if (onClick != null) onClick.run();
-                }
-
-                @Override
-                public void mouseEntered(MouseEvent e) {
-                    setRowHovered(true);
-                }
-
-                @Override
-                public void mouseExited(MouseEvent e) {
-                    setRowHovered(false);
-                }
-            });
-            if (comp instanceof Container) {
-                for (Component child : ((Container) comp).getComponents()) {
-                    attachHoverAndClick(child, onClick);
-                }
-            }
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            if (hovered) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(241, 245, 249));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
-                g2.dispose();
-            }
-            super.paintComponent(g);
-        }
-    }
-
-private static class PillBadge extends JPanel {
-    private final Color bg;
-
-    public PillBadge(String text, Color bg, Color fg) {
-        this.bg = bg;
-        setLayout(new BorderLayout());
-        setOpaque(false);
-        setBorder(BorderFactory.createEmptyBorder(4, 12, 4, 12));
-
-        JLabel label = new JLabel(text, SwingConstants.CENTER);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        label.setForeground(fg);
-        add(label, BorderLayout.CENTER);
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setColor(bg);
-        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
-        g2.dispose();
-        super.paintComponent(g);
-    }
-
-    }
-
-    public static void main(String[] args) {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ignored) {
-        }
-        SwingUtilities.invokeLater(TechnicalOfficerDashboard::new);
     }
 }

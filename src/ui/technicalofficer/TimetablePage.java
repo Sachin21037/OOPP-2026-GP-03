@@ -12,26 +12,23 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
-import javax.swing.RowSorter;
-import javax.swing.SortOrder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.sql.Time;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Academic Timetable Management for Technical Officers in FAMS.
- * Allows Technical Officers to view and schedule timetables for their department.
+ * Academic Timetable View for Technical Officers in FAMS.
+ * Allows Technical Officers to view timetables of their department.
  * Provides both a Weekly Timetable Matrix View (Monday to Friday/Saturday) and a Detailed Table View.
- * Supports filtering by Academic Year, Semester, Day of Week, Session Type (Labs vs Lectures),
- * and Department, along with new timetable slot creation.
+ * Supports filtering by Academic Year, Semester, Day of Week, Session Type, and Department.
+ * View-only: Strictly complies with "Can see timetables of their department".
  */
 public class TimetablePage extends JPanel {
 
     // Theme palette harmonized with FAMS Technical Officer Dashboard
-    private final Color darkNavy = new Color(27, 66, 104);       // #1B4268
+    private final Color darkNavy = new Color(27, 67, 103);       // #1B4367 exact navy
     private final Color primaryBlue = new Color(45, 100, 160);
     private final Color lightBg = new Color(245, 247, 250);       // #F5F7FA
     private final Color borderColor = new Color(226, 232, 240);   // #E2E8F0
@@ -80,7 +77,6 @@ public class TimetablePage extends JPanel {
     // Cross-module navigation callbacks
     private Runnable onNavigateToNotices;
     private Runnable onNavigateToAttendance;
-    private Runnable onNavigateToLabMaintenance;
 
     public void setOnNavigateToNotices(Runnable onNavigateToNotices) {
         this.onNavigateToNotices = onNavigateToNotices;
@@ -88,10 +84,6 @@ public class TimetablePage extends JPanel {
 
     public void setOnNavigateToAttendance(Runnable onNavigateToAttendance) {
         this.onNavigateToAttendance = onNavigateToAttendance;
-    }
-
-    public void setOnNavigateToLabMaintenance(Runnable onNavigateToLabMaintenance) {
-        this.onNavigateToLabMaintenance = onNavigateToLabMaintenance;
     }
 
     public TimetablePage() {
@@ -124,9 +116,9 @@ public class TimetablePage extends JPanel {
     private void initUI() {
         JPanel mainContainer = new JPanel(new BorderLayout(0, 16));
         mainContainer.setBackground(lightBg);
-        mainContainer.setBorder(new EmptyBorder(22, 28, 24, 28));
+        mainContainer.setBorder(new EmptyBorder(20, 24, 20, 24));
 
-        // 1. Top Header Banner with Stats & Actions
+        // 1. Header Panel
         JPanel headerPanel = createHeaderPanel();
 
         // 2. Filter Bar & View Mode Switcher
@@ -186,19 +178,9 @@ public class TimetablePage extends JPanel {
         titleBox.add(title);
         titleBox.add(subtitleLabel);
 
-        // Action Buttons Row (Right) - All with BLACK letters as requested
+        // Action Buttons Row (Right) - All with BLACK letters
         JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         actionsPanel.setOpaque(false);
-
-        JButton createSlotBtn = new JButton("Create Timetable Slot");
-        createSlotBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        createSlotBtn.setForeground(Color.BLACK);
-        createSlotBtn.setBackground(new Color(230, 242, 255));
-        createSlotBtn.setFocusPainted(false);
-        createSlotBtn.setBorder(new CompoundBorder(new LineBorder(primaryBlue, 1), new EmptyBorder(7, 14, 7, 14)));
-        createSlotBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        createSlotBtn.setToolTipText("Create and schedule a new academic timetable session for this department");
-        createSlotBtn.addActionListener(e -> showCreateTimetableDialog());
 
         JButton resetDeptBtn = new JButton("My Department");
         resetDeptBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -237,7 +219,6 @@ public class TimetablePage extends JPanel {
             }
         });
 
-        actionsPanel.add(createSlotBtn);
         actionsPanel.add(resetDeptBtn);
         actionsPanel.add(refreshBtn);
         actionsPanel.add(viewNoticesBtn);
@@ -249,9 +230,9 @@ public class TimetablePage extends JPanel {
         JPanel statsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         statsRow.setOpaque(false);
 
-        totalSlotsBadge = createStatBadge("Total Slots: 0", new Color(241, 245, 249), Color.BLACK);
-        labSlotsBadge = createStatBadge("Lab Practicals: 0", new Color(204, 251, 241), Color.BLACK);
-        lectureSlotsBadge = createStatBadge("Lectures: 0", new Color(243, 232, 255), Color.BLACK);
+        totalSlotsBadge = createPillBadge("Total Slots: 0", textDark, new Color(241, 245, 249));
+        labSlotsBadge = createPillBadge("Lab Practicals: 0", tealLab, tealLabBg);
+        lectureSlotsBadge = createPillBadge("Lectures: 0", purpleLec, purpleLecBg);
 
         statsRow.add(totalSlotsBadge);
         statsRow.add(labSlotsBadge);
@@ -263,99 +244,77 @@ public class TimetablePage extends JPanel {
         return header;
     }
 
-    private JLabel createStatBadge(String text, Color bg, Color fg) {
-        JLabel badge = new JLabel(text, SwingConstants.CENTER) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(bg);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        badge.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        badge.setForeground(fg);
-        badge.setOpaque(false);
-        badge.setBorder(new EmptyBorder(5, 12, 5, 12));
-        return badge;
+    private JLabel createPillBadge(String text, Color fg, Color bg) {
+        JLabel l = new JLabel(text);
+        l.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        l.setForeground(fg);
+        l.setOpaque(true);
+        l.setBackground(bg);
+        l.setBorder(new CompoundBorder(new LineBorder(bg.darker(), 1), new EmptyBorder(3, 10, 3, 10)));
+        return l;
     }
 
     private JPanel createFilterAndControlsPanel() {
-        JPanel container = new JPanel(new BorderLayout(0, 10));
-        container.setBackground(Color.WHITE);
-        container.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(12, 16, 12, 16)));
+        JPanel card = new JPanel(new BorderLayout(0, 10));
+        card.setBackground(Color.WHITE);
+        card.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(12, 16, 12, 16)));
 
-        // Top Row: Multi-criteria Filters (All 5 fitted properly without clipping)
-        JPanel filtersRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 2));
-        filtersRow.setOpaque(false);
+        // Upper Filter Row: Combos
+        JPanel upperFilters = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        upperFilters.setOpaque(false);
 
         // 1. Department Filter
-        filtersRow.add(createFilterLabel("Department:"));
+        upperFilters.add(createFilterLabel("Department:"));
         deptFilter = new JComboBox<>();
+        populateDepartmentFilter();
         deptFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         deptFilter.setBackground(Color.WHITE);
-        deptFilter.setForeground(Color.BLACK);
-        deptFilter.setPreferredSize(new Dimension(185, 30));
-        populateDepartmentFilter();
+        deptFilter.setPreferredSize(new Dimension(240, 32));
         deptFilter.addActionListener(e -> applyFilters());
-        filtersRow.add(deptFilter);
+        upperFilters.add(deptFilter);
 
         // 2. Academic Year Filter
-        filtersRow.add(createFilterLabel("Year:"));
-        academicYearFilter = new JComboBox<>(new String[]{"All Years", "2026/2027", "2025/2026", "2024/2025"});
+        upperFilters.add(createFilterLabel("Year:"));
+        academicYearFilter = new JComboBox<>(new String[] { "All Years", "2026/2027", "2025/2026", "2024/2025" });
         academicYearFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         academicYearFilter.setBackground(Color.WHITE);
-        academicYearFilter.setForeground(Color.BLACK);
-        academicYearFilter.setPreferredSize(new Dimension(95, 30));
+        academicYearFilter.setPreferredSize(new Dimension(110, 32));
         academicYearFilter.addActionListener(e -> applyFilters());
-        filtersRow.add(academicYearFilter);
+        upperFilters.add(academicYearFilter);
 
         // 3. Semester Filter
-        filtersRow.add(createFilterLabel("Semester:"));
-        semesterFilter = new JComboBox<>(new String[]{"All Semesters", "SEMESTER 1", "SEMESTER 2"});
+        upperFilters.add(createFilterLabel("Semester:"));
+        semesterFilter = new JComboBox<>(new String[] { "All Semesters", "SEMESTER 1", "SEMESTER 2" });
         semesterFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         semesterFilter.setBackground(Color.WHITE);
-        semesterFilter.setForeground(Color.BLACK);
-        semesterFilter.setPreferredSize(new Dimension(110, 30));
+        semesterFilter.setPreferredSize(new Dimension(120, 32));
         semesterFilter.addActionListener(e -> applyFilters());
-        filtersRow.add(semesterFilter);
+        upperFilters.add(semesterFilter);
 
         // 4. Day of Week Filter
-        filtersRow.add(createFilterLabel("Day:"));
-        dayFilter = new JComboBox<>(new String[]{"All Days", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"});
+        upperFilters.add(createFilterLabel("Day:"));
+        dayFilter = new JComboBox<>(new String[] {
+                "All Days", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"
+        });
         dayFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         dayFilter.setBackground(Color.WHITE);
-        dayFilter.setForeground(Color.BLACK);
-        dayFilter.setPreferredSize(new Dimension(100, 30));
+        dayFilter.setPreferredSize(new Dimension(110, 32));
         dayFilter.addActionListener(e -> applyFilters());
-        filtersRow.add(dayFilter);
+        upperFilters.add(dayFilter);
 
-        // 5. Session Type Filter (Labs vs Lectures)
-        filtersRow.add(createFilterLabel("Type:"));
-        sessionTypeFilter = new JComboBox<>(new String[]{"All Sessions", "Lab Practicals Only", "Lectures Only"});
-        sessionTypeFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        sessionTypeFilter.setBackground(Color.WHITE);
-        sessionTypeFilter.setForeground(Color.BLACK);
-        sessionTypeFilter.setPreferredSize(new Dimension(130, 30));
-        sessionTypeFilter.addActionListener(e -> applyFilters());
-        filtersRow.add(sessionTypeFilter);
-
-        // Bottom Row: Search Box + View Switcher Buttons
-        JPanel bottomRow = new JPanel(new BorderLayout(14, 0));
-        bottomRow.setOpaque(false);
+        // Lower Controls Row: Search + View Mode Switcher
+        JPanel lowerControls = new JPanel(new BorderLayout(14, 0));
+        lowerControls.setOpaque(false);
 
         // Search Field
         JPanel searchBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         searchBox.setOpaque(false);
         searchBox.add(createFilterLabel("Search:"));
 
-        searchField = new JTextField(20);
+        searchField = new JTextField(24);
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        searchField.setForeground(Color.BLACK);
-        searchField.putClientProperty("JTextField.placeholderText", "Search course code, name, venue, lecturer...");
-        searchField.setPreferredSize(new Dimension(240, 30));
+        searchField.putClientProperty("JTextField.placeholderText", "Search by course code, title, venue, or lecturer...");
+        searchField.setPreferredSize(new Dimension(280, 32));
         searchField.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(4, 8, 4, 8)));
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -367,64 +326,70 @@ public class TimetablePage extends JPanel {
         });
         searchBox.add(searchField);
 
-        // View Mode Switcher: Weekly Matrix View vs Table View
+        // View Mode Switcher: Weekly View vs Table View (Both with solid BLACK letters)
         JPanel viewSwitcher = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         viewSwitcher.setOpaque(false);
 
         weeklyViewBtn = new JButton("Weekly View (Mon - Fri)");
-        styleSwitcherButton(weeklyViewBtn, true);
+        weeklyViewBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        weeklyViewBtn.setForeground(Color.BLACK);
+        weeklyViewBtn.setBackground(new Color(230, 242, 255));
+        weeklyViewBtn.setFocusPainted(false);
+        weeklyViewBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        weeklyViewBtn.setBorder(new CompoundBorder(new LineBorder(primaryBlue, 2), new EmptyBorder(6, 14, 6, 14)));
         weeklyViewBtn.addActionListener(e -> switchView("WEEKLY"));
 
         tableViewBtn = new JButton("Detailed Table View");
-        styleSwitcherButton(tableViewBtn, false);
+        tableViewBtn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        tableViewBtn.setForeground(Color.BLACK);
+        tableViewBtn.setBackground(Color.WHITE);
+        tableViewBtn.setFocusPainted(false);
+        tableViewBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        tableViewBtn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(6, 14, 6, 14)));
         tableViewBtn.addActionListener(e -> switchView("TABLE"));
 
         viewSwitcher.add(weeklyViewBtn);
         viewSwitcher.add(tableViewBtn);
 
-        bottomRow.add(searchBox, BorderLayout.WEST);
-        bottomRow.add(viewSwitcher, BorderLayout.EAST);
+        lowerControls.add(searchBox, BorderLayout.WEST);
+        lowerControls.add(viewSwitcher, BorderLayout.EAST);
 
-        container.add(filtersRow, BorderLayout.NORTH);
-        container.add(bottomRow, BorderLayout.SOUTH);
+        card.add(upperFilters, BorderLayout.NORTH);
+        card.add(lowerControls, BorderLayout.SOUTH);
 
-        return container;
+        return card;
+    }
+
+    private void populateDepartmentFilter() {
+        if (deptFilter == null) return;
+        deptFilter.removeAllItems();
+        deptFilter.addItem("My Department (" + officerDepartment + ")");
+        deptFilter.addItem("All Departments");
+
+        List<String> allDepts = timetableService.getAvailableDepartments();
+        for (String d : allDepts) {
+            if (!d.equalsIgnoreCase(officerDepartment)) {
+                deptFilter.addItem(d);
+            }
+        }
     }
 
     private JLabel createFilterLabel(String text) {
         JLabel l = new JLabel(text);
         l.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        l.setForeground(textDark);
+        l.setForeground(textMuted);
         return l;
     }
 
-    private void styleSwitcherButton(JButton btn, boolean active) {
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setForeground(Color.BLACK); // LETTERS IN BLACK AS REQUESTED
-        if (active) {
-            btn.setBackground(new Color(219, 234, 254)); // Soft highlighted blue
-            btn.setBorder(new CompoundBorder(new LineBorder(darkNavy, 2), new EmptyBorder(5, 13, 5, 13)));
-        } else {
-            btn.setBackground(Color.WHITE);
-            btn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(6, 14, 6, 14)));
-        }
-    }
-
-    private void switchView(String mode) {
-        this.currentView = mode;
-        styleSwitcherButton(weeklyViewBtn, "WEEKLY".equals(mode));
-        styleSwitcherButton(tableViewBtn, "TABLE".equals(mode));
-        applyFilters();
-    }
-
     private JPanel createTableViewPanel() {
-        JPanel card = new JPanel(new BorderLayout(0, 10));
-        card.setBackground(Color.WHITE);
-        card.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(14, 16, 14, 16)));
+        JPanel wrapper = new JPanel(new BorderLayout(0, 10));
+        wrapper.setOpaque(false);
 
-        String[] columns = {"Slot ID", "Department", "Day", "Time Slot", "Course Offering", "Session Type", "Venue", "Batch", "Assigned Lecturer"};
+        String[] columns = {
+                "Slot ID", "Day", "Time", "Course Code", "Course Name",
+                "Type", "Venue", "Batch", "Lecturer(s)", "Department"
+        };
+
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -444,93 +409,55 @@ public class TimetablePage extends JPanel {
         timetableTable.setSelectionForeground(darkNavy);
         timetableTable.setDefaultRenderer(Object.class, new AlternateRowRenderer());
 
-        // Header Styling matching FAMS Dark Navy Blue standard
         setupTableHeader(timetableTable);
 
         // Column widths
-        timetableTable.getColumnModel().getColumn(0).setPreferredWidth(75);   // Slot ID
-        timetableTable.getColumnModel().getColumn(1).setPreferredWidth(160);  // Department
-        timetableTable.getColumnModel().getColumn(2).setPreferredWidth(95);   // Day
-        timetableTable.getColumnModel().getColumn(3).setPreferredWidth(115);  // Time
-        timetableTable.getColumnModel().getColumn(4).setPreferredWidth(220);  // Course
-        timetableTable.getColumnModel().getColumn(5).setPreferredWidth(130);  // Session Type
-        timetableTable.getColumnModel().getColumn(6).setPreferredWidth(130);  // Venue
-        timetableTable.getColumnModel().getColumn(7).setPreferredWidth(85);   // Batch
-        timetableTable.getColumnModel().getColumn(8).setPreferredWidth(150);  // Lecturer
+        timetableTable.getColumnModel().getColumn(0).setPreferredWidth(70);  // Slot ID
+        timetableTable.getColumnModel().getColumn(1).setPreferredWidth(90);  // Day
+        timetableTable.getColumnModel().getColumn(2).setPreferredWidth(100); // Time
+        timetableTable.getColumnModel().getColumn(3).setPreferredWidth(85);  // Course Code
+        timetableTable.getColumnModel().getColumn(4).setPreferredWidth(190); // Name
+        timetableTable.getColumnModel().getColumn(5).setPreferredWidth(95);  // Type
+        timetableTable.getColumnModel().getColumn(6).setPreferredWidth(110); // Venue
+        timetableTable.getColumnModel().getColumn(7).setPreferredWidth(80);  // Batch
+        timetableTable.getColumnModel().getColumn(8).setPreferredWidth(140); // Lecturer
+        timetableTable.getColumnModel().getColumn(9).setPreferredWidth(170); // Dept
 
-        // Day of week renderer highlighting
-        timetableTable.getColumnModel().getColumn(2).setCellRenderer(new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value,
-                                                           boolean isSelected, boolean hasFocus, int row, int column) {
-                JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
-                lbl.setForeground(accentBlue);
-                lbl.setHorizontalAlignment(SwingConstants.CENTER);
-                if (!isSelected) {
-                    lbl.setBackground((row % 2 == 0) ? Color.WHITE : new Color(248, 250, 252));
-                } else {
-                    lbl.setBackground(new Color(237, 243, 248));
-                }
-                return lbl;
-            }
-        });
-
-        // Session Type Pill Badge Renderer (Lab Practical vs Lecture)
+        // Column 5 Type Pill Renderer
         timetableTable.getColumnModel().getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
-                                                           boolean isSelected, boolean hasFocus, int row, int column) {
-                String type = (value != null) ? value.toString() : "LECTURE";
-                boolean isLab = type.toUpperCase().contains("LAB") || type.toUpperCase().contains("PRACTICAL");
-                JPanel pill = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 4));
-                Color rowBg = isSelected ? new Color(237, 243, 248) : ((row % 2 == 0) ? Color.WHITE : new Color(248, 250, 252));
-                pill.setBackground(rowBg);
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                String typeStr = (value != null) ? value.toString() : "Session";
+                boolean isLab = typeStr.toLowerCase().contains("lab") || typeStr.toLowerCase().contains("practical");
 
-                JLabel tag = new JLabel(type) {
+                JPanel pillPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 5));
+                Color rowBg = isSelected ? new Color(237, 243, 248) : ((row % 2 == 0) ? Color.WHITE : new Color(248, 250, 252));
+                pillPanel.setBackground(rowBg);
+
+                JLabel badge = new JLabel(typeStr, SwingConstants.CENTER) {
                     @Override
                     protected void paintComponent(Graphics g) {
                         Graphics2D g2 = (Graphics2D) g.create();
                         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                         g2.setColor(isLab ? tealLabBg : purpleLecBg);
-                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
+                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
                         g2.dispose();
                         super.paintComponent(g);
                     }
                 };
-                tag.setFont(new Font("Segoe UI", Font.BOLD, 11));
-                tag.setForeground(isLab ? tealLab : purpleLec);
-                tag.setBorder(new EmptyBorder(3, 8, 3, 8));
-                pill.add(tag);
-                return pill;
+                badge.setFont(new Font("Segoe UI", Font.BOLD, 10));
+                badge.setForeground(isLab ? tealLab : purpleLec);
+                badge.setOpaque(false);
+                badge.setBorder(new EmptyBorder(2, 6, 2, 6));
+
+                pillPanel.add(badge);
+                return pillPanel;
             }
         });
 
-        // Venue renderer with Lab highlighting
-        timetableTable.getColumnModel().getColumn(6).setCellRenderer(new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value,
-                                                           boolean isSelected, boolean hasFocus, int row, int column) {
-                JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                String val = (value != null) ? value.toString() : "";
-                if (val.toLowerCase().contains("lab")) {
-                    lbl.setForeground(tealLab);
-                    lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
-                } else {
-                    lbl.setForeground(textDark);
-                    lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-                }
-                if (!isSelected) {
-                    lbl.setBackground((row % 2 == 0) ? Color.WHITE : new Color(248, 250, 252));
-                } else {
-                    lbl.setBackground(new Color(237, 243, 248));
-                }
-                lbl.setBorder(new EmptyBorder(0, 8, 0, 8));
-                return lbl;
-            }
-        });
-
-        // Double click to view details modal
+        // Double-click row to view details
         timetableTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -544,30 +471,33 @@ public class TimetablePage extends JPanel {
         scrollPane.setBorder(new LineBorder(borderColor, 1));
         scrollPane.getViewport().setBackground(Color.WHITE);
 
-        // Footer Action Bar
+        JPanel tableCard = new JPanel(new BorderLayout(0, 10));
+        tableCard.setBackground(Color.WHITE);
+        tableCard.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(14, 16, 14, 16)));
+        tableCard.add(scrollPane, BorderLayout.CENTER);
+
+        // Footer Help
         JPanel footer = new JPanel(new BorderLayout());
         footer.setOpaque(false);
-
-        JLabel tip = new JLabel("Tip: Double-click any row to view complete course, venue equipment, and lecturer details.");
+        JLabel tip = new JLabel("Tip: Double-click any row to view full session details.");
         tip.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         tip.setForeground(textMuted);
-
-        JButton viewSlotBtn = new JButton("View Slot Details");
-        viewSlotBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        viewSlotBtn.setBackground(new Color(230, 242, 255));
-        viewSlotBtn.setForeground(Color.BLACK);
-        viewSlotBtn.setFocusPainted(false);
-        viewSlotBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        viewSlotBtn.setBorder(new CompoundBorder(new LineBorder(primaryBlue, 1), new EmptyBorder(8, 16, 8, 16)));
-        viewSlotBtn.addActionListener(e -> showSelectedSlotDetails());
-
         footer.add(tip, BorderLayout.WEST);
-        footer.add(viewSlotBtn, BorderLayout.EAST);
 
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(footer, BorderLayout.SOUTH);
+        JButton inspectBtn = new JButton("View Slot Details");
+        inspectBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        inspectBtn.setBackground(darkNavy);
+        inspectBtn.setForeground(Color.WHITE);
+        inspectBtn.setFocusPainted(false);
+        inspectBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        inspectBtn.setBorder(new EmptyBorder(6, 14, 6, 14));
+        inspectBtn.addActionListener(e -> showSelectedSlotDetails());
+        footer.add(inspectBtn, BorderLayout.EAST);
 
-        return card;
+        tableCard.add(footer, BorderLayout.SOUTH);
+
+        wrapper.add(tableCard, BorderLayout.CENTER);
+        return wrapper;
     }
 
     private JPanel createEmptyStatePanel() {
@@ -579,70 +509,68 @@ public class TimetablePage extends JPanel {
         inner.setLayout(new BoxLayout(inner, BoxLayout.Y_AXIS));
         inner.setOpaque(false);
 
-        JLabel iconLabel = new JLabel("", SwingConstants.CENTER);
-        iconLabel.setFont(new Font("Segoe UI", Font.PLAIN, 40));
-        iconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel titleLabel = new JLabel("No Timetable Schedules Available", SwingConstants.CENTER);
+        JLabel titleLabel = new JLabel("No Timetable Slots Found", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         titleLabel.setForeground(textDark);
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel descLabel = new JLabel("<html><center>No scheduled lectures or laboratory sessions match the selected department or filter criteria.<br>Try selecting 'All Days', adjusting the semester, or clearing the search keyword.</center></html>", SwingConstants.CENTER);
+        JLabel descLabel = new JLabel(
+                "<html><center>There are no timetable slots matching your filter criteria.<br>Try adjusting the day, academic year, semester, or search query.</center></html>",
+                SwingConstants.CENTER);
         descLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         descLabel.setForeground(textMuted);
         descLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JButton resetFiltersBtn = new JButton("Reset All Filters");
-        resetFiltersBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        resetFiltersBtn.setBackground(new Color(230, 242, 255));
-        resetFiltersBtn.setForeground(Color.BLACK);
-        resetFiltersBtn.setFocusPainted(false);
-        resetFiltersBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        resetFiltersBtn.setBorder(new CompoundBorder(new LineBorder(primaryBlue, 1), new EmptyBorder(8, 18, 8, 18)));
-        resetFiltersBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        resetFiltersBtn.addActionListener(e -> resetAllFilters());
+        JButton resetBtn = new JButton("Reset All Filters");
+        resetBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        resetBtn.setForeground(Color.BLACK);
+        resetBtn.setBackground(Color.WHITE);
+        resetBtn.setFocusPainted(false);
+        resetBtn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(8, 16, 8, 16)));
+        resetBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        resetBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        resetBtn.addActionListener(e -> {
+            if (deptFilter != null) deptFilter.setSelectedIndex(0);
+            if (academicYearFilter != null) academicYearFilter.setSelectedIndex(0);
+            if (semesterFilter != null) semesterFilter.setSelectedIndex(0);
+            if (dayFilter != null) dayFilter.setSelectedIndex(0);
+            if (searchField != null) searchField.setText("");
+            applyFilters();
+        });
 
-        inner.add(iconLabel);
-        inner.add(Box.createVerticalStrut(14));
         inner.add(titleLabel);
         inner.add(Box.createVerticalStrut(8));
         inner.add(descLabel);
         inner.add(Box.createVerticalStrut(18));
-        inner.add(resetFiltersBtn);
+        inner.add(resetBtn);
 
         emptyPanel.add(inner);
         return emptyPanel;
     }
 
-    private void resetAllFilters() {
-        if (deptFilter != null) deptFilter.setSelectedIndex(0);
-        if (academicYearFilter != null) academicYearFilter.setSelectedIndex(0);
-        if (semesterFilter != null) semesterFilter.setSelectedIndex(0);
-        if (dayFilter != null) dayFilter.setSelectedIndex(0);
-        if (sessionTypeFilter != null) sessionTypeFilter.setSelectedIndex(0);
-        if (searchField != null) searchField.setText("");
-        applyFilters();
-    }
+    public void switchView(String mode) {
+        this.currentView = mode;
+        if ("WEEKLY".equalsIgnoreCase(mode)) {
+            weeklyViewBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            weeklyViewBtn.setBackground(new Color(230, 242, 255));
+            weeklyViewBtn.setBorder(new CompoundBorder(new LineBorder(primaryBlue, 2), new EmptyBorder(6, 14, 6, 14)));
 
-    private void populateDepartmentFilter() {
-        if (deptFilter == null) return;
-        deptFilter.removeAllItems();
+            tableViewBtn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            tableViewBtn.setBackground(Color.WHITE);
+            tableViewBtn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(6, 14, 6, 14)));
 
-        // 1. Officer's assigned department at the top
-        deptFilter.addItem("My Department (" + officerDepartment + ")");
+            viewCards.show(viewsContainer, "WEEKLY");
+        } else {
+            tableViewBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            tableViewBtn.setBackground(new Color(230, 242, 255));
+            tableViewBtn.setBorder(new CompoundBorder(new LineBorder(primaryBlue, 2), new EmptyBorder(6, 14, 6, 14)));
 
-        // 2. All Departments option
-        deptFilter.addItem("All Departments");
+            weeklyViewBtn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            weeklyViewBtn.setBackground(Color.WHITE);
+            weeklyViewBtn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(6, 14, 6, 14)));
 
-        // 3. Other distinct departments
-        List<String> depts = timetableService.getAvailableDepartments();
-        for (String d : depts) {
-            if (!d.equalsIgnoreCase(officerDepartment)) {
-                deptFilter.addItem(d);
-            }
+            viewCards.show(viewsContainer, "TABLE");
         }
-        deptFilter.setSelectedIndex(0);
     }
 
     public void refreshTimetable() {
@@ -710,136 +638,126 @@ public class TimetablePage extends JPanel {
             return;
         }
 
-        // Render current view
-        if ("WEEKLY".equals(currentView)) {
-            renderWeeklyGrid(entries);
+        // 1. Update Detailed Table View
+        tableModel.setRowCount(0);
+        for (TimetableEntry e : entries) {
+            tableModel.addRow(new Object[] {
+                    e.getTimetableId(),
+                    e.getDayOfWeek(),
+                    e.getFormattedTimeRange(),
+                    e.getCourseCode(),
+                    e.getCourseName(),
+                    e.getSessionType(),
+                    e.getVenue(),
+                    e.getBatch(),
+                    e.getLecturers(),
+                    e.getDepartment()
+            });
+        }
+
+        // 2. Build Weekly Matrix View (Mon-Fri or Mon-Sat)
+        buildWeeklyMatrix(entries);
+
+        // Show active card
+        if ("WEEKLY".equalsIgnoreCase(currentView)) {
             viewCards.show(viewsContainer, "WEEKLY");
         } else {
-            renderTable(entries);
             viewCards.show(viewsContainer, "TABLE");
         }
     }
 
-    private void renderTable(List<TimetableEntry> entries) {
-        if (tableModel == null) return;
-        tableModel.setRowCount(0);
-        for (TimetableEntry e : entries) {
-            tableModel.addRow(new Object[]{
-                    e.getTimetableId(),
-                    e.getDepartment(),
-                    e.getDayOfWeek(),
-                    e.getFormattedTimeRange(),
-                    e.getCourseDisplay(),
-                    e.getSessionType(),
-                    e.getVenue(),
-                    e.getBatch(),
-                    e.getLecturers()
-            });
-        }
-    }
-
-    /**
-     * Builds the Weekly Timetable Grid from Monday to Friday (and Saturday if present).
-     * Fulfills requirement: "Provide a weekly timetable view from Monday to Friday."
-     */
-    private void renderWeeklyGrid(List<TimetableEntry> entries) {
+    private void buildWeeklyMatrix(List<TimetableEntry> entries) {
         weeklyGridContainer.removeAll();
 
-        // Check if Saturday has any entries
-        boolean hasSaturday = false;
-        for (TimetableEntry e : entries) {
-            if ("SATURDAY".equalsIgnoreCase(e.getDayOfWeek())) {
-                hasSaturday = true;
-                break;
-            }
-        }
-
+        // Check if Saturday has entries
+        boolean hasSaturday = entries.stream().anyMatch(e -> "SATURDAY".equalsIgnoreCase(e.getDayOfWeek()));
         String[] days = hasSaturday
-                ? new String[]{"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"}
-                : new String[]{"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"};
+                ? new String[] { "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY" }
+                : new String[] { "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY" };
 
-        JPanel columnsPanel = new JPanel(new GridLayout(1, days.length, 8, 0));
-        columnsPanel.setBackground(lightBg);
+        int cols = days.length;
+        JPanel grid = new JPanel(new GridLayout(1, cols, 10, 0));
+        grid.setOpaque(false);
 
-        for (String dayName : days) {
-            JPanel dayColumn = createDayColumn(dayName, entries);
-            columnsPanel.add(dayColumn);
+        for (String day : days) {
+            List<TimetableEntry> dayEntries = new ArrayList<>();
+            for (TimetableEntry e : entries) {
+                if (day.equalsIgnoreCase(e.getDayOfWeek())) {
+                    dayEntries.add(e);
+                }
+            }
+            grid.add(createDayColumnPanel(day, dayEntries));
         }
 
-        JScrollPane scroll = new JScrollPane(columnsPanel);
-        scroll.setBorder(null);
-        scroll.setBackground(lightBg);
-        scroll.getViewport().setBackground(lightBg);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-        scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        JScrollPane scrollPane = new JScrollPane(grid);
+        scrollPane.setBorder(null);
+        scrollPane.getViewport().setBackground(lightBg);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-        weeklyGridContainer.add(scroll, BorderLayout.CENTER);
+        weeklyGridContainer.add(scrollPane, BorderLayout.CENTER);
         weeklyGridContainer.revalidate();
         weeklyGridContainer.repaint();
     }
 
-    private JPanel createDayColumn(String dayName, List<TimetableEntry> allEntries) {
+    private JPanel createDayColumnPanel(String dayName, List<TimetableEntry> dayEntries) {
         JPanel col = new JPanel(new BorderLayout(0, 8));
         col.setBackground(Color.WHITE);
-        col.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(10, 8, 12, 8)));
+        col.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(12, 10, 12, 10)));
 
-        // Filter slots for this day
-        List<TimetableEntry> daySlots = new ArrayList<>();
-        for (TimetableEntry e : allEntries) {
-            if (dayName.equalsIgnoreCase(e.getDayOfWeek())) {
-                daySlots.add(e);
-            }
-        }
+        // Day Column Header
+        JPanel dayHeader = new JPanel(new BorderLayout());
+        dayHeader.setOpaque(false);
+        dayHeader.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, borderColor));
+        dayHeader.setPreferredSize(new Dimension(100, 32));
 
-        // Column Header
-        JPanel colHeader = new JPanel(new BorderLayout());
-        colHeader.setOpaque(false);
+        JLabel nameLbl = new JLabel(dayName);
+        nameLbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        nameLbl.setForeground(darkNavy);
 
-        JLabel dayLabel = new JLabel(dayName);
-        dayLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        dayLabel.setForeground(darkNavy);
+        JLabel countLbl = new JLabel(dayEntries.size() + " session" + (dayEntries.size() == 1 ? "" : "s"));
+        countLbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        countLbl.setForeground(textMuted);
 
-        JLabel countBadge = new JLabel(daySlots.size() + " session" + (daySlots.size() == 1 ? "" : "s"));
-        countBadge.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        countBadge.setForeground(textMuted);
+        dayHeader.add(nameLbl, BorderLayout.WEST);
+        dayHeader.add(countLbl, BorderLayout.EAST);
 
-        colHeader.add(dayLabel, BorderLayout.WEST);
-        colHeader.add(countBadge, BorderLayout.EAST);
-        colHeader.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, borderColor));
-        colHeader.setPreferredSize(new Dimension(100, 28));
+        col.add(dayHeader, BorderLayout.NORTH);
 
-        // Cards Stack
-        JPanel cardsStack = new JPanel();
-        cardsStack.setLayout(new BoxLayout(cardsStack, BoxLayout.Y_AXIS));
-        cardsStack.setOpaque(false);
+        // Slots Container
+        JPanel slotsList = new JPanel();
+        slotsList.setLayout(new BoxLayout(slotsList, BoxLayout.Y_AXIS));
+        slotsList.setOpaque(false);
 
-        if (daySlots.isEmpty()) {
+        if (dayEntries.isEmpty()) {
             JPanel emptyDay = new JPanel(new GridBagLayout());
             emptyDay.setOpaque(false);
-            emptyDay.setPreferredSize(new Dimension(140, 120));
-            JLabel noSlotLbl = new JLabel("No sessions");
-            noSlotLbl.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-            noSlotLbl.setForeground(new Color(156, 163, 175));
-            emptyDay.add(noSlotLbl);
-            cardsStack.add(emptyDay);
+            JLabel noSess = new JLabel("No sessions");
+            noSess.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+            noSess.setForeground(new Color(180, 190, 205));
+            emptyDay.add(noSess);
+            slotsList.add(Box.createVerticalGlue());
+            slotsList.add(emptyDay);
+            slotsList.add(Box.createVerticalGlue());
         } else {
-            for (TimetableEntry slot : daySlots) {
-                JPanel card = createSessionCard(slot);
-                cardsStack.add(card);
-                cardsStack.add(Box.createVerticalStrut(10));
+            for (TimetableEntry slot : dayEntries) {
+                slotsList.add(createSessionCard(slot));
+                slotsList.add(Box.createVerticalStrut(8));
             }
         }
 
-        col.add(colHeader, BorderLayout.NORTH);
-        col.add(cardsStack, BorderLayout.CENTER);
+        JScrollPane scroll = new JScrollPane(slotsList);
+        scroll.setBorder(null);
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.getVerticalScrollBar().setUnitIncrement(14);
+
+        col.add(scroll, BorderLayout.CENTER);
         return col;
     }
 
     private JPanel createSessionCard(TimetableEntry slot) {
         boolean isLab = slot.isLabSession();
         Color accent = isLab ? tealLab : purpleLec;
-        Color bgAccent = isLab ? new Color(240, 253, 250) : new Color(250, 245, 255);
 
         JPanel card = new JPanel(new BorderLayout(0, 6)) {
             private boolean hovered = false;
@@ -912,45 +830,43 @@ public class TimetablePage extends JPanel {
         typePill.setFont(new Font("Segoe UI", Font.BOLD, 9));
         typePill.setForeground(accent);
         typePill.setOpaque(false);
-        typePill.setBorder(new EmptyBorder(2, 4, 2, 4));
+        typePill.setBorder(new EmptyBorder(1, 5, 1, 5));
 
         top.add(timeLbl, BorderLayout.WEST);
         top.add(typePill, BorderLayout.EAST);
 
         // Center: Course Code & Name
-        JPanel center = new JPanel();
-        center.setLayout(new BoxLayout(center, BoxLayout.Y_AXIS));
-        center.setOpaque(false);
+        JPanel mid = new JPanel(new GridLayout(2, 1, 0, 2));
+        mid.setOpaque(false);
 
-        JLabel codeLbl = new JLabel(slot.getCourseCode() != null ? slot.getCourseCode() : slot.getOfferingId());
+        JLabel codeLbl = new JLabel(slot.getCourseCode());
         codeLbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        codeLbl.setForeground(accentBlue);
+        codeLbl.setForeground(textDark);
 
-        JLabel nameLbl = new JLabel(slot.getCourseName() != null ? slot.getCourseName() : "");
+        JLabel nameLbl = new JLabel(slot.getCourseName());
         nameLbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        nameLbl.setForeground(Color.BLACK);
+        nameLbl.setForeground(textMuted);
 
-        center.add(codeLbl);
-        center.add(Box.createVerticalStrut(2));
-        center.add(nameLbl);
+        mid.add(codeLbl);
+        mid.add(nameLbl);
 
         // Bottom: Venue & Lecturer
-        JPanel btm = new JPanel(new GridLayout(2, 1, 0, 2));
+        JPanel btm = new JPanel(new GridLayout(2, 1, 0, 1));
         btm.setOpaque(false);
 
         JLabel venueLbl = new JLabel("Venue: " + slot.getVenue());
-        venueLbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        venueLbl.setForeground(isLab ? tealLab : Color.BLACK);
+        venueLbl.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        venueLbl.setForeground(darkNavy);
 
         JLabel lecLbl = new JLabel("Lecturer: " + slot.getLecturers());
         lecLbl.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        lecLbl.setForeground(Color.BLACK);
+        lecLbl.setForeground(textMuted);
 
         btm.add(venueLbl);
         btm.add(lecLbl);
 
         card.add(top, BorderLayout.NORTH);
-        card.add(center, BorderLayout.CENTER);
+        card.add(mid, BorderLayout.CENTER);
         card.add(btm, BorderLayout.SOUTH);
 
         makeClickable(card, () -> showSlotDetailsDialog(slot));
@@ -983,11 +899,11 @@ public class TimetablePage extends JPanel {
     }
 
     /**
-     * Shows a detailed inspection modal for any selected timetable slot.
+     * Shows a detailed view-only inspection modal for any selected timetable slot.
      */
     public void showSlotDetailsDialog(TimetableEntry slot) {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Timetable Slot Details - " + slot.getTimetableId(), true);
-        dialog.setSize(560, 520);
+        dialog.setSize(560, 480);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
 
@@ -1022,19 +938,19 @@ public class TimetablePage extends JPanel {
         addDetailRow(grid, "Assigned Venue:", slot.getVenue());
         addDetailRow(grid, "Assigned Lecturer:", slot.getLecturers());
 
-        // Technical Officer Guidance Note
+        // Guidance Note
         JPanel notePanel = new JPanel(new BorderLayout());
         boolean isLab = slot.isLabSession();
         notePanel.setBackground(isLab ? tealLabBg : new Color(241, 245, 249));
         notePanel.setBorder(new EmptyBorder(10, 12, 10, 12));
         JLabel noteLabel = new JLabel(isLab
-                ? "Laboratory Session: Ensure workstations, networking hardware, and safety infrastructure are ready."
-                : "Lecture Session: Managed via departmental lecture hall schedules.");
+                ? "Laboratory Practical Session: Department computing and laboratory facilities scheduled."
+                : "Department Lecture Session: Scheduled in designated lecture hall venue.");
         noteLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         noteLabel.setForeground(isLab ? tealLab : textDark);
         notePanel.add(noteLabel, BorderLayout.CENTER);
 
-        // Action & Close Buttons
+        // Action Buttons
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         btnPanel.setOpaque(false);
 
@@ -1052,46 +968,6 @@ public class TimetablePage extends JPanel {
             });
             btnPanel.add(logAttBtn);
         }
-
-        if (slot.isLabSession() && onNavigateToLabMaintenance != null) {
-            JButton checkLabBtn = new JButton("Check Lab Facilities");
-            checkLabBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            checkLabBtn.setBackground(new Color(204, 251, 241));
-            checkLabBtn.setForeground(Color.BLACK);
-            checkLabBtn.setFocusPainted(false);
-            checkLabBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            checkLabBtn.setBorder(new CompoundBorder(new LineBorder(tealLab, 1), new EmptyBorder(8, 14, 8, 14)));
-            checkLabBtn.addActionListener(e -> {
-                dialog.dispose();
-                onNavigateToLabMaintenance.run();
-            });
-            btnPanel.add(checkLabBtn);
-        }
-
-        JButton deleteBtn = new JButton("Delete Slot");
-        deleteBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        deleteBtn.setBackground(new Color(254, 226, 226));
-        deleteBtn.setForeground(new Color(220, 38, 38));
-        deleteBtn.setFocusPainted(false);
-        deleteBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        deleteBtn.setBorder(new EmptyBorder(8, 14, 8, 14));
-        deleteBtn.addActionListener(e -> {
-            int confirm = JOptionPane.showConfirmDialog(dialog,
-                    "Are you sure you want to delete timetable slot " + slot.getTimetableId() + "?",
-                    "Confirm Deletion",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE);
-            if (confirm == JOptionPane.YES_OPTION) {
-                timetableService.deleteTimetableEntry(slot.getTimetableId());
-                dialog.dispose();
-                refreshTimetable();
-                JOptionPane.showMessageDialog(this,
-                        "Timetable slot " + slot.getTimetableId() + " was deleted.",
-                        "Slot Deleted",
-                        JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
-        btnPanel.add(deleteBtn);
 
         JButton closeBtn = new JButton("Close");
         closeBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -1114,260 +990,6 @@ public class TimetablePage extends JPanel {
 
         dialog.add(p);
         dialog.setVisible(true);
-    }
-
-    /**
-     * Dialog to create and schedule a new academic timetable slot.
-     */
-    public void showCreateTimetableDialog() {
-        Frame parent = (Frame) SwingUtilities.getWindowAncestor(this);
-        JDialog dialog = new JDialog(parent, "Create New Academic Timetable Slot", true);
-        dialog.setSize(620, 680);
-        dialog.setLocationRelativeTo(this);
-        dialog.setLayout(new BorderLayout());
-
-        JPanel root = new JPanel(new BorderLayout(0, 16));
-        root.setBackground(Color.WHITE);
-        root.setBorder(new EmptyBorder(22, 26, 22, 26));
-
-        // Header Title
-        JPanel titlePanel = new JPanel(new GridLayout(2, 1, 0, 4));
-        titlePanel.setOpaque(false);
-        JLabel titleLabel = new JLabel("Create Timetable Session");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        titleLabel.setForeground(darkNavy);
-
-        JLabel descLabel = new JLabel("Add a scheduled lecture, lab practical, or tutorial session to the academic timetable.");
-        descLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        descLabel.setForeground(textMuted);
-        titlePanel.add(titleLabel);
-        titlePanel.add(descLabel);
-
-        // Form Fields Container
-        JPanel form = new JPanel(new GridBagLayout());
-        form.setOpaque(false);
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(6, 6, 6, 6);
-
-        // 1. Slot ID (Auto-generated)
-        String nextId = timetableService.getNextTimetableId();
-        JTextField idField = new JTextField(nextId);
-        idField.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        idField.setEditable(false);
-        idField.setBackground(new Color(241, 245, 249));
-
-        // 2. Department
-        JComboBox<String> deptBox = new JComboBox<>();
-        List<String> depts = timetableService.getAvailableDepartments();
-        for (String d : depts) {
-            deptBox.addItem(d);
-        }
-        if (officerDepartment != null && !officerDepartment.isBlank()) {
-            deptBox.setSelectedItem(officerDepartment);
-        }
-
-        // 3. Course Offering
-        String[] offeringDisplays = {
-            "OFF001 - ICT2132 (Object Oriented Programming)",
-            "OFF002 - ICT2112 (Data Structures and Algorithms)",
-            "OFF003 - ICT2122 (Database Systems)",
-            "OFF004 - ICT2152 (Web Development)",
-            "OFF005 - ICT2142 (Software Engineering)",
-            "OFF006 - BST2102 (Bio Systems Lab)",
-            "OFF007 - ENG2102 (Engineering Math)"
-        };
-        JComboBox<String> offeringBox = new JComboBox<>(offeringDisplays);
-
-        // 4. Session Type
-        JComboBox<String> sessionTypeBox = new JComboBox<>(new String[]{"Lab Practical", "Lecture", "Tutorial"});
-
-        // 5. Day of Week
-        JComboBox<String> dayBox = new JComboBox<>(new String[]{"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"});
-
-        // 6. Time Presets
-        String[] timePresets = {
-            "08:30:00 - 10:30:00 (Morning Slot 1)",
-            "10:30:00 - 12:30:00 (Morning Slot 2)",
-            "13:00:00 - 15:00:00 (Afternoon Slot 1)",
-            "15:00:00 - 17:00:00 (Afternoon Slot 2)",
-            "Custom"
-        };
-        JComboBox<String> timePresetBox = new JComboBox<>(timePresets);
-        JTextField startTimeField = new JTextField("08:30:00", 8);
-        JTextField endTimeField = new JTextField("10:30:00", 8);
-
-        timePresetBox.addActionListener(e -> {
-            int idx = timePresetBox.getSelectedIndex();
-            if (idx == 0) { startTimeField.setText("08:30:00"); endTimeField.setText("10:30:00"); }
-            else if (idx == 1) { startTimeField.setText("10:30:00"); endTimeField.setText("12:30:00"); }
-            else if (idx == 2) { startTimeField.setText("13:00:00"); endTimeField.setText("15:00:00"); }
-            else if (idx == 3) { startTimeField.setText("15:00:00"); endTimeField.setText("17:00:00"); }
-        });
-
-        // 7. Venue
-        JComboBox<String> venueBox = new JComboBox<>(new String[]{
-            "ICT Lab 01", "ICT Lab 02", "ICT Lab 03",
-            "Lecture Hall 01", "Lecture Hall 02", "Lecture Hall 03",
-            "Bio Tech Lab 01", "Bio Tech Lab 02"
-        });
-        venueBox.setEditable(true);
-
-        // 8. Batch
-        JComboBox<String> batchBox = new JComboBox<>(new String[]{"2024/2025", "2023/2024", "2022/2023"});
-        batchBox.setEditable(true);
-
-        // 9. Academic Year & Semester
-        JComboBox<String> acadYearBox = new JComboBox<>(new String[]{"2026/2027", "2025/2026", "2024/2025"});
-        JComboBox<String> semBox = new JComboBox<>(new String[]{"SEMESTER 1", "SEMESTER 2"});
-
-        // 10. Lecturer
-        JTextField lecturerField = new JTextField("Kasun Perera", 16);
-
-        // Add form rows
-        int row = 0;
-        addFormRow(form, gbc, row++, "Timetable Slot ID:", idField);
-        addFormRow(form, gbc, row++, "Department:", deptBox);
-        addFormRow(form, gbc, row++, "Course Offering:", offeringBox);
-        addFormRow(form, gbc, row++, "Session Type:", sessionTypeBox);
-        addFormRow(form, gbc, row++, "Day of Week:", dayBox);
-
-        JPanel timePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        timePanel.setOpaque(false);
-        timePanel.add(timePresetBox);
-        timePanel.add(new JLabel("From:"));
-        timePanel.add(startTimeField);
-        timePanel.add(new JLabel("To:"));
-        timePanel.add(endTimeField);
-        addFormRow(form, gbc, row++, "Time Slot:", timePanel);
-
-        addFormRow(form, gbc, row++, "Assigned Venue:", venueBox);
-        addFormRow(form, gbc, row++, "Student Batch:", batchBox);
-
-        JPanel acadPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        acadPanel.setOpaque(false);
-        acadPanel.add(acadYearBox);
-        acadPanel.add(semBox);
-        addFormRow(form, gbc, row++, "Academic Term:", acadPanel);
-
-        addFormRow(form, gbc, row++, "Assigned Lecturer:", lecturerField);
-
-        // Action Buttons
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        actionPanel.setOpaque(false);
-
-        JButton saveBtn = new JButton("Save & Schedule Slot");
-        saveBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        saveBtn.setBackground(new Color(230, 242, 255));
-        saveBtn.setForeground(Color.BLACK);
-        saveBtn.setFocusPainted(false);
-        saveBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        saveBtn.setBorder(new CompoundBorder(new LineBorder(primaryBlue, 1), new EmptyBorder(8, 18, 8, 18)));
-
-        JButton cancelBtn = new JButton("Cancel");
-        cancelBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        cancelBtn.setBackground(Color.WHITE);
-        cancelBtn.setForeground(Color.BLACK);
-        cancelBtn.setFocusPainted(false);
-        cancelBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        cancelBtn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(8, 18, 8, 18)));
-        cancelBtn.addActionListener(e -> dialog.dispose());
-
-        saveBtn.addActionListener(e -> {
-            try {
-                String slotId = idField.getText().trim();
-                String chosenDept = deptBox.getSelectedItem() != null ? deptBox.getSelectedItem().toString() : officerDepartment;
-                String offeringSelection = offeringBox.getSelectedItem() != null ? offeringBox.getSelectedItem().toString() : "OFF001";
-                String offId = offeringSelection.split(" ")[0];
-                String dayVal = dayBox.getSelectedItem() != null ? dayBox.getSelectedItem().toString() : "MONDAY";
-                String venueVal = venueBox.getSelectedItem() != null ? venueBox.getSelectedItem().toString().trim() : "ICT Lab 01";
-                String batchVal = batchBox.getSelectedItem() != null ? batchBox.getSelectedItem().toString().trim() : "2024/2025";
-                String yearVal = acadYearBox.getSelectedItem() != null ? acadYearBox.getSelectedItem().toString() : "2026/2027";
-                String semVal = semBox.getSelectedItem() != null ? semBox.getSelectedItem().toString() : "SEMESTER 1";
-                String lecVal = lecturerField.getText().trim();
-
-                String stText = startTimeField.getText().trim();
-                String etText = endTimeField.getText().trim();
-                if (!stText.contains(":")) stText += ":00:00";
-                else if (stText.split(":").length == 2) stText += ":00";
-                if (!etText.contains(":")) etText += ":00:00";
-                else if (etText.split(":").length == 2) etText += ":00";
-
-                Time st = Time.valueOf(stText);
-                Time et = Time.valueOf(etText);
-
-                TimetableEntry entry = new TimetableEntry(slotId, offId, dayVal, st, et, venueVal, batchVal, chosenDept);
-                entry.setAcademicYear(yearVal);
-                entry.setSemester(semVal);
-                entry.setLecturers(lecVal.isEmpty() ? "Department Staff" : lecVal);
-
-                if (offeringSelection.contains("-")) {
-                    String part = offeringSelection.substring(offeringSelection.indexOf("-") + 1).trim();
-                    if (part.contains("(") && part.contains(")")) {
-                        String code = part.substring(0, part.indexOf("(")).trim();
-                        String name = part.substring(part.indexOf("(") + 1, part.indexOf(")")).trim();
-                        entry.setCourseCode(code);
-                        entry.setCourseName(name);
-                    } else {
-                        entry.setCourseCode(part);
-                    }
-                }
-
-                boolean ok = timetableService.createTimetableEntry(entry);
-                if (ok) {
-                    dialog.dispose();
-                    refreshTimetable();
-                    JOptionPane.showMessageDialog(this,
-                            "Timetable slot " + slotId + " successfully scheduled for " + chosenDept + " (" + dayVal + ").",
-                            "Timetable Slot Created",
-                            JOptionPane.INFORMATION_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(dialog,
-                            "Failed to save timetable slot to database.",
-                            "Creation Error",
-                            JOptionPane.ERROR_MESSAGE);
-                }
-            } catch (IllegalArgumentException timeEx) {
-                JOptionPane.showMessageDialog(dialog,
-                        "Invalid time format. Please enter time as HH:mm:ss (e.g. 08:30:00).",
-                        "Time Format Error",
-                        JOptionPane.WARNING_MESSAGE);
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog,
-                        "An unexpected error occurred: " + ex.getMessage(),
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
-        actionPanel.add(cancelBtn);
-        actionPanel.add(saveBtn);
-
-        root.add(titlePanel, BorderLayout.NORTH);
-        root.add(new JScrollPane(form) {
-            {
-                setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, borderColor));
-                getViewport().setBackground(Color.WHITE);
-            }
-        }, BorderLayout.CENTER);
-        root.add(actionPanel, BorderLayout.SOUTH);
-
-        dialog.add(root);
-        dialog.setVisible(true);
-    }
-
-    private void addFormRow(JPanel form, GridBagConstraints gbc, int row, String labelText, Component field) {
-        gbc.gridx = 0;
-        gbc.gridy = row;
-        gbc.weightx = 0.3;
-        JLabel lbl = new JLabel(labelText);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lbl.setForeground(textDark);
-        form.add(lbl, gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 0.7;
-        form.add(field, gbc);
     }
 
     private void addDetailRow(JPanel panel, String label, String value) {
@@ -1402,7 +1024,10 @@ public class TimetablePage extends JPanel {
     private void setupTableHeader(JTable table) {
         JTableHeader header = table.getTableHeader();
         header.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        header.setBackground(darkNavy);
+        header.setForeground(Color.WHITE);
         header.setPreferredSize(new Dimension(header.getWidth(), 36));
+        header.setOpaque(true);
         header.setReorderingAllowed(false);
         header.setDefaultRenderer(new DefaultTableCellRenderer() {
             @Override
@@ -1419,18 +1044,6 @@ public class TimetablePage extends JPanel {
                         BorderFactory.createMatteBorder(0, 0, 1, 1, new Color(45, 90, 135)),
                         BorderFactory.createEmptyBorder(6, 10, 6, 10)
                 ));
-
-                if (table.getRowSorter() != null) {
-                    java.util.List<? extends RowSorter.SortKey> sortKeys = table.getRowSorter().getSortKeys();
-                    if (!sortKeys.isEmpty() && sortKeys.get(0).getColumn() == table.convertColumnIndexToModel(column)) {
-                        SortOrder order = sortKeys.get(0).getSortOrder();
-                        if (order == SortOrder.ASCENDING) {
-                            label.setText(label.getText() + " ▲");
-                        } else if (order == SortOrder.DESCENDING) {
-                            label.setText(label.getText() + " ▼");
-                        }
-                    }
-                }
                 return label;
             }
         });

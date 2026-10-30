@@ -56,4 +56,12 @@ public class AttendanceService {
         }
         return null;
     }
+
+    public int getTotalSessionCount() {
+        return attendanceDAO.getTotalSessionCount();
+    }
+
+    public int getTotalStudentCount() {
+        return attendanceDAO.getTotalStudentCount();
+    }
 }

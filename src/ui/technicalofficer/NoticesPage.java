@@ -12,40 +12,32 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
-import javax.swing.RowSorter;
-import javax.swing.SortOrder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
 
 /**
- * Department Notices & Announcements Page for Technical Officers.
- * Allows Technical Officers to view notices published for their department,
- * inspect urgent alerts, download attachments, distinguish unread from read
- * notices,
- * and filter active versus archived notices.
- * Strictly view-only (no publish, edit, or delete operations).
+ * Faculty & Department Notices Page for Technical Officers.
+ * Displays academic notices directly from the MySQL database schema (notices table).
+ * View-only: allows reading announcements, searching, and filtering by status.
  */
 public class NoticesPage extends JPanel {
 
     // Theme palette harmonized with FAMS Technical Officer Dashboard
-    private final Color darkNavy = new Color(27, 66, 104); // #1B4268
-    private final Color primaryBlue = new Color(45, 100, 160);
-    private final Color lightBg = new Color(245, 247, 250); // #F5F7FA
-    private final Color borderColor = new Color(226, 232, 240); // #E2E8F0
-    private final Color textDark = new Color(30, 41, 59); // #1E293B
-    private final Color textMuted = new Color(100, 116, 139); // #64748B
-    private final Color activeGreen = new Color(22, 163, 74); // #16A34A
-    private final Color urgentRed = new Color(220, 38, 38); // #DC2626
-    private final Color unreadBlue = new Color(37, 99, 235); // #2563EB
+    private final Color darkNavy = new Color(27, 67, 103);       // #1B4367 exact navy
+    private final Color lightBg = new Color(245, 247, 250);       // #F5F7FA
+    private final Color borderColor = new Color(226, 232, 240);   // #E2E8F0
+    private final Color textDark = new Color(30, 41, 59);         // #1E293B
+    private final Color textMuted = new Color(100, 116, 139);     // #64748B
+    private final Color activeGreen = new Color(22, 163, 74);     // #16A34A
+    private final Color inactiveGray = new Color(156, 163, 175);  // #9CA3AF
 
     private final NoticeService noticeService = new NoticeService();
     private String officerDepartment = "Information and Communication Technology";
 
     // UI Filter Controls
     private JTextField searchField;
-    private JComboBox<String> deptFilter;
     private JComboBox<String> statusFilter;
     private JButton readNoticeBtn;
 
@@ -59,9 +51,9 @@ public class NoticesPage extends JPanel {
     // Stats Badges
     private JLabel totalNoticesBadge;
     private JLabel activeNoticesBadge;
-    private JLabel unreadNoticesBadge;
+    private JLabel inactiveNoticesBadge;
 
-    // Cross-module navigation callback
+    // Navigation callback
     private Runnable onNavigateToTimetable;
 
     public void setOnNavigateToTimetable(Runnable onNavigateToTimetable) {
@@ -83,9 +75,9 @@ public class NoticesPage extends JPanel {
         refreshNotices();
     }
 
-    public void setOfficerDepartment(String department) {
-        if (department != null && !department.isBlank() && !department.equalsIgnoreCase(this.officerDepartment)) {
-            this.officerDepartment = department;
+    public void setOfficerDepartment(String dept) {
+        if (dept != null && !dept.isBlank()) {
+            this.officerDepartment = dept;
             refreshNotices();
         }
     }
@@ -93,15 +85,15 @@ public class NoticesPage extends JPanel {
     private void initUI() {
         JPanel mainContainer = new JPanel(new BorderLayout(0, 16));
         mainContainer.setBackground(lightBg);
-        mainContainer.setBorder(new EmptyBorder(22, 28, 24, 28));
+        mainContainer.setBorder(new EmptyBorder(20, 24, 20, 24));
 
-        // 1. Top Header Banner
+        // 1. Header Panel
         JPanel headerPanel = createHeaderPanel();
 
-        // 2. Filter Bar (Search + Status + Department + Action Buttons)
+        // 2. Filter Bar
         JPanel filterCard = createFilterBar();
 
-        // 3. Central Views: Table View vs Empty State
+        // 3. Central Views Container (Table vs Empty State)
         viewsContainer = new JPanel();
         viewCards = new CardLayout();
         viewsContainer.setLayout(viewCards);
@@ -113,7 +105,7 @@ public class NoticesPage extends JPanel {
         viewsContainer.add(tableCard, "TABLE");
         viewsContainer.add(emptyStatePanel, "EMPTY");
 
-        // Assemble Central Area
+        // Assemble Layout
         JPanel centerPanel = new JPanel(new BorderLayout(0, 14));
         centerPanel.setBackground(lightBg);
         centerPanel.add(filterCard, BorderLayout.NORTH);
@@ -129,7 +121,7 @@ public class NoticesPage extends JPanel {
         JPanel header = new JPanel(new BorderLayout(0, 10));
         header.setOpaque(false);
 
-        // Top Row: Title & Subtitle on LEFT, Actions on RIGHT
+        // Top Row: Title + Action Buttons
         JPanel topRow = new JPanel(new BorderLayout(16, 0));
         topRow.setOpaque(false);
 
@@ -140,27 +132,16 @@ public class NoticesPage extends JPanel {
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(textDark);
 
-        JLabel subtitle = new JLabel(
-                "Official department notices, examination circulars, and administrative directives for "
-                        + officerDepartment);
+        JLabel subtitle = new JLabel("Official department notices, examination circulars, and administrative directives");
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         subtitle.setForeground(textMuted);
 
         titleBox.add(title);
         titleBox.add(subtitle);
 
-        // Actions Row (Right) - Black letters
+        // Right Action Buttons (Black text on buttons)
         JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         actionsPanel.setOpaque(false);
-
-        JButton markAllReadBtn = new JButton("Mark All Read");
-        markAllReadBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        markAllReadBtn.setForeground(Color.BLACK);
-        markAllReadBtn.setBackground(Color.WHITE);
-        markAllReadBtn.setFocusPainted(false);
-        markAllReadBtn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(7, 14, 7, 14)));
-        markAllReadBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        markAllReadBtn.addActionListener(e -> markAllNoticesAsRead());
 
         JButton refreshBtn = new JButton("Refresh");
         refreshBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -174,59 +155,48 @@ public class NoticesPage extends JPanel {
         JButton viewTimetableBtn = new JButton("Academic Timetable");
         viewTimetableBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
         viewTimetableBtn.setForeground(Color.BLACK);
-        viewTimetableBtn.setBackground(new Color(230, 242, 255));
+        viewTimetableBtn.setBackground(Color.WHITE);
         viewTimetableBtn.setFocusPainted(false);
-        viewTimetableBtn.setBorder(new CompoundBorder(new LineBorder(primaryBlue, 1), new EmptyBorder(7, 14, 7, 14)));
+        viewTimetableBtn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(7, 14, 7, 14)));
         viewTimetableBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        viewTimetableBtn.setToolTipText("View Department Timetable & Lab Sessions");
         viewTimetableBtn.addActionListener(e -> {
             if (onNavigateToTimetable != null) {
                 onNavigateToTimetable.run();
             }
         });
 
-        actionsPanel.add(markAllReadBtn);
         actionsPanel.add(refreshBtn);
         actionsPanel.add(viewTimetableBtn);
 
         topRow.add(titleBox, BorderLayout.WEST);
         topRow.add(actionsPanel, BorderLayout.EAST);
 
-        // Bottom Row: Badges
-        JPanel statsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        statsRow.setOpaque(false);
+        // Bottom Row: Summary Badges
+        JPanel badgesRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        badgesRow.setOpaque(false);
 
-        totalNoticesBadge = createStatBadge("Total: 0", new Color(241, 245, 249), Color.BLACK);
-        activeNoticesBadge = createStatBadge("Active: 0", new Color(220, 252, 231), Color.BLACK);
-        unreadNoticesBadge = createStatBadge("Unread: 0", new Color(219, 234, 254), Color.BLACK);
+        totalNoticesBadge = createPillBadge("Total: 0", textDark, new Color(241, 245, 249));
+        activeNoticesBadge = createPillBadge("Active: 0", activeGreen, new Color(220, 252, 231));
+        inactiveNoticesBadge = createPillBadge("Inactive: 0", inactiveGray, new Color(243, 244, 246));
 
-        statsRow.add(totalNoticesBadge);
-        statsRow.add(activeNoticesBadge);
-        statsRow.add(unreadNoticesBadge);
+        badgesRow.add(totalNoticesBadge);
+        badgesRow.add(activeNoticesBadge);
+        badgesRow.add(inactiveNoticesBadge);
 
         header.add(topRow, BorderLayout.NORTH);
-        header.add(statsRow, BorderLayout.SOUTH);
+        header.add(badgesRow, BorderLayout.SOUTH);
 
         return header;
     }
 
-    private JLabel createStatBadge(String text, Color bg, Color fg) {
-        JLabel badge = new JLabel(text, SwingConstants.CENTER) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(bg);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        badge.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        badge.setForeground(fg);
-        badge.setOpaque(false);
-        badge.setBorder(new EmptyBorder(6, 14, 6, 14));
-        return badge;
+    private JLabel createPillBadge(String text, Color fg, Color bg) {
+        JLabel l = new JLabel(text);
+        l.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        l.setForeground(fg);
+        l.setOpaque(true);
+        l.setBackground(bg);
+        l.setBorder(new CompoundBorder(new LineBorder(bg.darker(), 1), new EmptyBorder(3, 10, 3, 10)));
+        return l;
     }
 
     private JPanel createFilterBar() {
@@ -234,51 +204,32 @@ public class NoticesPage extends JPanel {
         card.setBackground(Color.WHITE);
         card.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(12, 16, 12, 16)));
 
-        JPanel leftFilters = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JPanel leftFilters = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         leftFilters.setOpaque(false);
 
-        // 1. Department Scope Filter
-        leftFilters.add(createFilterLabel("Scope:"));
-        deptFilter = new JComboBox<>(new String[] { "My Department (" + officerDepartment + ")", "All Departments" });
-        deptFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        deptFilter.setBackground(Color.WHITE);
-        deptFilter.setPreferredSize(new Dimension(240, 32));
-        deptFilter.addActionListener(e -> applyFilters());
-        leftFilters.add(deptFilter);
-
-        // 2. Status / Expiry Filter (Hides expired by default)
+        // Status Filter
         leftFilters.add(createFilterLabel("Status:"));
-        statusFilter = new JComboBox<>(
-                new String[] { "Active Notices (Hide Expired)", "Archived / Expired Notices", "All Notices" });
+        statusFilter = new JComboBox<>(new String[] { "Active Notices", "Inactive Notices", "All Notices" });
         statusFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         statusFilter.setBackground(Color.WHITE);
-        statusFilter.setPreferredSize(new Dimension(200, 32));
+        statusFilter.setPreferredSize(new Dimension(160, 32));
         statusFilter.addActionListener(e -> applyFilters());
         leftFilters.add(statusFilter);
 
-        // 3. Search Box
+        // Search Field
         leftFilters.add(createFilterLabel("Search:"));
-        searchField = new JTextField(20);
+        searchField = new JTextField(25);
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        searchField.putClientProperty("JTextField.placeholderText",
-                "Search notices by title, publisher, or document...");
-        searchField.setPreferredSize(new Dimension(220, 32));
+        searchField.putClientProperty("JTextField.placeholderText", "Search notices by ID, title, or publisher...");
+        searchField.setPreferredSize(new Dimension(280, 32));
         searchField.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(4, 8, 4, 8)));
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
-            public void insertUpdate(DocumentEvent e) {
-                applyFilters();
-            }
-
+            public void insertUpdate(DocumentEvent e) { applyFilters(); }
             @Override
-            public void removeUpdate(DocumentEvent e) {
-                applyFilters();
-            }
-
+            public void removeUpdate(DocumentEvent e) { applyFilters(); }
             @Override
-            public void changedUpdate(DocumentEvent e) {
-                applyFilters();
-            }
+            public void changedUpdate(DocumentEvent e) { applyFilters(); }
         });
         leftFilters.add(searchField);
 
@@ -311,8 +262,8 @@ public class NoticesPage extends JPanel {
         card.setBackground(Color.WHITE);
         card.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(14, 16, 14, 16)));
 
-        String[] columns = { "Indicator", "Notice ID", "Notice Title", "Department", "Published Date", "Expiry Date",
-                "Published By", "Status" };
+        // Columns strictly reflecting MySQL 'notices' table schema
+        String[] columns = { "#", "Notice ID", "Notice Title", "Notice Date", "Published By", "Status" };
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -336,95 +287,41 @@ public class NoticesPage extends JPanel {
         setupTableHeader(noticeTable);
 
         // Column widths
-        noticeTable.getColumnModel().getColumn(0).setPreferredWidth(95); // Indicator (NEW / URGENT)
-        noticeTable.getColumnModel().getColumn(1).setPreferredWidth(85); // Notice ID
-        noticeTable.getColumnModel().getColumn(2).setPreferredWidth(320); // Title
-        noticeTable.getColumnModel().getColumn(3).setPreferredWidth(210); // Department
-        noticeTable.getColumnModel().getColumn(4).setPreferredWidth(110); // Published Date
-        noticeTable.getColumnModel().getColumn(5).setPreferredWidth(110); // Expiry Date
-        noticeTable.getColumnModel().getColumn(6).setPreferredWidth(160); // Published By
-        noticeTable.getColumnModel().getColumn(7).setPreferredWidth(95); // Status
+        noticeTable.getColumnModel().getColumn(0).setPreferredWidth(50);   // #
+        noticeTable.getColumnModel().getColumn(1).setPreferredWidth(100);  // Notice ID
+        noticeTable.getColumnModel().getColumn(2).setPreferredWidth(450);  // Notice Title
+        noticeTable.getColumnModel().getColumn(3).setPreferredWidth(130);  // Notice Date
+        noticeTable.getColumnModel().getColumn(4).setPreferredWidth(180);  // Published By
+        noticeTable.getColumnModel().getColumn(5).setPreferredWidth(110);  // Status
 
-        // Column 0 Renderer: Priority & Unread Badge
-        noticeTable.getColumnModel().getColumn(0).setCellRenderer(new DefaultTableCellRenderer() {
+        // Column 0 Center (#)
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
+        noticeTable.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
+
+        // Column 1 Center (Notice ID)
+        noticeTable.getColumnModel().getColumn(1).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
-            public Component getTableCellRendererComponent(JTable table, Object value,
-                    boolean isSelected, boolean hasFocus, int row, int column) {
-                String indicator = (value != null) ? value.toString() : "";
-                JPanel pillPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 5));
-                Color rowBg = isSelected ? new Color(237, 243, 248) : ((row % 2 == 0) ? Color.WHITE : new Color(248, 250, 252));
-                pillPanel.setBackground(rowBg);
-
-                Color bg;
-                Color fg;
-                if (indicator.contains("URGENT")) {
-                    bg = new Color(254, 226, 226); // Light red
-                    fg = urgentRed;
-                } else if (indicator.contains("NEW")) {
-                    bg = new Color(219, 234, 254); // Light blue
-                    fg = unreadBlue;
-                } else {
-                    bg = new Color(241, 245, 249); // Muted slate
-                    fg = new Color(148, 163, 184);
-                }
-
-                JLabel badge = new JLabel(indicator, SwingConstants.CENTER) {
-                    @Override
-                    protected void paintComponent(Graphics g) {
-                        Graphics2D g2 = (Graphics2D) g.create();
-                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                        g2.setColor(bg);
-                        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
-                        g2.dispose();
-                        super.paintComponent(g);
-                    }
-                };
-                badge.setFont(new Font("Segoe UI", Font.BOLD, 10));
-                badge.setForeground(fg);
-                badge.setOpaque(false);
-                badge.setBorder(new EmptyBorder(2, 6, 2, 6));
-                pillPanel.add(badge);
-                return pillPanel;
-            }
-        });
-
-        // Column 2 Renderer: Bold Title for Unread Notices
-        noticeTable.getColumnModel().getColumn(2).setCellRenderer(new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value,
-                    boolean isSelected, boolean hasFocus, int row, int column) {
-                JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row,
-                        column);
-                Color rowBg = isSelected ? new Color(237, 243, 248) : ((row % 2 == 0) ? Color.WHITE : new Color(248, 250, 252));
-                lbl.setBackground(rowBg);
-                String indicator = (String) table.getValueAt(row, 0);
-                if (indicator != null && (indicator.contains("NEW") || indicator.contains("URGENT"))) {
-                    lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
-                    lbl.setForeground(textDark);
-                } else {
-                    lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-                    lbl.setForeground(new Color(71, 85, 105));
-                }
-                lbl.setBorder(new EmptyBorder(0, 8, 0, 8));
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+                JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
+                lbl.setHorizontalAlignment(SwingConstants.CENTER);
+                lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                lbl.setForeground(darkNavy);
                 return lbl;
             }
         });
 
-        // Column 7 Renderer: Status (Active vs Expired)
-        noticeTable.getColumnModel().getColumn(7).setCellRenderer(new DefaultTableCellRenderer() {
+        // Column 5 Renderer: Status
+        noticeTable.getColumnModel().getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
-            public Component getTableCellRendererComponent(JTable table, Object value,
-                    boolean isSelected, boolean hasFocus, int row, int column) {
-                JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row,
-                        column);
-                Color rowBg = isSelected ? new Color(237, 243, 248) : ((row % 2 == 0) ? Color.WHITE : new Color(248, 250, 252));
-                lbl.setBackground(rowBg);
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int col) {
+                JLabel lbl = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
                 lbl.setHorizontalAlignment(SwingConstants.CENTER);
                 String st = (value != null) ? value.toString() : "ACTIVE";
                 if ("ACTIVE".equalsIgnoreCase(st)) {
                     lbl.setForeground(activeGreen);
                 } else {
-                    lbl.setForeground(new Color(156, 163, 175));
+                    lbl.setForeground(inactiveGray);
                 }
                 lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
                 return lbl;
@@ -454,8 +351,7 @@ public class NoticesPage extends JPanel {
         JPanel footer = new JPanel(new BorderLayout());
         footer.setOpaque(false);
 
-        JLabel tip = new JLabel(
-                "Tip: Double-click any notice row to open and read the full announcement.");
+        JLabel tip = new JLabel("Tip: Double-click any notice row to open and read the full announcement.");
         tip.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         tip.setForeground(textMuted);
 
@@ -476,45 +372,37 @@ public class NoticesPage extends JPanel {
         inner.setLayout(new BoxLayout(inner, BoxLayout.Y_AXIS));
         inner.setOpaque(false);
 
-        JLabel iconLabel = new JLabel("", SwingConstants.CENTER);
-        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 52));
-        iconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JLabel titleLabel = new JLabel("No Department Notices Found", SwingConstants.CENTER);
+        JLabel titleLabel = new JLabel("No Notices Found", SwingConstants.CENTER);
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
         titleLabel.setForeground(textDark);
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JLabel descLabel = new JLabel(
-                "<html><center>There are currently no published notices matching your search or status criteria.<br>You can switch the filter to 'All Notices' to view archived announcements.</center></html>",
+                "<html><center>There are currently no published notices matching your search or status criteria.<br>You can switch the filter to 'All Notices' to view inactive notices.</center></html>",
                 SwingConstants.CENTER);
         descLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         descLabel.setForeground(textMuted);
         descLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JButton showAllBtn = new JButton("Show All Notices");
-        showAllBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        showAllBtn.setBackground(darkNavy);
-        showAllBtn.setForeground(Color.WHITE);
-        showAllBtn.setFocusPainted(false);
-        showAllBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        showAllBtn.setBorder(new EmptyBorder(8, 18, 8, 18));
-        showAllBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        showAllBtn.addActionListener(e -> {
-            if (statusFilter != null)
-                statusFilter.setSelectedIndex(2);
-            if (searchField != null)
-                searchField.setText("");
+        JButton resetBtn = new JButton("Reset Filters");
+        resetBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        resetBtn.setForeground(Color.BLACK);
+        resetBtn.setBackground(Color.WHITE);
+        resetBtn.setFocusPainted(false);
+        resetBtn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(8, 16, 8, 16)));
+        resetBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        resetBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        resetBtn.addActionListener(e -> {
+            if (searchField != null) searchField.setText("");
+            if (statusFilter != null) statusFilter.setSelectedIndex(0);
             applyFilters();
         });
 
-        inner.add(iconLabel);
-        inner.add(Box.createVerticalStrut(14));
         inner.add(titleLabel);
         inner.add(Box.createVerticalStrut(8));
         inner.add(descLabel);
         inner.add(Box.createVerticalStrut(18));
-        inner.add(showAllBtn);
+        inner.add(resetBtn);
 
         emptyPanel.add(inner);
         return emptyPanel;
@@ -524,57 +412,41 @@ public class NoticesPage extends JPanel {
         applyFilters();
     }
 
-    private void markAllNoticesAsRead() {
-        List<Notice> notices = noticeService.getAllNotices();
-        for (Notice n : notices) {
-            noticeService.markNoticeAsRead(n.getNoticeId());
-        }
-        applyFilters();
-    }
-
     private void applyFilters() {
-        if (viewsContainer == null)
-            return;
+        if (viewsContainer == null) return;
 
         String kw = (searchField != null) ? searchField.getText().trim() : "";
         String selectedStatus = (statusFilter != null && statusFilter.getSelectedItem() != null)
                 ? statusFilter.getSelectedItem().toString()
-                : "Active Notices (Hide Expired)";
+                : "Active Notices";
 
         String statusMode;
         if (selectedStatus.startsWith("Active")) {
             statusMode = "ACTIVE";
-        } else if (selectedStatus.startsWith("Archived")) {
-            statusMode = "ARCHIVED";
+        } else if (selectedStatus.startsWith("Inactive")) {
+            statusMode = "INACTIVE";
         } else {
             statusMode = "ALL";
         }
 
-        String selectedScope = (deptFilter != null && deptFilter.getSelectedItem() != null)
-                ? deptFilter.getSelectedItem().toString()
-                : "My Department (" + officerDepartment + ")";
-
-        String targetDept = selectedScope.startsWith("My Department") ? officerDepartment : null;
-
-        List<Notice> notices = noticeService.searchNotices(kw, targetDept, statusMode);
+        List<Notice> notices = noticeService.searchNotices(kw, null, statusMode);
 
         // Update Stat Badges
-        int total = notices.size();
+        List<Notice> all = noticeService.getAllNotices();
+        int total = all.size();
         int active = 0;
-        int unread = 0;
-        for (Notice n : notices) {
-            if (n.isActive())
+        int inactive = 0;
+        for (Notice n : all) {
+            if ("ACTIVE".equalsIgnoreCase(n.getStatus())) {
                 active++;
-            if (!n.isRead())
-                unread++;
+            } else {
+                inactive++;
+            }
         }
 
-        if (totalNoticesBadge != null)
-            totalNoticesBadge.setText("Total: " + total);
-        if (activeNoticesBadge != null)
-            activeNoticesBadge.setText("Active: " + active);
-        if (unreadNoticesBadge != null)
-            unreadNoticesBadge.setText("Unread: " + unread);
+        if (totalNoticesBadge != null) totalNoticesBadge.setText("Total: " + total);
+        if (activeNoticesBadge != null) activeNoticesBadge.setText("Active: " + active);
+        if (inactiveNoticesBadge != null) inactiveNoticesBadge.setText("Inactive: " + inactive);
 
         if (notices.isEmpty()) {
             viewCards.show(viewsContainer, "EMPTY");
@@ -582,25 +454,15 @@ public class NoticesPage extends JPanel {
         }
 
         tableModel.setRowCount(0);
+        int index = 1;
         for (Notice n : notices) {
-            String indicator;
-            if (n.isUrgent()) {
-                indicator = "URGENT";
-            } else if (!n.isRead()) {
-                indicator = "NEW";
-            } else {
-                indicator = "READ";
-            }
-
             tableModel.addRow(new Object[] {
-                    indicator,
+                    index++,
                     n.getNoticeId(),
                     n.getTitle(),
-                    n.getTargetDepartment(),
                     n.getFormattedDate(),
-                    n.getFormattedExpiryDate(),
                     n.getCreatorName(),
-                    n.isActive() ? "ACTIVE" : "EXPIRED"
+                    n.getStatus()
             });
         }
 
@@ -616,152 +478,125 @@ public class NoticesPage extends JPanel {
 
     private void openSelectedNotice() {
         int row = noticeTable.getSelectedRow();
-        if (row < 0)
-            return;
+        if (row < 0) return;
 
-        String noticeId = (String) tableModel.getValueAt(row, 1);
-        Notice notice = noticeService.getNoticeById(noticeId);
-        if (notice != null) {
-            showNoticeModal(notice);
-        }
+        String noticeId = tableModel.getValueAt(row, 1).toString();
+        openNoticeById(noticeId);
     }
 
     /**
-     * Shows a modal reader dialog for the notice, marking it as read and
-     * providing full document preview and attachment download capability.
+     * Modal dialog displaying the full notice details strictly from the database schema.
      */
     private void showNoticeModal(Notice notice) {
-        // Mark as read immediately
         noticeService.markNoticeAsRead(notice.getNoticeId());
-        notice.setRead(true);
-        applyFilters();
 
-        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Notice - " + notice.getNoticeId(),
-                true);
-        dialog.setSize(620, 560);
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
+                "Notice Announcement - " + notice.getNoticeId(), true);
+        dialog.setSize(580, 480);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
 
-        JPanel p = new JPanel(new BorderLayout(0, 16));
-        p.setBackground(Color.WHITE);
-        p.setBorder(new EmptyBorder(24, 26, 22, 26));
+        JPanel root = new JPanel(new BorderLayout(0, 16));
+        root.setBackground(Color.WHITE);
+        root.setBorder(new EmptyBorder(24, 26, 24, 26));
 
-        // Header Section
-        JPanel top = new JPanel(new BorderLayout(0, 10));
-        top.setOpaque(false);
+        // Header Panel: Notice ID + Title + Status Pill
+        JPanel modalHeader = new JPanel(new BorderLayout(12, 0));
+        modalHeader.setOpaque(false);
 
-        JPanel titleRow = new JPanel(new BorderLayout());
-        titleRow.setOpaque(false);
+        JPanel titleBox = new JPanel(new GridLayout(2, 1, 0, 4));
+        titleBox.setOpaque(false);
 
-        JLabel titleLbl = new JLabel("<html><b>" + notice.getTitle() + "</b></html>");
-        titleLbl.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        titleLbl.setForeground(textDark);
+        JLabel idLabel = new JLabel(notice.getNoticeId());
+        idLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        idLabel.setForeground(darkNavy);
 
-        JPanel badgesBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-        badgesBox.setOpaque(false);
+        JLabel titleLabel = new JLabel("<html><body style='width: 380px;'>" + notice.getTitle() + "</body></html>");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        titleLabel.setForeground(textDark);
 
-        if (notice.isUrgent()) {
-            JLabel urgBadge = new JLabel("URGENT", SwingConstants.CENTER);
-            urgBadge.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            urgBadge.setForeground(urgentRed);
-            urgBadge.setBackground(new Color(254, 226, 226));
-            urgBadge.setOpaque(true);
-            urgBadge.setBorder(new EmptyBorder(4, 8, 4, 8));
-            badgesBox.add(urgBadge);
-        }
+        titleBox.add(idLabel);
+        titleBox.add(titleLabel);
 
-        JLabel statusBadge = new JLabel(notice.isActive() ? "ACTIVE" : "EXPIRED", SwingConstants.CENTER);
+        JLabel statusBadge = new JLabel(notice.getStatus(), SwingConstants.CENTER);
         statusBadge.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        statusBadge.setForeground(notice.isActive() ? activeGreen : new Color(156, 163, 175));
-        statusBadge.setBackground(notice.isActive() ? new Color(220, 252, 231) : new Color(241, 245, 249));
+        statusBadge.setForeground("ACTIVE".equalsIgnoreCase(notice.getStatus()) ? activeGreen : inactiveGray);
         statusBadge.setOpaque(true);
-        statusBadge.setBorder(new EmptyBorder(4, 8, 4, 8));
-        badgesBox.add(statusBadge);
+        statusBadge.setBackground("ACTIVE".equalsIgnoreCase(notice.getStatus()) ? new Color(220, 252, 231) : new Color(243, 244, 246));
+        statusBadge.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(4, 12, 4, 12)));
 
-        titleRow.add(titleLbl, BorderLayout.CENTER);
-        titleRow.add(badgesBox, BorderLayout.EAST);
+        modalHeader.add(titleBox, BorderLayout.CENTER);
+        modalHeader.add(statusBadge, BorderLayout.EAST);
 
-        // Metadata grid
-        JPanel metaGrid = new JPanel(new GridLayout(2, 2, 12, 6));
-        metaGrid.setOpaque(false);
-        metaGrid.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(10, 12, 10, 12)));
+        // Metadata Card (Published Date, Published By)
+        JPanel metaCard = new JPanel(new GridLayout(1, 2, 16, 0));
+        metaCard.setBackground(new Color(248, 250, 252));
+        metaCard.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(10, 14, 10, 14)));
 
-        metaGrid.add(createMetaLabel("Published Date:", notice.getFormattedDate()));
-        metaGrid.add(createMetaLabel("Expiry Date:", notice.getFormattedExpiryDate()));
-        metaGrid.add(createMetaLabel("Publisher:", notice.getCreatorName() + " (" + notice.getCreatedBy() + ")"));
-        metaGrid.add(createMetaLabel("Target Department:", notice.getTargetDepartment()));
+        metaCard.add(createMetaLabel("Notice Date:", notice.getFormattedDate()));
+        metaCard.add(createMetaLabel("Published By:", notice.getCreatorName()));
 
-        top.add(titleRow, BorderLayout.NORTH);
-        top.add(metaGrid, BorderLayout.CENTER);
+        // Content Area: Full notice description from database
+        JPanel bodyPanel = new JPanel(new BorderLayout(0, 8));
+        bodyPanel.setOpaque(false);
 
-        // Content Body
+        JLabel contentTitle = new JLabel("Notice Content:");
+        contentTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        contentTitle.setForeground(textDark);
+
         JTextArea descArea = new JTextArea(notice.getDescription());
-        descArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        descArea.setForeground(new Color(51, 65, 85));
+        descArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        descArea.setForeground(textDark);
         descArea.setLineWrap(true);
         descArea.setWrapStyleWord(true);
         descArea.setEditable(false);
-        descArea.setMargin(new Insets(14, 14, 14, 14));
         descArea.setBackground(new Color(248, 250, 252));
-        descArea.setBorder(new LineBorder(borderColor, 1));
+        descArea.setBorder(new EmptyBorder(12, 12, 12, 12));
 
-        JScrollPane scroll = new JScrollPane(descArea);
-        scroll.setBorder(null);
+        JScrollPane descScroll = new JScrollPane(descArea);
+        descScroll.setBorder(new LineBorder(borderColor, 1));
 
-        JPanel centerContainer = new JPanel(new BorderLayout());
+        bodyPanel.add(contentTitle, BorderLayout.NORTH);
+        bodyPanel.add(descScroll, BorderLayout.CENTER);
+
+        // Center container combining Metadata + Description
+        JPanel centerContainer = new JPanel(new BorderLayout(0, 14));
         centerContainer.setOpaque(false);
-        centerContainer.add(scroll, BorderLayout.CENTER);
+        centerContainer.add(metaCard, BorderLayout.NORTH);
+        centerContainer.add(bodyPanel, BorderLayout.CENTER);
 
-        // Close & Action Buttons
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        btnPanel.setOpaque(false);
-
-        if (notice.getTitle().toLowerCase().contains("timetable")
-                || notice.getDescription().toLowerCase().contains("timetable")) {
-            JButton timetableJumpBtn = new JButton("Open Timetable View");
-            timetableJumpBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            timetableJumpBtn.setBackground(darkNavy);
-            timetableJumpBtn.setForeground(Color.WHITE);
-            timetableJumpBtn.setFocusPainted(false);
-            timetableJumpBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            timetableJumpBtn.setBorder(new EmptyBorder(8, 16, 8, 16));
-            timetableJumpBtn.addActionListener(e -> {
-                dialog.dispose();
-                if (onNavigateToTimetable != null) {
-                    onNavigateToTimetable.run();
-                }
-            });
-            btnPanel.add(timetableJumpBtn);
-        }
+        // Footer with Close Button
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        footer.setOpaque(false);
 
         JButton closeBtn = new JButton("Close");
         closeBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        closeBtn.setBackground(new Color(241, 245, 249));
-        closeBtn.setForeground(textDark);
+        closeBtn.setForeground(Color.BLACK);
+        closeBtn.setBackground(Color.WHITE);
         closeBtn.setFocusPainted(false);
+        closeBtn.setBorder(new CompoundBorder(new LineBorder(borderColor, 1), new EmptyBorder(8, 22, 8, 22)));
         closeBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        closeBtn.setBorder(new EmptyBorder(8, 20, 8, 20));
         closeBtn.addActionListener(e -> dialog.dispose());
 
-        btnPanel.add(closeBtn);
+        footer.add(closeBtn);
 
-        p.add(top, BorderLayout.NORTH);
-        p.add(centerContainer, BorderLayout.CENTER);
-        p.add(btnPanel, BorderLayout.SOUTH);
+        root.add(modalHeader, BorderLayout.NORTH);
+        root.add(centerContainer, BorderLayout.CENTER);
+        root.add(footer, BorderLayout.SOUTH);
 
-        dialog.setContentPane(p);
+        dialog.add(root);
         dialog.setVisible(true);
     }
 
     private JPanel createMetaLabel(String label, String value) {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        JPanel p = new JPanel(new GridLayout(2, 1, 0, 2));
         p.setOpaque(false);
         JLabel l = new JLabel(label);
-        l.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        l.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         l.setForeground(textMuted);
 
-        JLabel v = new JLabel(value);
-        v.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        JLabel v = new JLabel(value != null ? value : "N/A");
+        v.setFont(new Font("Segoe UI", Font.BOLD, 12));
         v.setForeground(textDark);
 
         p.add(l);
@@ -769,16 +604,21 @@ public class NoticesPage extends JPanel {
         return p;
     }
 
+    /**
+     * Standard dark navy header matching the application theme.
+     */
     private void setupTableHeader(JTable table) {
         JTableHeader header = table.getTableHeader();
         header.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        header.setBackground(darkNavy);
+        header.setForeground(Color.WHITE);
         header.setPreferredSize(new Dimension(header.getWidth(), 36));
-        header.setReorderingAllowed(false);
+        header.setOpaque(true);
+
         header.setDefaultRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
-                                                           boolean isSelected, boolean hasFocus,
-                                                           int row, int column) {
+                    boolean isSelected, boolean hasFocus, int row, int column) {
                 JLabel label = new JLabel(value != null ? value.toString() : "");
                 label.setOpaque(true);
                 label.setBackground(darkNavy);
@@ -787,50 +627,25 @@ public class NoticesPage extends JPanel {
                 label.setHorizontalAlignment(SwingConstants.CENTER);
                 label.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createMatteBorder(0, 0, 1, 1, new Color(45, 90, 135)),
-                        BorderFactory.createEmptyBorder(6, 10, 6, 10)
-                ));
-
-                if (table.getRowSorter() != null) {
-                    java.util.List<? extends RowSorter.SortKey> sortKeys = table.getRowSorter().getSortKeys();
-                    if (!sortKeys.isEmpty() && sortKeys.get(0).getColumn() == table.convertColumnIndexToModel(column)) {
-                        SortOrder order = sortKeys.get(0).getSortOrder();
-                        if (order == SortOrder.ASCENDING) {
-                            label.setText(label.getText() + " ▲");
-                        } else if (order == SortOrder.DESCENDING) {
-                            label.setText(label.getText() + " ▼");
-                        }
-                    }
-                }
+                        BorderFactory.createEmptyBorder(6, 10, 6, 10)));
                 return label;
             }
         });
     }
 
-    private class AlternateRowRenderer extends DefaultTableCellRenderer {
+    private static class AlternateRowRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
-                                                       boolean isSelected, boolean hasFocus,
-                                                       int row, int column) {
+                boolean isSelected, boolean hasFocus, int row, int column) {
             Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             if (!isSelected) {
-                c.setForeground(textDark);
-                if (row % 2 == 0) {
-                    c.setBackground(Color.WHITE);
-                } else {
-                    c.setBackground(new Color(248, 250, 252));
-                }
+                c.setBackground((row % 2 == 0) ? Color.WHITE : new Color(248, 250, 252));
             } else {
-                c.setForeground(darkNavy);
                 c.setBackground(new Color(237, 243, 248));
             }
+
             if (c instanceof JLabel) {
-                JLabel lbl = (JLabel) c;
-                if (column == 1 || column == 4 || column == 5 || column == 7) {
-                    lbl.setHorizontalAlignment(SwingConstants.CENTER);
-                } else {
-                    lbl.setHorizontalAlignment(SwingConstants.LEFT);
-                }
-                lbl.setBorder(new EmptyBorder(0, 8, 0, 8));
+                ((JLabel) c).setBorder(new EmptyBorder(0, 8, 0, 8));
             }
             return c;
         }
