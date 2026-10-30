@@ -54,7 +54,7 @@ CREATE TABLE `assessments` (
   `max_marks` decimal(5,2) DEFAULT 100.00,
   `assessment_date` date DEFAULT NULL,
   `created_by` varchar(10) DEFAULT NULL
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `assessments`
@@ -759,7 +759,7 @@ CREATE TABLE `courses` (
   `credits` int(11) NOT NULL,
   `description` varchar(500) DEFAULT NULL,
   `department` varchar(100) NOT NULL
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `courses`
@@ -966,7 +966,7 @@ CREATE TABLE `marks` (
   `marks` decimal(5,2) NOT NULL,
   `entered_by` varchar(10) DEFAULT NULL,
   `entered_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `marks`
@@ -1285,7 +1285,7 @@ CREATE TABLE `results` (
   `final_eligible` tinyint(1) DEFAULT 0,
   `sgpa` decimal(4,2) DEFAULT NULL,
   `cgpa` decimal(4,2) DEFAULT NULL
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `results`

@@ -24,7 +24,7 @@ public class LecturerDAO {
             "       usr.user_id, usr.username, usr.password, usr.first_name, usr.last_name, " +
             "       usr.email, usr.phone, usr.address, usr.profile_picture, usr.status, usr.created_at " +
             "FROM lecturers l " +
-            "JOIN users usr ON l.lecturer_id = usr.user_id ";
+            "JOIN users usr ON l.lecturer_id = usr.user_id COLLATE utf8mb4_unicode_ci ";
 
     /**
      * Retrieves all lecturer records ordered by lecturer ID ascending.

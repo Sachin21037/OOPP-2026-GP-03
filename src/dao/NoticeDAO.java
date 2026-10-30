@@ -26,7 +26,7 @@ public class NoticeDAO {
             "       TRIM(CONCAT(IFNULL(u.first_name, ''), ' ', IFNULL(u.last_name, ''))) AS creator_name, " +
             "       u.username AS creator_username " +
             "FROM notices n " +
-            "LEFT JOIN users u ON n.created_by = u.user_id ";
+            "LEFT JOIN users u ON n.created_by = u.user_id COLLATE utf8mb4_unicode_ci ";
 
     /**
      * Retrieves all notices in reverse chronological order.

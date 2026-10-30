@@ -1,6 +1,7 @@
 package dao;
 
 import database.DBConnection;
+import model.User;
 import model.UserAccount;
 
 import java.sql.Connection;
@@ -42,10 +43,47 @@ public class UserDAO {
             "        ELSE 'Faculty of Technology' " +
             "    END AS department " +
             "FROM users u " +
-            "LEFT JOIN undergraduates s ON u.user_id = s.student_id " +
-            "LEFT JOIN lecturers l ON u.user_id = l.lecturer_id " +
-            "LEFT JOIN technical_officers t ON u.user_id = t.technical_officer_id " +
-            "LEFT JOIN admins a ON u.user_id = a.admin_id ";
+            "LEFT JOIN undergraduates s ON u.user_id = s.student_id COLLATE utf8mb4_unicode_ci " +
+            "LEFT JOIN lecturers l ON u.user_id = l.lecturer_id COLLATE utf8mb4_unicode_ci " +
+            "LEFT JOIN technical_officers t ON u.user_id = t.technical_officer_id COLLATE utf8mb4_unicode_ci " +
+            "LEFT JOIN admins a ON u.user_id = a.admin_id COLLATE utf8mb4_unicode_ci ";
+
+    /**
+     * Authenticates a user by username and password.
+     * Returns the User object if valid, or null if invalid.
+     */
+    public User authenticate(String username, String password) {
+        String sql = "SELECT * FROM users WHERE username = ? AND password = ? AND status = 'ACTIVE'";
+
+        try {
+            Connection conn = DBConnection.getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, username);
+                stmt.setString(2, password);
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        User user = new User();
+                        user.setUserId(rs.getString("user_id"));
+                        user.setUsername(rs.getString("username"));
+                        user.setRole(rs.getString("role"));
+                        user.setFirstName(rs.getString("first_name"));
+                        user.setLastName(rs.getString("last_name"));
+                        user.setEmail(rs.getString("email"));
+                        user.setPhone(rs.getString("phone"));
+                        user.setAddress(rs.getString("address"));
+                        user.setProfilePicture(rs.getString("profile_picture"));
+                        user.setStatus(rs.getString("status"));
+                        user.setCreatedAt(rs.getTimestamp("created_at"));
+                        return user;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Database error during authentication: " + e.getMessage());
+        }
+        return null;
+    }
 
     /**
      * Retrieves all user accounts ordered by role and ID.

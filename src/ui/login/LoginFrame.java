@@ -1,12 +1,16 @@
 package ui.login;
 
+import dao.StudentDAO;
 import database.DBConnection;
-import javax.imageio.ImageIO;
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
+import model.Student;
 import ui.admin.AdminDashboard;
 import ui.admin.NoticeViewerFrame;
 import ui.admin.TimetableViewerFrame;
+import ui.student.StudentDashboard;
+
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
@@ -49,6 +53,8 @@ public class LoginFrame extends JFrame {
     private char defaultEchoChar = '•';
     private BufferedImage illustrationImage;
 
+    private final StudentDAO studentDAO = new StudentDAO();
+
     public LoginFrame() {
         setTitle("Faculty Academic Management System - Sign In");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -61,21 +67,38 @@ public class LoginFrame extends JFrame {
         initUI();
     }
 
-
-     //Loads the exact 3D illustration image from resources or file path.
-
+    /**
+     * Loads the 3D illustration image from resources or local file paths (supporting PNG and JPG).
+     */
     private void loadIllustrationImage() {
         try {
-            URL imgUrl = getClass().getResource("/ui/login/login_illustration.jpg");
-            if (imgUrl == null) {
-                imgUrl = getClass().getResource("login_illustration.jpg");
+            String[] resourcePaths = {
+                    "/ui/login/login_illustration.png",
+                    "/ui/login/login_illustration.jpg",
+                    "login_illustration.png",
+                    "login_illustration.jpg"
+            };
+            for (String path : resourcePaths) {
+                URL imgUrl = getClass().getResource(path);
+                if (imgUrl != null) {
+                    illustrationImage = ImageIO.read(imgUrl);
+                    if (illustrationImage != null) return;
+                }
             }
-            if (imgUrl != null) {
-                illustrationImage = ImageIO.read(imgUrl);
-            } else {
-                File file = new File("src/ui/login/login_illustration.jpg");
+
+            String[] filePaths = {
+                    "src/ui/login/login_illustration.png",
+                    "src/ui/login/login_illustration.jpg",
+                    "out/production/OOPP-2026-GP-03/ui/login/login_illustration.png",
+                    "out/production/OOPP-2026-GP-03/ui/login/login_illustration.jpg",
+                    "login_illustration.png",
+                    "login_illustration.jpg"
+            };
+            for (String path : filePaths) {
+                File file = new File(path);
                 if (file.exists()) {
                     illustrationImage = ImageIO.read(file);
+                    if (illustrationImage != null) return;
                 }
             }
         } catch (Exception e) {
@@ -538,7 +561,7 @@ public class LoginFrame extends JFrame {
         }
 
         // 2. Query database for user credentials
-        String sql = "SELECT user_id, username, password, role, first_name, last_name, email, status "
+        String sql = "SELECT user_id, username, password, role, first_name, last_name, email, phone, address, status "
                    + "FROM users WHERE username = ? OR email = ? OR user_id = ?";
 
         try (Connection conn = DBConnection.getConnection();
@@ -556,6 +579,10 @@ public class LoginFrame extends JFrame {
                     String firstName = rs.getString("first_name");
                     String lastName = rs.getString("last_name");
                     String dbUsername = rs.getString("username");
+                    String userId = rs.getString("user_id");
+                    String email = rs.getString("email");
+                    String phone = rs.getString("phone");
+                    String address = rs.getString("address");
 
                     // 3. Verify account status
                     if ("INACTIVE".equalsIgnoreCase(status)) {
@@ -581,6 +608,34 @@ public class LoginFrame extends JFrame {
                                 dashboard.setVisible(true);
                             });
                             dispose();
+                        } else if ("UNDERGRADUATE".equalsIgnoreCase(role)) {
+                            Student student = studentDAO.getStudentProfile(userId);
+                            if (student == null) {
+                                student = new Student(
+                                        userId, dbUsername, role, firstName, lastName,
+                                        email, phone, address, status,
+                                        "TG/2024/2001", "2024/2025", "Level II",
+                                        "Information and Communication Technology", "REGULAR"
+                                );
+                            }
+                            final Student s = student;
+                            SwingUtilities.invokeLater(() -> {
+                                dispose();
+                                new StudentDashboard(s).setVisible(true);
+                            });
+                        } else if ("LECTURER".equalsIgnoreCase(role)) {
+                            Student lecturerUser = new Student(
+                                    userId, dbUsername, role, firstName, lastName,
+                                    email, phone, address, status,
+                                    "STAFF-" + userId, "Academic Staff", "2026/2027",
+                                    "Department of Information & Communication Technology", "ACTIVE"
+                            );
+                            SwingUtilities.invokeLater(() -> {
+                                dispose();
+                                StudentDashboard dash = new StudentDashboard(lecturerUser);
+                                dash.setVisible(true);
+                                dash.navigateToSection("Announcements");
+                            });
                         } else {
                             String roleName = formatRoleName(role);
                             Object[] options = {"View Academic Timetable", "View Notices", "Close"};

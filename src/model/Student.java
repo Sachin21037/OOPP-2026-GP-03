@@ -5,61 +5,79 @@ import java.sql.Timestamp;
 /**
  * Model representing an Undergraduate Student in FAMS.
  * Combines data from both 'users' (authentication, contact) and 'undergraduates' (academic details).
+ * Extends User to support polymorphic authentication and dashboard metrics.
  */
-public class Student {
+public class Student extends User {
 
     // From 'undergraduates' table
-    private String studentId;      // e.g. "STU001", matches users.user_id
     private String indexNo;        // e.g. "TG/2024/2001"
     private String batch;          // e.g. "2024/2025"
     private String academicYear;   // e.g. "Level II"
     private String department;     // e.g. "Information and Communication Technology"
     private String studentStatus;  // "REGULAR", "REPEAT", "BATCH_MISSED"
 
-    // From 'users' table
-    private String username;       // e.g. "stu001"
-    private String password;       // e.g. "Stu@123"
-    private String firstName;      // e.g. "Amal"
-    private String lastName;       // e.g. "Perera"
-    private String email;          // e.g. "amal.perera@student.uor.lk"
-    private String phone;          // e.g. "0711000001"
-    private String address;        // e.g. "Galle"
-    private String profilePicture; // optional path/URL
-    private String accountStatus;  // "ACTIVE", "INACTIVE"
-    private Timestamp createdAt;
+    // Computed / Dashboard metrics
+    private int enrolledCourseCount = 0;
+    private double attendancePercentage = 0.0;
+    private int pendingAssignmentCount = 0;
+    private double currentGpa = 0.0;
+    private double currentCgpa = 0.0;
 
     public Student() {
+        super();
         this.studentStatus = "REGULAR";
-        this.accountStatus = "ACTIVE";
+        setStatus("ACTIVE");
+        setRole("UNDERGRADUATE");
     }
 
-    public Student(String studentId, String indexNo, String username, String firstName,
-                   String lastName, String email, String phone, String batch,
-                   String academicYear, String department, String studentStatus, String accountStatus) {
-        this.studentId = studentId;
+    /**
+     * 14-parameter constructor (used by Student Dashboard and Authentication flows).
+     */
+    public Student(String userId, String username, String role, String firstName, String lastName,
+                   String email, String phone, String address, String status,
+                   String indexNo, String batch, String academicYear, String department, String studentStatus) {
+        super(userId, username, role, firstName, lastName, email, phone, address, status);
         this.indexNo = indexNo;
-        this.username = username;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.phone = phone;
         this.batch = batch;
         this.academicYear = academicYear;
         this.department = department;
         this.studentStatus = (studentStatus != null && !studentStatus.isBlank()) ? studentStatus : "REGULAR";
-        this.accountStatus = (accountStatus != null && !accountStatus.isBlank()) ? accountStatus : "ACTIVE";
     }
 
-    // Getters and Setters
+    /**
+     * 12-parameter constructor (used by Admin Student Management module).
+     */
+    public Student(String studentId, String indexNo, String username, String firstName,
+                   String lastName, String email, String phone, String batch,
+                   String academicYear, String department, String studentStatus, String accountStatus) {
+        super(studentId, username, "UNDERGRADUATE", firstName, lastName, email, phone, "",
+                (accountStatus != null && !accountStatus.isBlank()) ? accountStatus : "ACTIVE");
+        this.indexNo = indexNo;
+        this.batch = batch;
+        this.academicYear = academicYear;
+        this.department = department;
+        this.studentStatus = (studentStatus != null && !studentStatus.isBlank()) ? studentStatus : "REGULAR";
+    }
 
+    // Student ID aliases mapping to user_id
     public String getStudentId() {
-        return studentId;
+        return getUserId();
     }
 
     public void setStudentId(String studentId) {
-        this.studentId = studentId;
+        setUserId(studentId);
     }
 
+    // Account status aliases mapping to status
+    public String getAccountStatus() {
+        return getStatus();
+    }
+
+    public void setAccountStatus(String accountStatus) {
+        setStatus(accountStatus);
+    }
+
+    // Academic properties
     public String getIndexNo() {
         return indexNo;
     }
@@ -100,103 +118,58 @@ public class Student {
         this.studentStatus = studentStatus;
     }
 
-    public String getUsername() {
-        return username;
+    // Dashboard metrics
+    public int getEnrolledCourseCount() {
+        return enrolledCourseCount;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setEnrolledCourseCount(int enrolledCourseCount) {
+        this.enrolledCourseCount = enrolledCourseCount;
     }
 
-    public String getPassword() {
-        return password;
+    public double getAttendancePercentage() {
+        return attendancePercentage;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setAttendancePercentage(double attendancePercentage) {
+        this.attendancePercentage = attendancePercentage;
     }
 
-    public String getFirstName() {
-        return firstName;
+    public int getPendingAssignmentCount() {
+        return pendingAssignmentCount;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
+    public void setPendingAssignmentCount(int pendingAssignmentCount) {
+        this.pendingAssignmentCount = pendingAssignmentCount;
     }
 
-    public String getLastName() {
-        return lastName;
+    public double getCurrentGpa() {
+        return currentGpa;
     }
 
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
+    public void setCurrentGpa(double currentGpa) {
+        this.currentGpa = currentGpa;
     }
 
-    public String getFullName() {
-        String fn = (firstName != null) ? firstName : "";
-        String ln = (lastName != null) ? lastName : "";
-        return (fn + " " + ln).trim();
+    public double getCurrentCgpa() {
+        return currentCgpa;
     }
 
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
-    public String getProfilePicture() {
-        return profilePicture;
-    }
-
-    public void setProfilePicture(String profilePicture) {
-        this.profilePicture = profilePicture;
-    }
-
-    public String getAccountStatus() {
-        return accountStatus;
-    }
-
-    public void setAccountStatus(String accountStatus) {
-        this.accountStatus = accountStatus;
-    }
-
-    public Timestamp getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Timestamp createdAt) {
-        this.createdAt = createdAt;
+    public void setCurrentCgpa(double currentCgpa) {
+        this.currentCgpa = currentCgpa;
     }
 
     @Override
     public String toString() {
         return "Student{" +
-                "studentId='" + studentId + '\'' +
+                "studentId='" + getStudentId() + '\'' +
                 ", indexNo='" + indexNo + '\'' +
                 ", fullName='" + getFullName() + '\'' +
-                ", email='" + email + '\'' +
+                ", email='" + getEmail() + '\'' +
                 ", batch='" + batch + '\'' +
                 ", department='" + department + '\'' +
                 ", studentStatus='" + studentStatus + '\'' +
-                ", accountStatus='" + accountStatus + '\'' +
+                ", accountStatus='" + getAccountStatus() + '\'' +
                 '}';
     }
 }

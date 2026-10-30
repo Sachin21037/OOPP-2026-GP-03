@@ -1,8 +1,9 @@
 package service;
 
 import dao.StudentDAO;
-import model.Student;
+import model.*;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -351,6 +352,74 @@ public class StudentService {
         } catch (Exception ex) {
             return OperationResult.error("Unexpected error: " + ex.getMessage());
         }
+    }
+
+    // =========================================================================
+    // --- STUDENT PORTAL DATA ACCESS SERVICE METHODS (Preserved from TG2132) ---
+    // =========================================================================
+
+    public Student getStudentProfile(String studentId) {
+        return studentDAO.getStudentProfile(studentId);
+    }
+
+    public List<Course> getEnrolledCourses(String studentId) {
+        return studentDAO.getEnrolledCourses(studentId);
+    }
+
+    public List<Result> getStudentResults(String studentId) {
+        return studentDAO.getStudentResults(studentId);
+    }
+
+    public List<AttendanceRecord> getAttendanceRecords(String studentId) {
+        return studentDAO.getAttendanceRecords(studentId);
+    }
+
+    public List<Assessment> getAssessments(String studentId) {
+        return studentDAO.getAssessments(studentId);
+    }
+
+    public List<CourseMaterial> getCourseMaterials(String studentId) {
+        return studentDAO.getCourseMaterials(studentId);
+    }
+
+    public List<Notice> getActiveNotices() {
+        return studentDAO.getActiveNotices();
+    }
+
+    public boolean updateProfilePicture(String userId, String picturePath) {
+        return studentDAO.updateProfilePicture(userId, picturePath);
+    }
+
+    public List<Medical> getStudentMedicals(String studentId) {
+        return studentDAO.getStudentMedicals(studentId);
+    }
+
+    public List<AttendanceRecord> getAbsentSessions(String studentId) {
+        return studentDAO.getAbsentSessions(studentId);
+    }
+
+    public boolean submitMedical(Medical medical) {
+        return studentDAO.submitMedical(medical);
+    }
+
+    public boolean updateMedical(Medical medical) {
+        return studentDAO.updateMedical(medical);
+    }
+
+    public List<Notice> getAllAnnouncements(String studentId) {
+        return studentDAO.getAllAnnouncements(studentId);
+    }
+
+    public boolean postAnnouncement(Notice notice, String offeringId, String assessmentType, BigDecimal weightPercentage, BigDecimal maxMarks, boolean syncWithAssessments) {
+        return studentDAO.postAnnouncement(notice, offeringId, assessmentType, weightPercentage, maxMarks, syncWithAssessments);
+    }
+
+    public List<User> getLecturers() {
+        return studentDAO.getLecturers();
+    }
+
+    public List<Course> getAllCourseOfferings() {
+        return studentDAO.getAllCourseOfferings();
     }
 
     /**

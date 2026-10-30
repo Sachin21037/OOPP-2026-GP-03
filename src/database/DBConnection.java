@@ -27,6 +27,9 @@ public class DBConnection {
     private static final String DB_NAME = "fams";
     private static final String DB_USER = "root";
     private static final String DB_PASSWORD = ""; // Default XAMPP MySQL password is empty
+    private static final String[] CANDIDATE_PASSWORDS = {"", "12345678", "root", "1234"};
+    private static String workingPassword = null;
+    private static volatile boolean collationAligned = false;
 
     // JDBC Driver Class
     private static final String DRIVER_CLASS = "com.mysql.cj.jdbc.Driver";
@@ -64,7 +67,7 @@ public class DBConnection {
      */
     public static String buildJdbcUrl(String port) {
         return "jdbc:mysql://" + DB_HOST + ":" + port + "/" + DB_NAME
-                + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8";
+                + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci";
     }
 
     /**
@@ -111,27 +114,71 @@ public class DBConnection {
      * and detailed diagnostic error handling.
      */
     private static Connection createConnection() throws SQLException {
-        // 1. Try primary port (3306)
-        try {
-            Connection conn = DriverManager.getConnection(buildJdbcUrl(activePort), DB_USER, DB_PASSWORD);
-            return conn;
-        } catch (SQLException primaryEx) {
-            // If primary port 3306 failed (e.g. access denied or communication failure due to dual MySQL installations),
-            // attempt alternative port 3307 (commonly assigned by XAMPP on macOS).
-            if (!activePort.equals(ALT_PORT)) {
+        // Fast path: try cached working password on activePort
+        if (workingPassword != null) {
+            try {
+                Connection conn = DriverManager.getConnection(buildJdbcUrl(activePort), DB_USER, workingPassword);
+                applyCollationSettings(conn);
+                return conn;
+            } catch (SQLException ignored) {
+                workingPassword = null;
+            }
+        }
+
+        SQLException lastEx = null;
+        String[] portsToTry = activePort.equals(ALT_PORT)
+                ? new String[]{ALT_PORT, DB_PORT}
+                : new String[]{DB_PORT, ALT_PORT};
+
+        for (String port : portsToTry) {
+            for (String pwd : CANDIDATE_PASSWORDS) {
                 try {
-                    Connection altConn = DriverManager.getConnection(buildJdbcUrl(ALT_PORT), DB_USER, DB_PASSWORD);
-                    activePort = ALT_PORT;
-                    System.out.println("[FAMS DBConnection Notice] Connected to XAMPP MySQL on port " + ALT_PORT
-                            + " (primary port " + DB_PORT + " was unavailable or assigned to a different MySQL instance).");
-                    return altConn;
-                } catch (SQLException ignored) {
-                    // Fall through to report primary exception
+                    Connection conn = DriverManager.getConnection(buildJdbcUrl(port), DB_USER, pwd);
+                    activePort = port;
+                    workingPassword = pwd;
+                    applyCollationSettings(conn);
+                    return conn;
+                } catch (SQLException ex) {
+                    lastEx = ex;
                 }
             }
-            handleConnectionError(primaryEx, activePort);
-            throw primaryEx;
         }
+
+        if (lastEx != null) {
+            handleConnectionError(lastEx, activePort);
+            throw lastEx;
+        }
+        throw new SQLException("Unable to connect to database using candidate configurations.");
+    }
+
+    /**
+     * Ensures consistent utf8mb4_unicode_ci collation across database tables and active session.
+     * Prevents 'Illegal mix of collations' errors across different MySQL/MariaDB table definitions.
+     */
+    private static void applyCollationSettings(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
+            stmt.execute("SET collation_connection = 'utf8mb4_unicode_ci'");
+
+            if (!collationAligned) {
+                collationAligned = true;
+                try {
+                    stmt.execute("SET FOREIGN_KEY_CHECKS = 0");
+                    String[] tables = {
+                        "courses", "assessments", "marks", "results", "users",
+                        "undergraduates", "medicals", "course_materials",
+                        "course_offerings", "enrollments", "attendance", "attendance_sessions",
+                        "notices", "lecturers", "technical_officers", "admins", "timetables"
+                    };
+                    for (String tbl : tables) {
+                        try {
+                            stmt.execute("ALTER TABLE `" + tbl + "` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                        } catch (Exception ignored) {}
+                    }
+                    stmt.execute("SET FOREIGN_KEY_CHECKS = 1");
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
     }
 
     /**

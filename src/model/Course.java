@@ -2,16 +2,21 @@ package model;
 
 /**
  * Domain entity model representing an academic course in FAMS.
- * Maps directly to the 'courses' database table and holds derived semester offering metadata.
+ * Maps to 'courses' table and holds derived semester offering metadata.
  */
 public class Course {
 
     private String courseId;         // e.g. "CRS001" (Primary Key)
+    private String offeringId;       // e.g. "OFF001" (Course offering reference)
     private String courseCode;       // e.g. "ICT2132" (Unique Key)
     private String courseName;       // e.g. "Object Oriented Programming"
     private int credits;             // e.g. 3
     private String description;      // Course syllabus summary
     private String department;       // e.g. "Information and Communication Technology"
+    private String academicYear;     // e.g. "2024/2025" or "Level II"
+    private String semester;         // e.g. "1st Semester"
+    private String batch;            // e.g. "2024/2025"
+    private String lecturerName;     // e.g. "Dr. Perera"
 
     // Associated metadata from 'course_offerings'
     private int offeringCount;       // Number of active/historical semester offerings
@@ -20,6 +25,14 @@ public class Course {
     public Course() {
         this.credits = 3;
         this.department = "Information and Communication Technology";
+    }
+
+    public Course(String courseId, String courseCode, String courseName, int credits, String department) {
+        this.courseId = courseId;
+        this.courseCode = courseCode;
+        this.courseName = courseName;
+        this.credits = credits;
+        this.department = department;
     }
 
     public Course(String courseId, String courseCode, String courseName, int credits, String description, String department) {
@@ -48,6 +61,14 @@ public class Course {
 
     public void setCourseId(String courseId) {
         this.courseId = courseId;
+    }
+
+    public String getOfferingId() {
+        return offeringId;
+    }
+
+    public void setOfferingId(String offeringId) {
+        this.offeringId = offeringId;
     }
 
     public String getCourseCode() {
@@ -88,6 +109,38 @@ public class Course {
 
     public void setDepartment(String department) {
         this.department = department;
+    }
+
+    public String getAcademicYear() {
+        return academicYear;
+    }
+
+    public void setAcademicYear(String academicYear) {
+        this.academicYear = academicYear;
+    }
+
+    public String getSemester() {
+        return semester;
+    }
+
+    public void setSemester(String semester) {
+        this.semester = semester;
+    }
+
+    public String getBatch() {
+        return batch;
+    }
+
+    public void setBatch(String batch) {
+        this.batch = batch;
+    }
+
+    public String getLecturerName() {
+        return lecturerName;
+    }
+
+    public void setLecturerName(String lecturerName) {
+        this.lecturerName = lecturerName;
     }
 
     public int getOfferingCount() {
