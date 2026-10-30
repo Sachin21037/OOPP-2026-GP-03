@@ -1,11 +1,7 @@
-import ui.technicalofficer.TechnicalOfficerDashboard;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import ui.login.LoginFrame;
 
-import javax.swing.*;
-
-/**
- * Main Application Launcher
- * Launches the Technical Officer Dashboard (Technical Officer subsystem)
- */
 public class Main {
     public static void main(String[] args) {
         try {
@@ -13,6 +9,9 @@ public class Main {
         } catch (Exception ignored) {
         }
 
-        SwingUtilities.invokeLater(() -> new ui.login.LoginFrame().setVisible(true));
+        SwingUtilities.invokeLater(() -> {
+            LoginFrame loginFrame = new LoginFrame();
+            loginFrame.setVisible(true);
+        });
     }
 }

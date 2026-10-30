@@ -1,62 +1,59 @@
 package model;
 
+import java.sql.Timestamp;
+
 /**
- * TechnicalOfficer Model Class
- * Represents technical officer entity mapped to `technical_officers` and `users` in database/fams.sql.
+ * Model representing a Technical Officer in FAMS.
+ * Combines data from both 'users' (authentication, contact, account status)
+ * and 'technical_officers' (staff number, department).
  */
 public class TechnicalOfficer {
-    private String technicalOfficerId; // e.g. "TO001"
+
+    // From 'technical_officers' table
+    private String technicalOfficerId; // e.g. "TO001", matches users.user_id
     private String staffNo;            // e.g. "TO-STF-001"
+    private String department;         // e.g. "Information and Communication Technology"
+
+    // From 'users' table
     private String username;           // e.g. "to001"
-    private String firstName;
-    private String lastName;
-    private String email;
-    private String phone;
-    private String department;
-    private String address;
-    private String officeRoom;
-    private String designation;
-    private String faculty;
-    private String status;
-    private String profilePicture;
-    private String createdDate;
+    private String password;           // e.g. "To@123"
+    private String firstName;          // e.g. "Dinesh"
+    private String lastName;           // e.g. "Kumara"
+    private String email;              // e.g. "dinesh.to@uor.lk"
+    private String phone;              // e.g. "0710000007"
+    private String address;            // optional
+    private String profilePicture;     // optional
+    private String accountStatus;      // "ACTIVE", "INACTIVE"
+    private Timestamp createdAt;
 
     public TechnicalOfficer() {
-        this.status = "ACTIVE";
-        this.faculty = "Faculty of Technology";
-        this.designation = "Technical Officer (Grade II)";
+        this.department = "Information and Communication Technology";
+        this.accountStatus = "ACTIVE";
     }
 
-    public TechnicalOfficer(String technicalOfficerId, String staffNo, String firstName, String lastName, String email, String phone, String department) {
-        this();
+    public TechnicalOfficer(String technicalOfficerId, String staffNo, String department,
+                            String username, String firstName, String lastName,
+                            String email, String phone, String accountStatus) {
         this.technicalOfficerId = technicalOfficerId;
         this.staffNo = staffNo;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.phone = phone;
         this.department = department;
-    }
-
-    public TechnicalOfficer(String technicalOfficerId, String staffNo, String username, String firstName, String lastName,
-                            String email, String phone, String department, String address, String officeRoom,
-                            String designation, String faculty, String status, String profilePicture, String createdDate) {
-        this.technicalOfficerId = technicalOfficerId;
-        this.staffNo = staffNo;
         this.username = username;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.phone = phone;
-        this.department = department;
-        this.address = address;
-        this.officeRoom = officeRoom;
-        this.designation = designation;
-        this.faculty = faculty;
-        this.status = status;
-        this.profilePicture = profilePicture;
-        this.createdDate = createdDate;
+        this.accountStatus = (accountStatus != null && !accountStatus.isBlank()) ? accountStatus : "ACTIVE";
     }
+
+    public TechnicalOfficer(String technicalOfficerId, String staffNo, String department,
+                            String username, String password, String firstName, String lastName,
+                            String email, String phone, String address, String accountStatus) {
+        this(technicalOfficerId, staffNo, department, username, firstName, lastName, email, phone, accountStatus);
+        this.password = password;
+        this.address = address;
+    }
+
+    // Getters and Setters
 
     public String getTechnicalOfficerId() {
         return technicalOfficerId;
@@ -74,12 +71,28 @@ public class TechnicalOfficer {
         this.staffNo = staffNo;
     }
 
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
     public String getUsername() {
         return username;
     }
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getFirstName() {
@@ -99,7 +112,9 @@ public class TechnicalOfficer {
     }
 
     public String getFullName() {
-        return (firstName != null ? firstName : "") + " " + (lastName != null ? lastName : "");
+        String fn = firstName != null ? firstName.trim() : "";
+        String ln = lastName != null ? lastName.trim() : "";
+        return (fn + " " + ln).trim();
     }
 
     public String getEmail() {
@@ -118,52 +133,12 @@ public class TechnicalOfficer {
         this.phone = phone;
     }
 
-    public String getDepartment() {
-        return department;
-    }
-
-    public void setDepartment(String department) {
-        this.department = department;
-    }
-
     public String getAddress() {
         return address;
     }
 
     public void setAddress(String address) {
         this.address = address;
-    }
-
-    public String getOfficeRoom() {
-        return officeRoom;
-    }
-
-    public void setOfficeRoom(String officeRoom) {
-        this.officeRoom = officeRoom;
-    }
-
-    public String getDesignation() {
-        return designation != null ? designation : "Technical Officer (Grade II)";
-    }
-
-    public void setDesignation(String designation) {
-        this.designation = designation;
-    }
-
-    public String getFaculty() {
-        return faculty != null ? faculty : "Faculty of Technology";
-    }
-
-    public void setFaculty(String faculty) {
-        this.faculty = faculty;
-    }
-
-    public String getStatus() {
-        return status != null ? status : "ACTIVE";
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 
     public String getProfilePicture() {
@@ -174,11 +149,31 @@ public class TechnicalOfficer {
         this.profilePicture = profilePicture;
     }
 
-    public String getCreatedDate() {
-        return createdDate;
+    public String getAccountStatus() {
+        return accountStatus;
     }
 
-    public void setCreatedDate(String createdDate) {
-        this.createdDate = createdDate;
+    public void setAccountStatus(String accountStatus) {
+        this.accountStatus = accountStatus;
+    }
+
+    public Timestamp getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Timestamp createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    @Override
+    public String toString() {
+        return "TechnicalOfficer{" +
+                "id='" + technicalOfficerId + '\'' +
+                ", staffNo='" + staffNo + '\'' +
+                ", name='" + getFullName() + '\'' +
+                ", department='" + department + '\'' +
+                ", email='" + email + '\'' +
+                ", status='" + accountStatus + '\'' +
+                '}';
     }
 }

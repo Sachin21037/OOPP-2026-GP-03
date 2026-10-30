@@ -154,6 +154,7 @@ public class TimetableEntry {
         this.lecturers = lecturers;
     }
 
+    // Utility formatting methods
     public String getFormattedTimeRange() {
         String s = (startTime != null) ? formatTime(startTime) : "--:--";
         String e = (endTime != null) ? formatTime(endTime) : "--:--";
@@ -163,17 +164,9 @@ public class TimetableEntry {
     private String formatTime(Time t) {
         String str = t.toString();
         if (str.length() >= 5) {
-            return str.substring(0, 5);
+            return str.substring(0, 5); // "08:30"
         }
         return str;
-    }
-
-    public boolean isLabSession() {
-        return venue != null && venue.toLowerCase().contains("lab");
-    }
-
-    public String getSessionType() {
-        return isLabSession() ? "LAB PRACTICAL" : "LECTURE";
     }
 
     public String getCourseDisplay() {

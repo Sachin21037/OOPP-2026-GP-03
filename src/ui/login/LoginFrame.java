@@ -1,8 +1,12 @@
 package ui.login;
 
-import dao.DatabaseConnection;
+import dao.StudentDAO;
 import database.DBConnection;
-import ui.technicalofficer.TechnicalOfficerDashboard;
+import model.Student;
+import ui.admin.AdminDashboard;
+import ui.admin.NoticeViewerFrame;
+import ui.admin.TimetableViewerFrame;
+import ui.student.StudentDashboard;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -18,19 +22,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
-/**
- * Faculty Academic Management System (FAMS) - Sign In Interface.
- * Implements a modern dual-pane login screen featuring:
- * - 42% left branding banner with 3D academic/technology illustration card
- * - 58% right authentication form with rounded inputs, vector password visibility toggle,
- *   and responsive role-based dispatch to Technical Officer Dashboard and other subsystems.
- */
 public class LoginFrame extends JFrame {
 
-    // Theme Palette - Harmonized with Admin and Technical Officer Dashboards
+    // Theme Palette - Harmonized with Admin Dashboard
     private static final Color PRIMARY_NAVY    = new Color(16, 40, 74);    // #10284A
     private static final Color SECONDARY_BLUE  = new Color(29, 78, 216);   // #1D4ED8
     private static final Color LIGHT_BLUE      = new Color(234, 242, 255); // #EAF2FF
@@ -58,50 +53,7 @@ public class LoginFrame extends JFrame {
     private char defaultEchoChar = '•';
     private BufferedImage illustrationImage;
 
-    // Resilient offline fallback user database matching database/fams.sql
-    private static class LocalUserRecord {
-        final String userId;
-        final String username;
-        final String password;
-        final String role;
-        final String firstName;
-        final String lastName;
-        final String email;
-        final String status;
-
-        LocalUserRecord(String userId, String username, String password, String role,
-                        String firstName, String lastName, String email, String status) {
-            this.userId = userId;
-            this.username = username;
-            this.password = password;
-            this.role = role;
-            this.firstName = firstName;
-            this.lastName = lastName;
-            this.email = email;
-            this.status = status;
-        }
-    }
-
-    private static final Map<String, LocalUserRecord> LOCAL_USER_STORE = new HashMap<>();
-
-    static {
-        // High-fidelity local credentials aligned with fams.sql
-        registerLocalUser(new LocalUserRecord("TO001", "to001", "TO@123", "TECHNICAL_OFFICER", "Dinesh", "Kumara", "dinesh.to@uor.lk", "ACTIVE"));
-        registerLocalUser(new LocalUserRecord("TO002", "to002", "TO@123", "TECHNICAL_OFFICER", "Nimali", "Perera", "nimali.to@uor.lk", "ACTIVE"));
-        registerLocalUser(new LocalUserRecord("ADM001", "admin001", "Admin@123", "ADMIN", "System", "Administrator", "admin@fams.uor.lk", "ACTIVE"));
-        registerLocalUser(new LocalUserRecord("LEC001", "lec001", "Lec@123", "LECTURER", "Kasun", "Perera", "kasun.perera@uor.lk", "ACTIVE"));
-        registerLocalUser(new LocalUserRecord("LEC002", "lec002", "Lec@123", "LECTURER", "Nadeesha", "Fernando", "nadeesha.fernando@uor.lk", "ACTIVE"));
-        registerLocalUser(new LocalUserRecord("STU001", "stu001", "Stu@123", "UNDERGRADUATE", "Amal", "Perera", "amal.perera@student.uor.lk", "ACTIVE"));
-        registerLocalUser(new LocalUserRecord("STU002", "stu002", "Stu@123", "UNDERGRADUATE", "Nimal", "Fernando", "nimal.fernando@student.uor.lk", "ACTIVE"));
-    }
-
-    private static void registerLocalUser(LocalUserRecord user) {
-        LOCAL_USER_STORE.put(user.username.toLowerCase(), user);
-        LOCAL_USER_STORE.put(user.userId.toLowerCase(), user);
-        if (user.email != null) {
-            LOCAL_USER_STORE.put(user.email.toLowerCase(), user);
-        }
-    }
+    private final StudentDAO studentDAO = new StudentDAO();
 
     public LoginFrame() {
         setTitle("Faculty Academic Management System - Sign In");
@@ -116,16 +68,14 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * Loads the 3D illustration image from resources or local file paths.
-     * Supports both PNG and JPG formats seamlessly.
+     * Loads the 3D illustration image from resources or local file paths (supporting PNG and JPG).
      */
     private void loadIllustrationImage() {
         try {
-            // 1. Try classpath resources
             String[] resourcePaths = {
                     "/ui/login/login_illustration.png",
-                    "login_illustration.png",
                     "/ui/login/login_illustration.jpg",
+                    "login_illustration.png",
                     "login_illustration.jpg"
             };
             for (String path : resourcePaths) {
@@ -136,12 +86,11 @@ public class LoginFrame extends JFrame {
                 }
             }
 
-            // 2. Try filesystem relative paths
             String[] filePaths = {
                     "src/ui/login/login_illustration.png",
                     "src/ui/login/login_illustration.jpg",
-                    "ui/login/login_illustration.png",
-                    "ui/login/login_illustration.jpg",
+                    "out/production/OOPP-2026-GP-03/ui/login/login_illustration.png",
+                    "out/production/OOPP-2026-GP-03/ui/login/login_illustration.jpg",
                     "login_illustration.png",
                     "login_illustration.jpg"
             };
@@ -188,11 +137,11 @@ public class LoginFrame extends JFrame {
         getRootPane().setDefaultButton(loginButton);
     }
 
-    /**
-     * Creates the Left Panel (42% width):
-     * Soft light-blue gradient background, FAMS header branding, descriptive platform summary,
-     * and the 3D academic/technology illustration image card with shadow and accent border.
-     */
+
+     //Creates the Left Panel (42% width):
+     //Soft light-blue gradient background, FAMS header branding, descriptive platform summary,
+     // the exact 3D academic/technology illustration image card.
+
     private JPanel createLeftPanel() {
         JPanel leftPanel = new JPanel() {
             @Override
@@ -211,13 +160,13 @@ public class LoginFrame extends JFrame {
                 g2.setPaint(bgGradient);
                 g2.fillRect(0, 0, getWidth(), getHeight());
 
-                // Subtle ambient geometric shapes in Navy & Blue
+                // Subtle ambient geometric shapes in Admin Navy & Blue
                 g2.setColor(new Color(16, 40, 74, 15));
                 g2.fillOval(-40, -40, 160, 160);
                 g2.setColor(new Color(29, 78, 216, 20));
                 g2.fillOval(getWidth() - 90, getHeight() / 2 - 50, 150, 150);
 
-                // Draw exact 3D illustration image card in the lower section
+                // Draw exact 3D illustration image in the lower section with Admin Dashboard colors
                 if (illustrationImage != null) {
                     int padX = 24;
                     int targetW = getWidth() - (padX * 2);
@@ -229,12 +178,12 @@ public class LoginFrame extends JFrame {
                     g2.setColor(new Color(16, 40, 74, 38));
                     g2.fill(new RoundRectangle2D.Float(padX - 2, targetY + 3, targetW + 4, targetH + 4, 18, 18));
 
-                    // 2. Light Blue container mat / backing
+                    // 2. Admin Light Blue container mat / backing
                     RoundRectangle2D.Float matRect = new RoundRectangle2D.Float(padX - 3, targetY - 3, targetW + 6, targetH + 6, 18, 18);
                     g2.setColor(LIGHT_BLUE);
                     g2.fill(matRect);
 
-                    // 3. Secondary Blue accent border around the mat
+                    // 3. Admin Secondary Blue accent border around the mat
                     g2.setColor(new Color(29, 78, 216, 120));
                     g2.setStroke(new BasicStroke(1.5f));
                     g2.draw(matRect);
@@ -258,13 +207,13 @@ public class LoginFrame extends JFrame {
         leftPanel.setLayout(new BorderLayout());
         leftPanel.setPreferredSize(new Dimension(378, 550));
 
-        // Content branding & description panel
+        // Content branding & description panel (Logo removed, title sized up)
         JPanel contentPanel = new JPanel();
         contentPanel.setOpaque(false);
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setBorder(new EmptyBorder(30, 28, 8, 28));
 
-        // Faculty Academic Management System title matching secondary blue
+        // Sized-up Faculty Academic Management System title matching sign button color
         JLabel appCategoryLabel = new JLabel("Faculty Academic Management System");
         appCategoryLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         appCategoryLabel.setForeground(SECONDARY_BLUE);
@@ -303,11 +252,9 @@ public class LoginFrame extends JFrame {
         return leftPanel;
     }
 
-    /**
-     * Creates the Right Panel (58% width):
-     * Pure white background, clean Sign In header, modern rounded inputs, custom vector eye
-     * password visibility toggle, remember me, forgot password, and prominent royal-blue login button.
-     */
+      //Creates the Right Panel (58% width):
+    //Pure white background, clean Sign In header, modern rounded inputs, custom vector eye
+     //password visibility toggle, remember me, forgot password, prominent royal-blue login button.
     private JPanel createRightPanel() {
         JPanel rightWrapper = new JPanel(new GridBagLayout());
         rightWrapper.setBackground(Color.WHITE);
@@ -476,7 +423,7 @@ public class LoginFrame extends JFrame {
         optionsRow.add(rememberMeCheckbox, BorderLayout.WEST);
         optionsRow.add(forgotPasswordLabel, BorderLayout.EAST);
 
-        // 5. Prominent Navy & Blue LOGIN Button
+        // 5. Prominent Navy & Blue LOGIN Button (Admin Dashboard Theme)
         loginButton = new RoundedButton("LOGIN", PRIMARY_NAVY, SECONDARY_BLUE, PRIMARY_PRESSED, 8);
         loginButton.setFont(new Font("SansSerif", Font.BOLD, 13));
         loginButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
@@ -548,8 +495,8 @@ public class LoginFrame extends JFrame {
         return rightWrapper;
     }
 
-    /**
-     * Toggles password visibility between masked and plain text.
+    /*
+      Toggles password visibility between masked and plain text.
      */
     private void togglePasswordVisibility() {
         if (passwordField != null && defaultEchoChar == '•') {
@@ -569,30 +516,22 @@ public class LoginFrame extends JFrame {
         eyeButton.repaint();
     }
 
-    /**
-     * Displays an informative message for the Forgot Password action.
+    /*
+     Displays a temporary placeholder notice for the Forgot Password action.
      */
     private void showForgotPasswordMessage() {
         JOptionPane.showMessageDialog(
                 this,
-                "<html><body style='font-family: sans-serif; width: 300px;'>" +
-                "<h4 style='color: #10284A; margin-bottom: 6px;'>Self-Service Password Assistance</h4>" +
-                "<p style='color: #475569; line-height: 1.4;'>" +
-                "To reset your credentials, please contact the Faculty Administration " +
-                "office or your department coordinator with your university ID card." +
-                "</p></body></html>",
+                "The self-service password reset feature is currently being integrated.\n" +
+                "Please contact your university administrator for assistance.",
                 "Forgot Password",
                 JOptionPane.INFORMATION_MESSAGE
         );
     }
 
-    /**
-     * Handles the login action:
-     * 1. Validates input fields.
-     * 2. Checks against MySQL database if active, or high-fidelity local store if offline.
-     * 3. Verifies account status and password.
-     * 4. Dispatches the user to the corresponding role dashboard.
-     */
+
+     //Handles the database-authenticated login action:
+
     private void handleLogin() {
         String usernameInput = usernameField.getText().trim();
         char[] passwordChars = passwordField.getPassword();
@@ -621,164 +560,149 @@ public class LoginFrame extends JFrame {
             return;
         }
 
-        boolean authenticated = false;
-        String dbUserId = null;
-        String dbPassword = null;
-        String status = null;
-        String role = null;
-        String firstName = null;
-        String lastName = null;
-        String dbUsername = null;
+        // 2. Query database for user credentials
+        String sql = "SELECT user_id, username, password, role, first_name, last_name, email, phone, address, status "
+                   + "FROM users WHERE username = ? OR email = ? OR user_id = ?";
 
-        Connection conn = DatabaseConnection.getConnection();
-        if (conn != null) {
-            String sql = "SELECT user_id, username, password, role, first_name, last_name, email, status "
-                       + "FROM users WHERE username = ? OR email = ? OR user_id = ?";
-            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setString(1, usernameInput);
-                pstmt.setString(2, usernameInput);
-                pstmt.setString(3, usernameInput);
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-                try (ResultSet rs = pstmt.executeQuery()) {
-                    if (rs.next()) {
-                        authenticated = true;
-                        dbUserId = rs.getString("user_id");
-                        dbPassword = rs.getString("password");
-                        status = rs.getString("status");
-                        role = rs.getString("role");
-                        firstName = rs.getString("first_name");
-                        lastName = rs.getString("last_name");
-                        dbUsername = rs.getString("username");
+            pstmt.setString(1, usernameInput);
+            pstmt.setString(2, usernameInput);
+            pstmt.setString(3, usernameInput);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    String dbPassword = rs.getString("password");
+                    String status = rs.getString("status");
+                    String role = rs.getString("role");
+                    String firstName = rs.getString("first_name");
+                    String lastName = rs.getString("last_name");
+                    String dbUsername = rs.getString("username");
+                    String userId = rs.getString("user_id");
+                    String email = rs.getString("email");
+                    String phone = rs.getString("phone");
+                    String address = rs.getString("address");
+
+                    // 3. Verify account status
+                    if ("INACTIVE".equalsIgnoreCase(status)) {
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "This account is currently marked as INACTIVE. Please contact the administrator.",
+                                "Account Inactive",
+                                JOptionPane.WARNING_MESSAGE
+                        );
+                        return;
                     }
+
+                    // 4. Verify password
+                    if (dbPassword != null && dbPassword.equals(passwordInput)) {
+                        String displayName = (firstName != null && !firstName.isBlank())
+                                ? (firstName + " " + (lastName != null ? lastName : "")).trim()
+                                : dbUsername;
+
+                        // 5. Open appropriate dashboard based on authenticated role
+                        if ("ADMIN".equalsIgnoreCase(role)) {
+                            SwingUtilities.invokeLater(() -> {
+                                AdminDashboard dashboard = new AdminDashboard(displayName);
+                                dashboard.setVisible(true);
+                            });
+                            dispose();
+                        } else if ("UNDERGRADUATE".equalsIgnoreCase(role)) {
+                            Student student = studentDAO.getStudentProfile(userId);
+                            if (student == null) {
+                                student = new Student(
+                                        userId, dbUsername, role, firstName, lastName,
+                                        email, phone, address, status,
+                                        "TG/2024/2001", "2024/2025", "Level II",
+                                        "Information and Communication Technology", "REGULAR"
+                                );
+                            }
+                            final Student s = student;
+                            SwingUtilities.invokeLater(() -> {
+                                dispose();
+                                new StudentDashboard(s).setVisible(true);
+                            });
+                        } else if ("LECTURER".equalsIgnoreCase(role)) {
+                            Student lecturerUser = new Student(
+                                    userId, dbUsername, role, firstName, lastName,
+                                    email, phone, address, status,
+                                    "STAFF-" + userId, "Academic Staff", "2026/2027",
+                                    "Department of Information & Communication Technology", "ACTIVE"
+                            );
+                            SwingUtilities.invokeLater(() -> {
+                                dispose();
+                                StudentDashboard dash = new StudentDashboard(lecturerUser);
+                                dash.setVisible(true);
+                                dash.navigateToSection("Announcements");
+                            });
+                        } else {
+                            String roleName = formatRoleName(role);
+                            Object[] options = {"View Academic Timetable", "View Notices", "Close"};
+                            int choice = JOptionPane.showOptionDialog(
+                                    this,
+                                    "<html><body style='font-family: sans-serif; width: 320px;'>" +
+                                    "<h4 style='color: #10284A; margin-bottom: 6px;'>Welcome, " + displayName + "!</h4>" +
+                                    "<p style='color: #4A5568; line-height: 1.4;'>" +
+                                    "You have successfully authenticated as <b>" + roleName + "</b>.<br><br>" +
+                                    "You can view your published academic timetable schedules and faculty notices below." +
+                                    "</p></body></html>",
+                                    "Login Successful - " + roleName,
+                                    JOptionPane.DEFAULT_OPTION,
+                                    JOptionPane.INFORMATION_MESSAGE,
+                                    null,
+                                    options,
+                                    options[0]
+                            );
+                            if (choice == 0) {
+                                SwingUtilities.invokeLater(() -> {
+                                    TimetableViewerFrame viewer = new TimetableViewerFrame(role, displayName);
+                                    viewer.setVisible(true);
+                                });
+                            } else if (choice == 1) {
+                                SwingUtilities.invokeLater(() -> {
+                                    NoticeViewerFrame viewer = new NoticeViewerFrame(role, displayName);
+                                    viewer.setVisible(true);
+                                });
+                            }
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "Invalid username or password. Please try again.",
+                                "Authentication Failed",
+                                JOptionPane.ERROR_MESSAGE
+                        );
+                        passwordField.setText("");
+                        passwordField.requestFocusInWindow();
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Invalid username or password. Please try again.",
+                            "Authentication Failed",
+                            JOptionPane.ERROR_MESSAGE
+                    );
+                    passwordField.setText("");
+                    usernameField.requestFocusInWindow();
                 }
-            } catch (SQLException ex) {
-                System.err.println("[LoginFrame] Database query error: " + ex.getMessage());
             }
-        }
-
-        // Fallback to high-fidelity local data store if database connection was unavailable
-        if (!authenticated) {
-            LocalUserRecord localRecord = LOCAL_USER_STORE.get(usernameInput.toLowerCase());
-            if (localRecord != null) {
-                authenticated = true;
-                dbUserId = localRecord.userId;
-                dbPassword = localRecord.password;
-                status = localRecord.status;
-                role = localRecord.role;
-                firstName = localRecord.firstName;
-                lastName = localRecord.lastName;
-                dbUsername = localRecord.username;
-            }
-        }
-
-        // 3. Evaluate Authentication Result
-        if (authenticated) {
-            // Verify account status
-            if ("INACTIVE".equalsIgnoreCase(status)) {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "This account is currently marked as INACTIVE. Please contact the administrator.",
-                        "Account Inactive",
-                        JOptionPane.WARNING_MESSAGE
-                );
-                return;
-            }
-
-            // Verify password
-            if (dbPassword != null && dbPassword.equals(passwordInput)) {
-                String displayName = (firstName != null && !firstName.isBlank())
-                        ? (firstName + " " + (lastName != null ? lastName : "")).trim()
-                        : dbUsername;
-
-                dispatchUserByRole(role, displayName, dbUserId);
-            } else {
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Invalid username or password. Please try again.",
-                        "Authentication Failed",
-                        JOptionPane.ERROR_MESSAGE
-                );
-                passwordField.setText("");
-                passwordField.requestFocusInWindow();
-            }
-        } else {
+        } catch (SQLException ex) {
             JOptionPane.showMessageDialog(
                     this,
-                    "Invalid username or password. Please try again.",
-                    "Authentication Failed",
+                    "<html><body style='font-family: sans-serif; width: 300px;'>" +
+                    "<h4 style='color: #DC2626; margin-bottom: 6px;'>Database Connection Error</h4>" +
+                    "<p style='color: #4A5568; line-height: 1.4;'>" +
+                    "Unable to connect to the database.<br><br>" +
+                    "• Please verify that MySQL is started in XAMPP.<br>" +
+                    "• Ensure the database <b>fams</b> is active.<br><br>" +
+                    "<small style='color: #718096;'>Details: " + ex.getMessage() + "</small>" +
+                    "</p></body></html>",
+                    "Database Error",
                     JOptionPane.ERROR_MESSAGE
             );
-            passwordField.setText("");
-            usernameField.requestFocusInWindow();
-        }
-
-        Arrays.fill(passwordChars, '0');
-    }
-
-    /**
-     * Dispatches user to the appropriate portal or dashboard window based on role.
-     */
-    private void dispatchUserByRole(String role, String displayName, String userId) {
-        String roleStr = (role != null) ? role.toUpperCase() : "USER";
-
-        if ("TECHNICAL_OFFICER".equals(roleStr)) {
-            final String finalOfficerId = (userId != null && !userId.isBlank()) ? userId : "TO001";
-            final String finalOfficerName = displayName;
-            SwingUtilities.invokeLater(() -> {
-                TechnicalOfficerDashboard dashboard = new TechnicalOfficerDashboard(finalOfficerId, finalOfficerName);
-                dashboard.setVisible(true);
-            });
-            dispose();
-            return;
-        }
-
-        if ("ADMIN".equals(roleStr)) {
-            // Attempt to launch AdminDashboard if available in classpath via reflection
-            try {
-                Class<?> adminClass = Class.forName("ui.admin.AdminDashboard");
-                try {
-                    java.lang.reflect.Constructor<?> ctor = adminClass.getConstructor(String.class);
-                    JFrame adminFrame = (JFrame) ctor.newInstance(displayName);
-                    adminFrame.setVisible(true);
-                    dispose();
-                    return;
-                } catch (NoSuchMethodException e) {
-                    JFrame adminFrame = (JFrame) adminClass.getDeclaredConstructor().newInstance();
-                    adminFrame.setVisible(true);
-                    dispose();
-                    return;
-                }
-            } catch (Throwable ignored) {
-                // Admin dashboard class not present in this workspace branch; show role portal dialog
-            }
-        }
-
-        // For roles without an independent dashboard in this branch (Admin, Lecturer, Undergraduate)
-        String roleName = formatRoleName(roleStr);
-        Object[] options = {"Open Technical Officer Dashboard", "Sign Out"};
-        int choice = JOptionPane.showOptionDialog(
-                this,
-                "<html><body style='font-family: sans-serif; width: 330px;'>" +
-                "<h3 style='color: #10284A; margin-bottom: 4px;'>Welcome, " + displayName + "!</h3>" +
-                "<p style='color: #1D4ED8; font-weight: bold; margin-bottom: 8px;'>Role: " + roleName + "</p>" +
-                "<p style='color: #475569; line-height: 1.4;'>" +
-                "You have successfully authenticated into the Faculty Academic Management System.<br><br>" +
-                "You can inspect the active Technical Officer subsystem or sign out." +
-                "</p></body></html>",
-                "Login Successful - " + roleName,
-                JOptionPane.DEFAULT_OPTION,
-                JOptionPane.INFORMATION_MESSAGE,
-                null,
-                options,
-                options[0]
-        );
-
-        if (choice == 0) {
-            SwingUtilities.invokeLater(() -> {
-                TechnicalOfficerDashboard dashboard = new TechnicalOfficerDashboard();
-                dashboard.setVisible(true);
-            });
-            dispose();
+        } finally {
+            Arrays.fill(passwordChars, '0');
         }
     }
 
@@ -792,6 +716,7 @@ public class LoginFrame extends JFrame {
             default: return role;
         }
     }
+
 
     // Custom container panel with smooth rounded borders and dynamic focus highlighting
     private static class RoundedFieldContainer extends JPanel {
@@ -840,7 +765,9 @@ public class LoginFrame extends JFrame {
         }
     }
 
-    // Custom button with rounded corners, anti-aliased rendering, and hover/press feedback
+
+     //Custom button with rounded corners, anti-aliased rendering, and hover/press feedback.
+
     private static class RoundedButton extends JButton {
         private final Color normalColor;
         private final Color hoverColor;
@@ -879,19 +806,5 @@ public class LoginFrame extends JFrame {
 
             super.paintComponent(g);
         }
-    }
-
-    /**
-     * Standalone main method to test and launch LoginFrame directly.
-     */
-    public static void main(String[] args) {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception ignored) {
-        }
-        SwingUtilities.invokeLater(() -> {
-            LoginFrame frame = new LoginFrame();
-            frame.setVisible(true);
-        });
     }
 }
