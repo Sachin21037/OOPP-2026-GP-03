@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="LecturerDashboardUI" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="ui.lecturer.LecturerDashboardUI" />
+    <module name="OOPP-2026-GP-03" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
+
