@@ -206,6 +206,26 @@ public class DBConnection {
         System.err.println();
     }
 
+    public static String getUrl() {
+        return buildJdbcUrl(activePort);
+    }
+
+    public static String getUser() {
+        return DB_USER;
+    }
+
+    public static void closeConnection(Connection connection) {
+        if (connection != null) {
+            try {
+                if (!connection.isClosed()) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                System.err.println("[FAMS DBConnection] Error closing connection: " + e.getMessage());
+            }
+        }
+    }
+
     /**
      * Safely closes the active singleton connection.
      */

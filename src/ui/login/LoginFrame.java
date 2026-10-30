@@ -6,6 +6,7 @@ import model.Student;
 import ui.admin.AdminDashboard;
 import ui.admin.NoticeViewerFrame;
 import ui.admin.TimetableViewerFrame;
+import ui.lecturer.LecturerDashboardUI;
 import ui.student.StudentDashboard;
 import ui.technicalofficer.TechnicalOfficerDashboard;
 
@@ -625,17 +626,9 @@ public class LoginFrame extends JFrame {
                                 new StudentDashboard(s).setVisible(true);
                             });
                         } else if ("LECTURER".equalsIgnoreCase(role)) {
-                            Student lecturerUser = new Student(
-                                    userId, dbUsername, role, firstName, lastName,
-                                    email, phone, address, status,
-                                    "STAFF-" + userId, "Academic Staff", "2026/2027",
-                                    "Department of Information & Communication Technology", "ACTIVE"
-                            );
+                            dispose();
                             SwingUtilities.invokeLater(() -> {
-                                dispose();
-                                StudentDashboard dash = new StudentDashboard(lecturerUser);
-                                dash.setVisible(true);
-                                dash.navigateToSection("Announcements");
+                                new LecturerDashboardUI(userId).setVisible(true);
                             });
                         } else if ("TECHNICAL_OFFICER".equalsIgnoreCase(role)) {
                             final String finalOfficerId = (userId != null && !userId.isBlank()) ? userId : "TO001";
