@@ -310,9 +310,8 @@ public final class LecturerTheme {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (currentFrame != null && !(currentFrame instanceof LecturerProfileUI)) {
-                    new LecturerProfileUI(activeId).setVisible(true);
-                    currentFrame.dispose();
+                if (!"Profile".equalsIgnoreCase(activeId)) {
+                    navigateTo(profilePill, new LecturerProfileUI(activeId));
                 }
             }
         };
@@ -365,62 +364,62 @@ public final class LecturerTheme {
         menu.add(menuTitle);
 
         menu.add(createNavItem("Dashboard", "Dashboard".equalsIgnoreCase(activePage), () -> {
-            new LecturerDashboardUI(safeLecturerId).setVisible(true);
-            currentFrame.dispose();
+            if ("Dashboard".equalsIgnoreCase(activePage)) return;
+            navigateTo(sidebar, new LecturerDashboardUI(safeLecturerId));
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("My Courses", "My Courses".equalsIgnoreCase(activePage), () -> {
-            new MyCoursesUI(safeLecturerId).setVisible(true);
-            currentFrame.dispose();
+            if ("My Courses".equalsIgnoreCase(activePage)) return;
+            navigateTo(sidebar, new MyCoursesUI(safeLecturerId));
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Students", "Students".equalsIgnoreCase(activePage), () -> {
-            new StudentUI(safeLecturerId).setVisible(true);
-            currentFrame.dispose();
+            if ("Students".equalsIgnoreCase(activePage)) return;
+            navigateTo(sidebar, new StudentUI(safeLecturerId));
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Attendance", "Attendance".equalsIgnoreCase(activePage), () -> {
-            new AttendanceUI(safeLecturerId).setVisible(true);
-            currentFrame.dispose();
+            if ("Attendance".equalsIgnoreCase(activePage)) return;
+            navigateTo(sidebar, new AttendanceUI(safeLecturerId));
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Marks / Grades", "Marks / Grades".equalsIgnoreCase(activePage), () -> {
-            new MarksGradesUI(safeLecturerId).setVisible(true);
-            currentFrame.dispose();
+            if ("Marks / Grades".equalsIgnoreCase(activePage)) return;
+            navigateTo(sidebar, new MarksGradesUI(safeLecturerId));
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Assignments", "Assignments".equalsIgnoreCase(activePage), () -> {
-            new AssignmentsUI(safeLecturerId).setVisible(true);
-            currentFrame.dispose();
+            if ("Assignments".equalsIgnoreCase(activePage)) return;
+            navigateTo(sidebar, new AssignmentsUI(safeLecturerId));
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Course Materials", "Course Materials".equalsIgnoreCase(activePage), () -> {
-            new CourseMaterialsUI(safeLecturerId).setVisible(true);
-            currentFrame.dispose();
+            if ("Course Materials".equalsIgnoreCase(activePage)) return;
+            navigateTo(sidebar, new CourseMaterialsUI(safeLecturerId));
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Medical Records", "Medical Records".equalsIgnoreCase(activePage), () -> {
-            new MedicalRecordsUI(safeLecturerId).setVisible(true);
-            currentFrame.dispose();
+            if ("Medical Records".equalsIgnoreCase(activePage)) return;
+            navigateTo(sidebar, new MedicalRecordsUI(safeLecturerId));
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Notices", "Notices".equalsIgnoreCase(activePage), () -> {
-            new NoticesUI(safeLecturerId).setVisible(true);
-            currentFrame.dispose();
+            if ("Notices".equalsIgnoreCase(activePage)) return;
+            navigateTo(sidebar, new NoticesUI(safeLecturerId));
         }));
         menu.add(Box.createVerticalStrut(4));
 
         menu.add(createNavItem("Profile", "Profile".equalsIgnoreCase(activePage), () -> {
-            new LecturerProfileUI(safeLecturerId).setVisible(true);
-            currentFrame.dispose();
+            if ("Profile".equalsIgnoreCase(activePage)) return;
+            navigateTo(sidebar, new LecturerProfileUI(safeLecturerId));
         }));
 
         sidebar.add(menu, BorderLayout.NORTH);
@@ -431,8 +430,22 @@ public final class LecturerTheme {
         bottom.setBorder(new EmptyBorder(10, 12, 22, 12));
 
         JButton logout = createLogoutButton(() -> {
+            JFrame hostFrame = currentFrame;
+            if (hostFrame == null || !hostFrame.isDisplayable() || !hostFrame.isVisible()) {
+                Window win = SwingUtilities.getWindowAncestor(sidebar);
+                if (win instanceof JFrame jf) {
+                    hostFrame = jf;
+                } else {
+                    for (Frame f : Frame.getFrames()) {
+                        if (f instanceof JFrame jf2 && jf2.isVisible() && jf2.isDisplayable()) {
+                            hostFrame = jf2;
+                            break;
+                        }
+                    }
+                }
+            }
             int answer = JOptionPane.showConfirmDialog(
-                    currentFrame,
+                    hostFrame,
                     "Are you sure you want to logout?",
                     "Confirm Logout",
                     JOptionPane.YES_NO_OPTION
@@ -440,7 +453,9 @@ public final class LecturerTheme {
             if (answer == JOptionPane.YES_OPTION) {
                 LecturerDashboardUI.setActiveLecturerId(null);
                 LecturerTheme.clearLecturerNameCache(null);
-                currentFrame.dispose();
+                if (hostFrame != null) {
+                    hostFrame.dispose();
+                }
                 SwingUtilities.invokeLater(() -> {
                     new ui.login.LoginFrame().setVisible(true);
                 });
@@ -604,6 +619,45 @@ public final class LecturerTheme {
             table.getTableHeader().setFont(FONT_BOLD_12);
             table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_COLOR));
             table.getTableHeader().setPreferredSize(new Dimension(0, 36));
+        }
+    }
+
+    /**
+     * Navigates seamlessly to targetFrame within the SAME native window instance.
+     * Prevents window disposal so macOS native Full Screen spaces, maximized state,
+     * monitors, and window positions are 100% preserved without any flickering or shrinking.
+     */
+    public static void navigateTo(Component src, JFrame targetFrame) {
+        if (targetFrame == null) return;
+
+        JFrame hostFrame = null;
+        if (src != null) {
+            Window win = (src instanceof Window w) ? w : SwingUtilities.getWindowAncestor(src);
+            if (win instanceof JFrame jf && jf.isDisplayable() && jf.isVisible()) {
+                hostFrame = jf;
+            }
+        }
+
+        if (hostFrame == null) {
+            for (Frame f : Frame.getFrames()) {
+                if (f instanceof JFrame jf && jf.isVisible() && jf.isDisplayable()) {
+                    hostFrame = jf;
+                    break;
+                }
+            }
+        }
+
+        if (hostFrame != null) {
+            hostFrame.setTitle(targetFrame.getTitle());
+            hostFrame.setContentPane(targetFrame.getContentPane());
+            hostFrame.revalidate();
+            hostFrame.repaint();
+
+            if (targetFrame != hostFrame) {
+                targetFrame.dispose();
+            }
+        } else {
+            targetFrame.setVisible(true);
         }
     }
 }
