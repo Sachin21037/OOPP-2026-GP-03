@@ -5,16 +5,31 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="28a03a90-0318-4efc-87b2-54b54003c04b" name="Changes" comment="Create initial project structure">
+      <change beforePath="$PROJECT_DIR$/.idea/libraries/mysql_connector_j_26_7_0.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/dao/AttendanceDAO.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/dao/AttendanceDAO.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/dao/MedicalDAO.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/dao/MedicalDAO.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/AttendanceRecord.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/AttendanceRecord.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/Medical.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/Medical.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/Notice.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/Notice.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/TechnicalOfficer.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/model/TechnicalOfficer.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/service/NoticeService$OperationResult.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/service/NoticeService$OperationResult.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/service/NoticeService.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/service/NoticeService.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ui/lecturer/LecturerTheme.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/ui/lecturer/LecturerTheme.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/mysql-connector-j-26.7.0.jar" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$1.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$2.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$3.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$AlternateRowRenderer.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage$AttendanceStatusRenderer.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/AttendanceManagementPage.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/dao/DatabaseConnection.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/OOPP-2026-GP-03/dao/DatabaseConnection.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/AttendanceManagementPage.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/dao/DatabaseConnection.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/dao/DatabaseConnection.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/dao/Sample.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/DBConnection.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/DBConnection.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/Sample.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/fams (1).sql" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/database/fams.sql" beforeDir="false" afterPath="$PROJECT_DIR$/src/database/fams.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/model/Sample.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/service/Sample.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/admin/Sample.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/lecturer/Sample.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/login/Sample.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/student/Sample.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ui/technicalofficer/Sample.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/util/Sample.java" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,6 +39,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "chirathmiyuru75-oss"
+  }
+}]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/Sachin21037/OOPP-2026-GP-03.git",
+    "accountId": "a78e3977-c6b6-40e0-ba6e-76ac2911eafa"
+  }
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 7
 }</component>
@@ -42,14 +69,19 @@
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "codeWithMe.voiceChat.enabledByDefault": "false",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
     "git-widget-placeholder": "Developement-New",
+    "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "C:/Users/ASUS/OneDrive/Desktop/Mini_Project_OOP/OOPP-2026-GP-03",
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
     "project.structure.last.edited": "Project",
     "project.structure.proportion": "0.0",
-    "project.structure.side.proportion": "0.2"
+    "project.structure.side.proportion": "0.2",
+    "to.speed.mode.migration.done": "true"
   }
 }]]></component>
   <component name="RunManager" selected="Application.Main">

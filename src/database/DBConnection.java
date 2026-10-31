@@ -9,12 +9,13 @@ import java.sql.Statement;
 /**
  * Reusable MySQL Database Connection Utility for FAMS (Faculty Academic Management System).
  *
- * Configured for XAMPP MySQL environment:
+ * Configured for MySQL Server + MySQL Workbench (or XAMPP) environment:
  * - Host: localhost
- * - Port: 3306 (with automatic fallback to 3307 if XAMPP was assigned port 3307)
+ * - Port: 3306 (with automatic fallback to 3307 if assigned port 3307)
  * - Database: fams
  * - Username: root
- * - Password: empty ("")
+ * - Password: auto-detected from common default passwords (empty, 12345678, root, 1234, 21037, admin, password)
+ *   or custom override via DB_PASSWORD environment variable or fams.db.password system property.
  *
  * Designed for Java 21 and standard JDBC / MySQL Connector/J driver.
  */
@@ -23,11 +24,11 @@ public class DBConnection {
     // Database Configuration Constants
     private static final String DB_HOST = "localhost";
     private static final String DB_PORT = "3306"; // Primary default port
-    private static final String ALT_PORT = "3307"; // Alternative port used by XAMPP when 3306 is occupied
+    private static final String ALT_PORT = "3307"; // Alternative port when 3306 is occupied
     private static final String DB_NAME = "fams";
     private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = ""; // Default XAMPP MySQL password is empty
-    private static final String[] CANDIDATE_PASSWORDS = {"", "12345678", "root", "1234"};
+    private static final String DB_PASSWORD = ""; 
+    private static final String[] CANDIDATE_PASSWORDS = {"", "12345678", "root", "1234", "21037", "admin", "password"};
     private static String workingPassword = null;
     private static volatile boolean collationAligned = false;
 
@@ -130,8 +131,23 @@ public class DBConnection {
                 ? new String[]{ALT_PORT, DB_PORT}
                 : new String[]{DB_PORT, ALT_PORT};
 
+        java.util.List<String> passwordsToTry = new java.util.ArrayList<>();
+        String envPwd = System.getenv("DB_PASSWORD");
+        if (envPwd != null && !envPwd.isEmpty()) {
+            passwordsToTry.add(envPwd);
+        }
+        String propPwd = System.getProperty("fams.db.password");
+        if (propPwd != null && !propPwd.isEmpty() && !passwordsToTry.contains(propPwd)) {
+            passwordsToTry.add(propPwd);
+        }
+        for (String p : CANDIDATE_PASSWORDS) {
+            if (!passwordsToTry.contains(p)) {
+                passwordsToTry.add(p);
+            }
+        }
+
         for (String port : portsToTry) {
-            for (String pwd : CANDIDATE_PASSWORDS) {
+            for (String pwd : passwordsToTry) {
                 try {
                     Connection conn = DriverManager.getConnection(buildJdbcUrl(port), DB_USER, pwd);
                     activePort = port;
@@ -195,13 +211,15 @@ public class DBConnection {
         int code = e.getErrorCode();
         if (code == 1049) {
             System.err.println("\nDiagnostic: Unknown database '" + DB_NAME + "'.");
-            System.err.println("Solution  : Open phpMyAdmin in XAMPP (http://localhost/phpmyadmin) and ensure database '" + DB_NAME + "' exists.");
+            System.err.println("Solution  : In MySQL Workbench, open src/database/fams.sql and execute it (lightning bolt icon)");
+            System.err.println("            to create and populate database '" + DB_NAME + "'.");
         } else if (code == 1045) {
             System.err.println("\nDiagnostic: Access denied for user '" + DB_USER + "'.");
-            System.err.println("Solution  : Verify the MySQL username and password in XAMPP.");
+            System.err.println("Solution  : Verify the root password set on MySQL Server (e.g. via MySQL Workbench).");
+            System.err.println("            You can also pass your custom password via DB_PASSWORD environment variable or -Dfams.db.password=YOUR_PASSWORD");
         } else if (e.getMessage() != null && (e.getMessage().contains("Communications link failure") || e.getMessage().contains("Connection refused"))) {
-            System.err.println("\nDiagnostic: Could not reach MySQL on " + DB_HOST + ":" + attemptedPort + ".");
-            System.err.println("Solution  : Ensure MySQL is running in XAMPP Control Panel.");
+            System.err.println("\nDiagnostic: Could not reach MySQL Server on " + DB_HOST + ":" + attemptedPort + ".");
+            System.err.println("Solution  : Ensure MySQL Server is running (macOS System Settings -> MySQL, or run 'brew services start mysql').");
         }
         System.err.println();
     }
