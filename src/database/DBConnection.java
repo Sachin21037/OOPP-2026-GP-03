@@ -3,13 +3,20 @@ package database;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
+import java.util.logging.Logger;
 
 /**
  * Reusable MySQL Database Connection Utility for FAMS (Faculty Academic Management System).
@@ -45,18 +52,112 @@ public class DBConnection {
     private static DBConnection instance;
     private Connection connection;
 
-    // Static block to explicitly load the JDBC driver
-    static {
+    private static volatile boolean driverLoaded = false;
+
+    /**
+     * Ensures that the MySQL JDBC driver is registered with java.sql.DriverManager.
+     * If not found on the default classpath, automatically scans the project lib directory,
+     * loads the jar dynamically via URLClassLoader, and registers a DriverShim.
+     */
+    public static synchronized void ensureDriverLoaded() {
+        if (driverLoaded) {
+            return;
+        }
+
+        // 1. Check if the driver is already available in the standard classpath
         try {
             Class.forName(DRIVER_CLASS);
-        } catch (ClassNotFoundException e) {
-            System.err.println("======================================================================");
-            System.err.println("[FAMS DBConnection WARNING] MySQL Connector/J driver class not found!");
-            System.err.println("Driver Class: " + DRIVER_CLASS);
-            System.err.println("Resolution  : Please ensure mysql-connector-j-*.jar is added to your");
-            System.err.println("              IntelliJ Project Libraries (File -> Project Structure -> Libraries).");
-            System.err.println("======================================================================");
+            driverLoaded = true;
+            return;
+        } catch (ClassNotFoundException ignored) {
         }
+
+        // 2. Discover MySQL Connector JAR dynamically
+        List<File> candidates = new ArrayList<>();
+
+        // Working directory lib/ and relative paths
+        File[] candidateDirs = {
+            new File("lib"),
+            new File("../lib"),
+            new File("../../lib")
+        };
+        for (File dir : candidateDirs) {
+            if (dir.exists() && dir.isDirectory()) {
+                File[] jars = dir.listFiles((d, name) -> name.toLowerCase().endsWith(".jar") && name.toLowerCase().contains("mysql"));
+                if (jars != null) {
+                    for (File j : jars) {
+                        if (!candidates.contains(j)) {
+                            candidates.add(j);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Check relative to DBConnection class location
+        try {
+            URL location = DBConnection.class.getProtectionDomain().getCodeSource().getLocation();
+            if (location != null) {
+                File codePath = new File(location.toURI());
+                File codeDir = codePath.isDirectory() ? codePath : codePath.getParentFile();
+                File p1 = new File(codeDir, "lib");
+                File p2 = (codeDir.getParentFile() != null) ? new File(codeDir.getParentFile(), "lib") : null;
+                File p3 = (codeDir.getParentFile() != null && codeDir.getParentFile().getParentFile() != null)
+                        ? new File(codeDir.getParentFile().getParentFile(), "lib") : null;
+                for (File d : new File[]{p1, p2, p3}) {
+                    if (d != null && d.exists() && d.isDirectory()) {
+                        File[] jars = d.listFiles((dir, name) -> name.toLowerCase().endsWith(".jar") && name.toLowerCase().contains("mysql"));
+                        if (jars != null) {
+                            for (File j : jars) {
+                                if (!candidates.contains(j)) {
+                                    candidates.add(j);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        // Direct fallback paths
+        File defaultJar = new File("lib/mysql-connector-j-9.2.0.jar");
+        if (defaultJar.exists() && !candidates.contains(defaultJar)) {
+            candidates.add(defaultJar);
+        }
+        File legacyJar = new File("lib/mysql-connector-j-26.7.0.jar");
+        if (legacyJar.exists() && !candidates.contains(legacyJar)) {
+            candidates.add(legacyJar);
+        }
+
+        // Attempt dynamic loading through DriverShim
+        for (File jarFile : candidates) {
+            try {
+                URLClassLoader loader = new URLClassLoader(
+                    new URL[]{jarFile.toURI().toURL()},
+                    DBConnection.class.getClassLoader()
+                );
+                Class<?> loadedClass = Class.forName(DRIVER_CLASS, true, loader);
+                Driver rawDriver = (Driver) loadedClass.getDeclaredConstructor().newInstance();
+                DriverManager.registerDriver(new DriverShim(rawDriver));
+                driverLoaded = true;
+                System.out.println("[FAMS DBConnection] Self-healing: Successfully loaded MySQL driver from " + jarFile.getName());
+                return;
+            } catch (Throwable ignored) {
+            }
+        }
+
+        System.err.println("======================================================================");
+        System.err.println("[FAMS DBConnection WARNING] MySQL Connector/J driver class not found!");
+        System.err.println("Driver Class: " + DRIVER_CLASS);
+        System.err.println("Resolution  : Please ensure mysql-connector-j-*.jar is added to your");
+        System.err.println("              IntelliJ Project Libraries (File -> Project Structure -> Libraries).");
+        System.err.println("======================================================================");
+    }
+
+    // Static block to explicitly load the JDBC driver
+    static {
+        ensureDriverLoaded();
     }
 
     /**
@@ -183,6 +284,7 @@ public class DBConnection {
      * Prevents connecting to accidental rogue MySQL instances by locking to the detected XAMPP port.
      */
     private static Connection createConnection() throws SQLException {
+        ensureDriverLoaded();
         String xamppPort = detectXamppPort();
 
         // Fast path: try cached working connection configuration
@@ -212,7 +314,7 @@ public class DBConnection {
             }
         }
 
-        // Specifically target XAMPP's detected port first (3307 on this Mac)
+        // Specifically target XAMPP's detected port first (3307 on Mac, 3306 on Windows)
         List<String> portsToTry = new ArrayList<>();
         portsToTry.add(xamppPort);
         // Only if XAMPP port is not 3306 and not running on standard macOS XAMPP path, add standard fallback
@@ -441,5 +543,58 @@ public class DBConnection {
             System.err.println("[FAMS DBConnection] Connection test failed: " + e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * DriverShim wraps a Driver loaded from an isolated URLClassLoader so that
+     * java.sql.DriverManager accepts it from the application ClassLoader.
+     */
+    private static class DriverShim implements Driver {
+        private final Driver driver;
+
+        public DriverShim(Driver d) {
+            this.driver = d;
+        }
+
+        @Override
+        public boolean acceptsURL(String u) throws SQLException {
+            return driver.acceptsURL(u);
+        }
+
+        @Override
+        public Connection connect(String u, Properties p) throws SQLException {
+            return driver.connect(u, p);
+        }
+
+        @Override
+        public int getMajorVersion() {
+            return driver.getMajorVersion();
+        }
+
+        @Override
+        public int getMinorVersion() {
+            return driver.getMinorVersion();
+        }
+
+        @Override
+        public DriverPropertyInfo[] getPropertyInfo(String u, Properties p) throws SQLException {
+            return driver.getPropertyInfo(u, p);
+        }
+
+        @Override
+        public boolean jdbcCompliant() {
+            return driver.jdbcCompliant();
+        }
+
+        @Override
+        public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+            return driver.getParentLogger();
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println("Testing FAMS DBConnection...");
+        boolean ok = testConnection();
+        System.out.println("Connection test result: " + (ok ? "SUCCESS" : "FAILED"));
     }
 }
