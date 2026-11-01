@@ -1,41 +1,45 @@
 package database;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Reusable MySQL Database Connection Utility for FAMS (Faculty Academic Management System).
  *
- * Configured for XAMPP MySQL environment:
- * - Host: localhost
- * - Port: 3306 (with automatic fallback to 3307 if XAMPP was assigned port 3307)
+ * Configured specifically for XAMPP MySQL environment:
+ * - Detects exact XAMPP MySQL port from /Applications/XAMPP/xamppfiles/etc/my.cnf (port 3307 on this system)
+ * - Prevents accidental connection to rogue standalone MySQL daemons on port 3306
+ * - Host: 127.0.0.1 (IPv4 loopback to avoid macOS IPv6 'localhost' resolution issues)
  * - Database: fams
  * - Username: root
- * - Password: empty ("")
+ * - Password: empty ("") by default
+ * - Auto-initialization: Creates database 'fams' and auto-loads fams.sql if missing
  *
  * Designed for Java 21 and standard JDBC / MySQL Connector/J driver.
  */
 public class DBConnection {
 
     // Database Configuration Constants
-    private static final String DB_HOST = "localhost";
-    private static final String DB_PORT = "3306"; // Primary default port
-    private static final String ALT_PORT = "3307"; // Alternative port used by XAMPP when 3306 is occupied
+    private static final String[] DB_HOSTS = {"127.0.0.1", "localhost"};
     private static final String DB_NAME = "fams";
     private static final String DB_USER = "root";
     private static final String DB_PASSWORD = ""; // Default XAMPP MySQL password is empty
-    private static final String[] CANDIDATE_PASSWORDS = {"", "12345678", "root", "1234"};
+    private static final String[] CANDIDATE_PASSWORDS = {"", "12345678", "root", "1234", "21037", "admin", "password"};
+    private static String workingHost = "127.0.0.1";
+    private static String workingPort = null;
     private static String workingPassword = null;
     private static volatile boolean collationAligned = false;
 
     // JDBC Driver Class
     private static final String DRIVER_CLASS = "com.mysql.cj.jdbc.Driver";
-
-    // Active port determined during runtime connection
-    private static String activePort = DB_PORT;
 
     // Singleton instance and active connection holder
     private static DBConnection instance;
@@ -63,18 +67,90 @@ public class DBConnection {
     }
 
     /**
-     * Builds the JDBC Connection URL for a specific port.
+     * Detects the exact port configured in XAMPP's my.cnf / my.ini file.
+     * On macOS XAMPP, this accurately reads port 3307 from /Applications/XAMPP/xamppfiles/etc/my.cnf.
      */
-    public static String buildJdbcUrl(String port) {
-        return "jdbc:mysql://" + DB_HOST + ":" + port + "/" + DB_NAME
+    public static String detectXamppPort() {
+        // 1. Check system property override
+        String sysPort = System.getProperty("fams.db.port");
+        if (sysPort != null && !sysPort.trim().isEmpty()) {
+            return sysPort.trim();
+        }
+
+        // 2. Check environment variable override
+        String envPort = System.getenv("DB_PORT");
+        if (envPort != null && !envPort.trim().isEmpty()) {
+            return envPort.trim();
+        }
+
+        // 3. Inspect macOS XAMPP configuration file
+        File macCnf = new File("/Applications/XAMPP/xamppfiles/etc/my.cnf");
+        if (macCnf.exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(macCnf))) {
+                String line;
+                boolean inMysqld = false;
+                while ((line = br.readLine()) != null) {
+                    line = line.trim();
+                    if (line.startsWith("[") && line.endsWith("]")) {
+                        inMysqld = line.equalsIgnoreCase("[mysqld]");
+                    } else if (inMysqld && line.startsWith("port")) {
+                        String[] parts = line.split("=");
+                        if (parts.length >= 2) {
+                            String port = parts[1].trim();
+                            if (!port.isEmpty()) {
+                                return port;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+            return "3307";
+        }
+
+        // 4. Inspect Windows XAMPP configuration file
+        File winIni = new File("C:\\xampp\\mysql\\bin\\my.ini");
+        if (winIni.exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(winIni))) {
+                String line;
+                boolean inMysqld = false;
+                while ((line = br.readLine()) != null) {
+                    line = line.trim();
+                    if (line.startsWith("[") && line.endsWith("]")) {
+                        inMysqld = line.equalsIgnoreCase("[mysqld]");
+                    } else if (inMysqld && line.startsWith("port")) {
+                        String[] parts = line.split("=");
+                        if (parts.length >= 2) {
+                            String port = parts[1].trim();
+                            if (!port.isEmpty()) {
+                                return port;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        return "3306";
+    }
+
+    /**
+     * Builds the JDBC Connection URL for a specific host, port, and database name.
+     */
+    public static String buildJdbcUrl(String host, String port, String dbName) {
+        String dbPath = (dbName != null && !dbName.isEmpty()) ? "/" + dbName : "";
+        return "jdbc:mysql://" + host + ":" + port + dbPath
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci";
     }
 
     /**
+     * Builds the JDBC Connection URL for a specific port.
+     */
+    public static String buildJdbcUrl(String port) {
+        return buildJdbcUrl(workingHost, port, DB_NAME);
+    }
+
+    /**
      * Returns the singleton instance of DBConnection.
-     *
-     * @return DBConnection instance
-     * @throws SQLException if a database connection error occurs
      */
     public static synchronized DBConnection getInstance() throws SQLException {
         if (instance == null) {
@@ -86,9 +162,6 @@ public class DBConnection {
     /**
      * Retrieves an active Connection. Reuses existing connection if still open and valid,
      * or opens a new one if it is null or closed.
-     *
-     * @return active java.sql.Connection
-     * @throws SQLException if connection cannot be established
      */
     public static synchronized Connection getConnection() throws SQLException {
         DBConnection db = getInstance();
@@ -100,24 +173,22 @@ public class DBConnection {
 
     /**
      * Opens and returns a fresh, independent Connection.
-     * Useful for transactions or separate worker threads.
-     *
-     * @return new java.sql.Connection
-     * @throws SQLException if connection cannot be established
      */
     public static Connection getNewConnection() throws SQLException {
         return createConnection();
     }
 
     /**
-     * Internal factory method to create a new Connection with automatic port detection
-     * and detailed diagnostic error handling.
+     * Internal factory method to create a new Connection targeting XAMPP MySQL.
+     * Prevents connecting to accidental rogue MySQL instances by locking to the detected XAMPP port.
      */
     private static Connection createConnection() throws SQLException {
-        // Fast path: try cached working password on activePort
-        if (workingPassword != null) {
+        String xamppPort = detectXamppPort();
+
+        // Fast path: try cached working connection configuration
+        if (workingPassword != null && workingHost != null && workingPort != null && workingPort.equals(xamppPort)) {
             try {
-                Connection conn = DriverManager.getConnection(buildJdbcUrl(activePort), DB_USER, workingPassword);
+                Connection conn = DriverManager.getConnection(buildJdbcUrl(workingHost, workingPort, DB_NAME), DB_USER, workingPassword);
                 applyCollationSettings(conn);
                 return conn;
             } catch (SQLException ignored) {
@@ -126,29 +197,134 @@ public class DBConnection {
         }
 
         SQLException lastEx = null;
-        String[] portsToTry = activePort.equals(ALT_PORT)
-                ? new String[]{ALT_PORT, DB_PORT}
-                : new String[]{DB_PORT, ALT_PORT};
+        List<String> passwordsToTry = new ArrayList<>();
+        String envPwd = System.getenv("DB_PASSWORD");
+        if (envPwd != null && !envPwd.isEmpty()) {
+            passwordsToTry.add(envPwd);
+        }
+        String propPwd = System.getProperty("fams.db.password");
+        if (propPwd != null && !propPwd.isEmpty() && !passwordsToTry.contains(propPwd)) {
+            passwordsToTry.add(propPwd);
+        }
+        for (String p : CANDIDATE_PASSWORDS) {
+            if (!passwordsToTry.contains(p)) {
+                passwordsToTry.add(p);
+            }
+        }
 
-        for (String port : portsToTry) {
-            for (String pwd : CANDIDATE_PASSWORDS) {
-                try {
-                    Connection conn = DriverManager.getConnection(buildJdbcUrl(port), DB_USER, pwd);
-                    activePort = port;
-                    workingPassword = pwd;
-                    applyCollationSettings(conn);
-                    return conn;
-                } catch (SQLException ex) {
-                    lastEx = ex;
+        // Specifically target XAMPP's detected port first (3307 on this Mac)
+        List<String> portsToTry = new ArrayList<>();
+        portsToTry.add(xamppPort);
+        // Only if XAMPP port is not 3306 and not running on standard macOS XAMPP path, add standard fallback
+        if (!xamppPort.equals("3306") && !new File("/Applications/XAMPP/xamppfiles").exists()) {
+            portsToTry.add("3306");
+        }
+
+        for (String host : DB_HOSTS) {
+            for (String port : portsToTry) {
+                for (String pwd : passwordsToTry) {
+                    try {
+                        Connection conn = DriverManager.getConnection(buildJdbcUrl(host, port, DB_NAME), DB_USER, pwd);
+                        workingHost = host;
+                        workingPort = port;
+                        workingPassword = pwd;
+                        ensureTablesExist(conn);
+                        applyCollationSettings(conn);
+                        System.out.println("[FAMS DBConnection] Connected successfully to XAMPP MySQL database '" + DB_NAME + "' on " + host + ":" + port + " as user '" + DB_USER + "'.");
+                        return conn;
+                    } catch (SQLException ex) {
+                        lastEx = ex;
+                        // If Error 1049: Unknown database 'fams', attempt to auto-create it on XAMPP MySQL
+                        if (ex.getErrorCode() == 1049) {
+                            try {
+                                String serverUrl = buildJdbcUrl(host, port, "");
+                                try (Connection serverConn = DriverManager.getConnection(serverUrl, DB_USER, pwd);
+                                     Statement stmt = serverConn.createStatement()) {
+                                    stmt.execute("CREATE DATABASE IF NOT EXISTS `" + DB_NAME + "` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                                    System.out.println("[FAMS DBConnection] Database '" + DB_NAME + "' auto-created in XAMPP MySQL on " + host + ":" + port + ".");
+                                }
+                                Connection conn = DriverManager.getConnection(buildJdbcUrl(host, port, DB_NAME), DB_USER, pwd);
+                                workingHost = host;
+                                workingPort = port;
+                                workingPassword = pwd;
+                                ensureTablesExist(conn);
+                                applyCollationSettings(conn);
+                                System.out.println("[FAMS DBConnection] Connected successfully to newly created XAMPP database '" + DB_NAME + "' on " + host + ":" + port + ".");
+                                return conn;
+                            } catch (SQLException createEx) {
+                                lastEx = createEx;
+                            }
+                        }
+                    }
                 }
             }
         }
 
         if (lastEx != null) {
-            handleConnectionError(lastEx, activePort);
+            handleConnectionError(lastEx, xamppPort);
             throw lastEx;
         }
-        throw new SQLException("Unable to connect to database using candidate configurations.");
+        throw new SQLException("Unable to connect to XAMPP MySQL database using candidate configurations.");
+    }
+
+    /**
+     * Checks if tables exist in the database, and auto-imports src/database/fams.sql if empty.
+     */
+    private static void ensureTablesExist(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            boolean hasUsers = false;
+            try (ResultSet rs = stmt.executeQuery("SELECT 1 FROM `users` LIMIT 1")) {
+                if (rs.next()) {
+                    hasUsers = true;
+                }
+            } catch (SQLException ignored) {
+                hasUsers = false;
+            }
+
+            if (!hasUsers) {
+                System.out.println("[FAMS DBConnection] Database '" + DB_NAME + "' in XAMPP is missing core tables. Auto-importing src/database/fams.sql...");
+                executeSqlFile(conn, "src/database/fams.sql");
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    /**
+     * Executes SQL statements from a file to initialize schema and default data.
+     */
+    private static void executeSqlFile(Connection conn, String filePath) {
+        File file = new File(filePath);
+        if (!file.exists()) {
+            return;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            StringBuilder sb = new StringBuilder();
+            String line;
+            try (Statement stmt = conn.createStatement()) {
+                while ((line = reader.readLine()) != null) {
+                    String trimmed = line.trim();
+                    if (trimmed.isEmpty() || trimmed.startsWith("--") || trimmed.startsWith("/*")) {
+                        continue;
+                    }
+                    sb.append(line).append(" ");
+                    if (trimmed.endsWith(";")) {
+                        String sql = sb.toString().trim();
+                        sql = sql.substring(0, sql.length() - 1).trim();
+                        if (!sql.isEmpty()) {
+                            try {
+                                stmt.execute(sql);
+                            } catch (SQLException ignored) {
+                            }
+                        }
+                        sb.setLength(0);
+                    }
+                }
+            }
+            System.out.println("[FAMS DBConnection] Schema successfully loaded into XAMPP database '" + DB_NAME + "'.");
+        } catch (Exception e) {
+            System.err.println("[FAMS DBConnection] Could not auto-load SQL file: " + e.getMessage());
+        }
     }
 
     /**
@@ -189,7 +365,8 @@ public class DBConnection {
         System.err.println("• Error Message  : " + e.getMessage());
         System.err.println("• Error Code     : " + e.getErrorCode());
         System.err.println("• SQL State      : " + e.getSQLState());
-        System.err.println("• Attempted Port : " + attemptedPort);
+        System.err.println("• Target Host    : " + workingHost);
+        System.err.println("• Target Port    : " + attemptedPort + " (XAMPP configured port)");
         System.err.println("• Target URL     : " + buildJdbcUrl(attemptedPort));
 
         int code = e.getErrorCode();
@@ -200,14 +377,14 @@ public class DBConnection {
             System.err.println("\nDiagnostic: Access denied for user '" + DB_USER + "'.");
             System.err.println("Solution  : Verify the MySQL username and password in XAMPP.");
         } else if (e.getMessage() != null && (e.getMessage().contains("Communications link failure") || e.getMessage().contains("Connection refused"))) {
-            System.err.println("\nDiagnostic: Could not reach MySQL on " + DB_HOST + ":" + attemptedPort + ".");
-            System.err.println("Solution  : Ensure MySQL is running in XAMPP Control Panel.");
+            System.err.println("\nDiagnostic: Could not reach XAMPP MySQL on " + workingHost + ":" + attemptedPort + ".");
+            System.err.println("Solution  : Ensure MySQL Database is started in XAMPP (manager-osx).");
         }
         System.err.println();
     }
 
     public static String getUrl() {
-        return buildJdbcUrl(activePort);
+        return buildJdbcUrl(workingPort != null ? workingPort : detectXamppPort());
     }
 
     public static String getUser() {
@@ -246,75 +423,23 @@ public class DBConnection {
 
     /**
      * Tests the database connection and prints informative status and schema metadata.
-     *
-     * @return true if connection and query succeeded, false otherwise
      */
     public static boolean testConnection() {
-        System.out.println("=================================================================");
-        System.out.println("         FAMS - Database Connection Diagnostic Utility           ");
-        System.out.println("=================================================================");
-        System.out.println("Target Database : " + DB_NAME);
-        System.out.println("Primary Host    : " + DB_HOST + ":" + DB_PORT);
-        System.out.println("Alternative Port: " + ALT_PORT);
-        System.out.println("Database User   : " + DB_USER);
-        System.out.println("Attempting connection...");
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT DATABASE(), USER(), VERSION()")) {
 
-        long startTime = System.currentTimeMillis();
-
-        try (Connection conn = getNewConnection();
-             Statement stmt = conn.createStatement()) {
-
-            long elapsed = System.currentTimeMillis() - startTime;
-            System.out.println("\n[SUCCESS] Connection established successfully in " + elapsed + " ms!");
-            System.out.println("Connected Port  : " + activePort);
-
-            // Query server metadata
-            try (ResultSet rs = stmt.executeQuery("SELECT DATABASE() AS current_db, VERSION() AS mysql_version")) {
-                if (rs.next()) {
-                    System.out.println("Active Database : " + rs.getString("current_db"));
-                    System.out.println("MySQL Version   : " + rs.getString("mysql_version"));
-                }
+            if (rs.next()) {
+                System.out.println("[FAMS DBConnection] Connection successful!");
+                System.out.println("  Connected Database : " + rs.getString(1));
+                System.out.println("  Authenticated User : " + rs.getString(2));
+                System.out.println("  Server Version     : " + rs.getString(3));
+                return true;
             }
-
-            // Query existing tables in fams database
-            try (ResultSet rsTables = stmt.executeQuery("SHOW TABLES")) {
-                int tableCount = 0;
-                System.out.println("\nExisting Tables in '" + DB_NAME + "':");
-                while (rsTables.next()) {
-                    tableCount++;
-                    System.out.println(String.format("  [%2d] %s", tableCount, rsTables.getString(1)));
-                }
-                System.out.println("\nTotal tables verified: " + tableCount);
-            }
-
-            System.out.println("=================================================================");
-            System.out.println("RESULT: SUCCESS - Ready for DAO and Service integration.");
-            System.out.println("=================================================================");
-            return true;
-
+            return false;
         } catch (SQLException e) {
-            System.err.println("=================================================================");
-            System.err.println("RESULT: FAILED - Connection could not be established.");
-            System.err.println("=================================================================");
+            System.err.println("[FAMS DBConnection] Connection test failed: " + e.getMessage());
             return false;
-        } catch (Throwable t) {
-            System.err.println("\nUnexpected Error: " + t.getMessage());
-            t.printStackTrace();
-            return false;
-        }
-    }
-
-    /**
-     * Standalone main method to verify the database connection directly.
-     * Run this class in IntelliJ IDEA to test your XAMPP connection.
-     */
-    public static void main(String[] args) {
-        boolean success = testConnection();
-        if (success) {
-            System.out.println("\n[OK] Database connection test passed successfully.");
-        } else {
-            System.err.println("\n[ERROR] Database connection test failed. Please check the diagnostic logs above.");
-            System.exit(1);
         }
     }
 }

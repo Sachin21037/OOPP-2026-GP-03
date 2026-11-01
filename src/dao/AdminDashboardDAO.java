@@ -28,6 +28,7 @@ public class AdminDashboardDAO {
 
         try (Connection conn = DBConnection.getNewConnection()) {
             stats.setDbConnected(true);
+            stats.setActivePort(DBConnection.detectXamppPort());
 
             // 1. Total Students (from undergraduates table, fallback to users table)
             stats.setTotalStudents(executeCountQuery(conn,

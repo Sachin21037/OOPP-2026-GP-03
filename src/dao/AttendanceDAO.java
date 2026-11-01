@@ -220,43 +220,54 @@ public class AttendanceDAO {
             try {
                 conn.setAutoCommit(false);
 
-                // Insert session into attendance_sessions table
+                // Insert or update session into attendance_sessions table
                 String offCode = String.format("OFF%03d", session.getOfferingId());
                 int nextSesNum = session.getSessionNumber();
                 String sesCode = String.format("SES%03d", nextSesNum);
 
                 String sessionSql = "INSERT INTO attendance_sessions (session_id, offering_id, session_date, session_type, session_number, topic, conducted_by) " +
-                                    "VALUES (?, ?, ?, ?, ?, ?, ?)";
-                PreparedStatement psSession = conn.prepareStatement(sessionSql);
-                psSession.setString(1, sesCode);
-                psSession.setString(2, offCode);
-                psSession.setDate(3, new java.sql.Date(session.getSessionDate() != null ? session.getSessionDate().getTime() : System.currentTimeMillis()));
-                psSession.setString(4, session.getSessionType().toUpperCase());
-                psSession.setInt(5, session.getSessionNumber());
-                psSession.setString(6, session.getSessionType() + " Session " + session.getSessionNumber());
-                psSession.setString(7, "TO001");
-                psSession.executeUpdate();
+                                    "VALUES (?, ?, ?, ?, ?, ?, ?) " +
+                                    "ON DUPLICATE KEY UPDATE offering_id = VALUES(offering_id), session_date = VALUES(session_date), " +
+                                    "session_type = VALUES(session_type), session_number = VALUES(session_number), topic = VALUES(topic), conducted_by = VALUES(conducted_by)";
+                try (PreparedStatement psSession = conn.prepareStatement(sessionSql)) {
+                    psSession.setString(1, sesCode);
+                    psSession.setString(2, offCode);
+                    psSession.setDate(3, new java.sql.Date(session.getSessionDate() != null ? session.getSessionDate().getTime() : System.currentTimeMillis()));
+                    psSession.setString(4, session.getSessionType().toUpperCase());
+                    psSession.setInt(5, session.getSessionNumber());
+                    psSession.setString(6, session.getSessionType() + " Session " + session.getSessionNumber());
+                    psSession.setString(7, "TO001");
+                    psSession.executeUpdate();
+                }
+
+                // Delete previous attendance records for this session to ensure clean upsert without duplicate key collisions
+                try (PreparedStatement psDel = conn.prepareStatement("DELETE FROM attendance WHERE session_id = ?")) {
+                    psDel.setString(1, sesCode);
+                    psDel.executeUpdate();
+                }
 
                 // Batch insert records into attendance table
                 String attSql = "INSERT INTO attendance (attendance_id, session_id, student_id, status, remarks) VALUES (?, ?, ?, ?, ?)";
-                PreparedStatement psAtt = conn.prepareStatement(attSql);
-                int count = 1;
-                for (model.AttendanceRecord r : records) {
-                    String attCode = String.format("ATT%04d", (nextSesNum * 100) + count++);
-                    String stuCode = String.format("STU%03d", r.getStudentId());
-                    String status = r.getStatus().toUpperCase();
+                try (PreparedStatement psAtt = conn.prepareStatement(attSql)) {
+                    int count = 1;
+                    for (model.AttendanceRecord r : records) {
+                        String attCode = String.format("ATT%04d", (nextSesNum * 100) + count++);
+                        String stuCode = String.format("STU%03d", r.getStudentId());
+                        String status = r.getStatus().toUpperCase();
 
-                    psAtt.setString(1, attCode);
-                    psAtt.setString(2, sesCode);
-                    psAtt.setString(3, stuCode);
-                    psAtt.setString(4, status);
-                    psAtt.setString(5, r.getRemarks());
-                    psAtt.addBatch();
+                        psAtt.setString(1, attCode);
+                        psAtt.setString(2, sesCode);
+                        psAtt.setString(3, stuCode);
+                        psAtt.setString(4, status);
+                        psAtt.setString(5, r.getRemarks());
+                        psAtt.addBatch();
+                    }
+                    psAtt.executeBatch();
                 }
-                psAtt.executeBatch();
 
                 conn.commit();
                 conn.setAutoCommit(true);
+                System.out.println("[AttendanceDAO] Successfully saved session " + sesCode + " and " + records.size() + " records to MySQL.");
                 return true;
             } catch (SQLException e) {
                 try {
@@ -288,6 +299,79 @@ public class AttendanceDAO {
     public List<AttendanceScenarioResult> getBatchAttendanceSummary(int offeringId, String trackFilter) {
         List<Undergraduate> students = getStudentsByOffering(offeringId);
         List<AttendanceScenarioResult> results = new ArrayList<>();
+
+        Connection conn = DatabaseConnection.getConnection();
+        if (conn != null) {
+            try {
+                String offCode = String.format("OFF%03d", offeringId);
+                // Count conducted sessions matching track
+                int totalConducted = 0;
+                String countSql = "SELECT count(*) FROM attendance_sessions WHERE (offering_id = ? OR offering_id = ?)";
+                if (trackFilter != null && !"Combined".equalsIgnoreCase(trackFilter)) {
+                    countSql += " AND session_type = ?";
+                }
+                try (PreparedStatement psCount = conn.prepareStatement(countSql)) {
+                    psCount.setString(1, offCode);
+                    psCount.setString(2, String.valueOf(offeringId));
+                    if (trackFilter != null && !"Combined".equalsIgnoreCase(trackFilter)) {
+                        psCount.setString(3, trackFilter.toUpperCase());
+                    }
+                    try (ResultSet rs = psCount.executeQuery()) {
+                        if (rs.next()) {
+                            totalConducted = rs.getInt(1);
+                        }
+                    }
+                }
+                if (totalConducted == 0) totalConducted = 15;
+
+                for (Undergraduate u : students) {
+                    int attended = 0;
+                    int recordedMedical = 0;
+
+                    String attQuery = "SELECT a.status, count(*) FROM attendance a " +
+                                      "JOIN attendance_sessions s ON a.session_id = s.session_id " +
+                                      "WHERE (s.offering_id = ? OR s.offering_id = ?) AND a.student_id = ? ";
+                    if (trackFilter != null && !"Combined".equalsIgnoreCase(trackFilter)) {
+                        attQuery += " AND s.session_type = ? ";
+                    }
+                    attQuery += " GROUP BY a.status";
+
+                    try (PreparedStatement psAtt = conn.prepareStatement(attQuery)) {
+                        psAtt.setString(1, offCode);
+                        psAtt.setString(2, String.valueOf(offeringId));
+                        psAtt.setString(3, u.getStudentCode());
+                        if (trackFilter != null && !"Combined".equalsIgnoreCase(trackFilter)) {
+                            psAtt.setString(4, trackFilter.toUpperCase());
+                        }
+                        try (ResultSet rs = psAtt.executeQuery()) {
+                            while (rs.next()) {
+                                String st = rs.getString(1);
+                                int cnt = rs.getInt(2);
+                                if ("PRESENT".equalsIgnoreCase(st)) {
+                                    attended += cnt;
+                                } else if ("MEDICAL".equalsIgnoreCase(st)) {
+                                    recordedMedical += cnt;
+                                }
+                            }
+                        }
+                    }
+
+                    int approvedMedicals = medicalDAO.getApprovedMedicalCount(u.getStudentCode());
+                    boolean hasMedicalSubmitted = medicalDAO.hasSubmittedMedical(u.getStudentCode()) || recordedMedical > 0;
+
+                    AttendanceScenarioResult res = AttendanceCalculator.evaluateScenario(
+                            u, totalConducted, attended, approvedMedicals, hasMedicalSubmitted
+                    );
+                    results.add(res);
+                }
+
+                if (!results.isEmpty()) {
+                    return results;
+                }
+            } catch (SQLException e) {
+                System.err.println("[AttendanceDAO] Error in getBatchAttendanceSummary: " + e.getMessage());
+            }
+        }
 
         // Determine total sessions matching the track filter
         int totalConducted = 0;

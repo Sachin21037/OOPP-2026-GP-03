@@ -221,14 +221,16 @@ public class MedicalDAO {
     }
 
     public boolean approveMedical(String medicalCode, String approvedBy) {
+        String safeApprover = (approvedBy != null && !approvedBy.trim().isEmpty() && approvedBy.startsWith("TO")) ? approvedBy.trim() : "TO001";
         Connection conn = DatabaseConnection.getConnection();
         if (conn != null) {
             try {
                 String sql = "UPDATE medicals SET approval_status = 'APPROVED', approved_by = ?, remarks = 'Approved after document verification.' WHERE medical_id = ?";
                 PreparedStatement ps = conn.prepareStatement(sql);
-                ps.setString(1, approvedBy != null ? approvedBy : "TO001");
+                ps.setString(1, safeApprover);
                 ps.setString(2, medicalCode);
-                ps.executeUpdate();
+                int rows = ps.executeUpdate();
+                System.out.println("[MedicalDAO] Approved medical " + medicalCode + " in MySQL, affected rows: " + rows);
             } catch (SQLException e) {
                 System.err.println("[MedicalDAO] Error approving medical: " + e.getMessage());
             }
@@ -237,7 +239,7 @@ public class MedicalDAO {
         for (Medical m : mockMedicals) {
             if (medicalCode.equalsIgnoreCase(m.getMedicalCode())) {
                 m.setApprovalStatus("Approved");
-                m.setApprovedBy(approvedBy != null ? approvedBy : "TO001");
+                m.setApprovedBy(safeApprover);
                 m.setApprovedDate(new Date());
                 m.setRemarks("Approved after document verification.");
                 return true;
@@ -247,14 +249,16 @@ public class MedicalDAO {
     }
 
     public boolean rejectMedical(String medicalCode, String approvedBy) {
+        String safeApprover = (approvedBy != null && !approvedBy.trim().isEmpty() && approvedBy.startsWith("TO")) ? approvedBy.trim() : "TO001";
         Connection conn = DatabaseConnection.getConnection();
         if (conn != null) {
             try {
                 String sql = "UPDATE medicals SET approval_status = 'NOT_APPROVED', approved_by = ?, remarks = 'Supporting document rejected after review.' WHERE medical_id = ?";
                 PreparedStatement ps = conn.prepareStatement(sql);
-                ps.setString(1, approvedBy != null ? approvedBy : "TO001");
+                ps.setString(1, safeApprover);
                 ps.setString(2, medicalCode);
-                ps.executeUpdate();
+                int rows = ps.executeUpdate();
+                System.out.println("[MedicalDAO] Rejected medical " + medicalCode + " in MySQL, affected rows: " + rows);
             } catch (SQLException e) {
                 System.err.println("[MedicalDAO] Error rejecting medical: " + e.getMessage());
             }
@@ -263,7 +267,7 @@ public class MedicalDAO {
         for (Medical m : mockMedicals) {
             if (medicalCode.equalsIgnoreCase(m.getMedicalCode())) {
                 m.setApprovalStatus("Rejected");
-                m.setApprovedBy(approvedBy != null ? approvedBy : "TO001");
+                m.setApprovedBy(safeApprover);
                 m.setApprovedDate(new Date());
                 m.setRemarks("Supporting document rejected after review.");
                 return true;
@@ -279,7 +283,9 @@ public class MedicalDAO {
         if (conn != null) {
             try {
                 String sql = "INSERT INTO medicals (medical_id, student_id, offering_id, medical_date, reason, document_path, approval_status, approved_by, remarks) " +
-                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                             "ON DUPLICATE KEY UPDATE offering_id = VALUES(offering_id), medical_date = VALUES(medical_date), reason = VALUES(reason), " +
+                             "document_path = VALUES(document_path), approval_status = VALUES(approval_status), approved_by = VALUES(approved_by), remarks = VALUES(remarks)";
                 PreparedStatement ps = conn.prepareStatement(sql);
                 ps.setString(1, medical.getMedicalCode());
                 ps.setString(2, medical.getStudentCode());
@@ -290,7 +296,8 @@ public class MedicalDAO {
                 ps.setString(7, "PENDING");
                 ps.setString(8, null);
                 ps.setString(9, medical.getRemarks() != null ? medical.getRemarks() : "Submitted for approval");
-                ps.executeUpdate();
+                int rows = ps.executeUpdate();
+                System.out.println("[MedicalDAO] Added/Upserted medical " + medical.getMedicalCode() + " in MySQL, affected rows: " + rows);
             } catch (SQLException e) {
                 System.err.println("[MedicalDAO] Error adding medical: " + e.getMessage());
             }

@@ -898,7 +898,7 @@ public class MarksGradesUI extends JFrame {
         JScrollPane scrollFields = new JScrollPane(marksFieldsPanel);
 
         final Map<AssessmentItem, JTextField> fieldMap = new LinkedHashMap<>();
-        final List<AssessmentItem>[] currentAssessments = new List[]{new ArrayList<>()};
+        final java.util.concurrent.atomic.AtomicReference<List<AssessmentItem>> currentAssessments = new java.util.concurrent.atomic.AtomicReference<>(new ArrayList<>());
 
         Runnable loadStudentAndAssessments = () -> {
             CourseOfferingItem selOff = (CourseOfferingItem) offCombo.getSelectedItem();
@@ -915,11 +915,12 @@ public class MarksGradesUI extends JFrame {
                 }
 
                 // Populate assessments
-                currentAssessments[0] = MarksGradesDAO.loadAssessmentsForOffering(selOff.offeringId);
-                if (currentAssessments[0].isEmpty()) {
+                List<AssessmentItem> asmList = MarksGradesDAO.loadAssessmentsForOffering(selOff.offeringId);
+                currentAssessments.set(asmList);
+                if (asmList.isEmpty()) {
                     marksFieldsPanel.add(new JLabel("No assessments found for this offering."));
                 } else {
-                    for (AssessmentItem a : currentAssessments[0]) {
+                    for (AssessmentItem a : asmList) {
                         JPanel row = new JPanel(new BorderLayout(8, 0));
                         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
                         JLabel l = new JLabel(a.name + " (" + a.type + ", " + String.format(Locale.US, "%.0f%% weight, max %.0f", a.weight, a.maxMarks) + "):");
@@ -971,7 +972,7 @@ public class MarksGradesUI extends JFrame {
             }
 
             try {
-                MarksGradesDAO.saveMarksAndResults(selOff.offeringId, studentId, enteredMarks, currentAssessments[0], lecturerId);
+                MarksGradesDAO.saveMarksAndResults(selOff.offeringId, studentId, enteredMarks, currentAssessments.get(), lecturerId);
                 JOptionPane.showMessageDialog(dialog, "Marks and results saved successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
                 dialog.dispose();
                 loadDatabaseData();

@@ -49,15 +49,15 @@ public class TestConnection {
 
             String msg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
             if (msg.contains("access denied")) {
-                System.err.println(" -> Invalid credentials. Check the password in DBConnection.java.");
+                System.err.println(" -> Invalid credentials. Check user/password in DBConnection.java.");
             } else if (msg.contains("communications link failure") || msg.contains("connection refused")) {
-                System.err.println(" -> MySQL server is not running or port 3306 is not accessible.");
-                System.err.println("    Please start your MySQL service (e.g. MySQL80 via Services or Workbench).");
+                System.err.println(" -> XAMPP MySQL server is not running on port " + DBConnection.detectXamppPort() + ".");
+                System.err.println("    Please open XAMPP (manager-osx) and start MySQL Database.");
             } else if (msg.contains("unknown database 'fams'")) {
-                System.err.println(" -> The database 'fams' does not exist.");
-                System.err.println("    Please create it in MySQL: CREATE DATABASE fams;");
+                System.err.println(" -> The database 'fams' does not exist in XAMPP phpMyAdmin.");
+                System.err.println("    Please create it in http://localhost/phpmyadmin or run fams.sql.");
             } else {
-                System.err.println(" -> Verify MySQL is running, database 'fams' exists, and credentials are correct.");
+                System.err.println(" -> Verify XAMPP MySQL is running and database 'fams' exists.");
             }
         } catch (Exception e) {
             System.err.println("[FAILURE] An unexpected error occurred: " + e.getMessage());
