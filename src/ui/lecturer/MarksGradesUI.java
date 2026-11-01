@@ -529,7 +529,7 @@ public class MarksGradesUI extends JFrame {
                 l.setHorizontalAlignment(SwingConstants.CENTER);
                 String g = value != null ? value.toString().trim() : "";
                 if (!isSelected) {
-                    if ("F".equalsIgnoreCase(g)) {
+                    if ("F".equalsIgnoreCase(g) || "E".equalsIgnoreCase(g)) {
                         l.setBackground(new Color(254, 242, 242)); // soft red/pink #FEF2F2
                         l.setForeground(new Color(220, 38, 38));   // red #DC2626
                         l.setFont(new Font("Arial", Font.BOLD, 12));

@@ -1064,6 +1064,27 @@ public class StudentDAO {
     }
 
     /**
+     * Updates student contact details (email, phone, address) in users table.
+     * Restricts update scope to contact details only, adhering to Undergraduate role requirements.
+     */
+    public boolean updateContactDetails(String userId, String email, String phone, String address) {
+        String sql = "UPDATE users SET email = ?, phone = ?, address = ? WHERE user_id = ?";
+        try {
+            Connection conn = DBConnection.getConnection();
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, email);
+                stmt.setString(2, phone);
+                stmt.setString(3, address);
+                stmt.setString(4, userId);
+                return stmt.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error updating student contact details: " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Retrieves all medical certificate submissions for a student.
      */
     public List<Medical> getStudentMedicals(String studentId) {

@@ -58,6 +58,11 @@ public class StudentDashboard extends JFrame {
     private final StudentDAO studentDAO = new StudentDAO();
     private final List<JButton> menuButtons = new ArrayList<>();
 
+    // Profile view dynamic contact labels
+    private JLabel profileEmailLabel;
+    private JLabel profilePhoneLabel;
+    private JLabel profileAddressLabel;
+
     // Announcements & Notifications state
     private NotificationBellButton notificationBtn;
     private JPanel announcementsListContainer;
@@ -2534,12 +2539,51 @@ public class StudentDashboard extends JFrame {
         JPanel personalGrid = new JPanel(new GridLayout(2, 2, 12, 10));
         personalGrid.setOpaque(false);
 
+        profileEmailLabel = new JLabel((currentStudent.getEmail() != null && !currentStudent.getEmail().isBlank()) ? currentStudent.getEmail() : "Not specified");
+        profilePhoneLabel = new JLabel((currentStudent.getPhone() != null && !currentStudent.getPhone().isBlank()) ? currentStudent.getPhone() : "Not specified");
+        profileAddressLabel = new JLabel((currentStudent.getAddress() != null && !currentStudent.getAddress().isBlank()) ? currentStudent.getAddress() : "Not specified");
+
         personalGrid.add(createProfileFieldTile("Full Legal Name", currentStudent.getFullName()));
-        personalGrid.add(createProfileFieldTile("Official University Email", currentStudent.getEmail()));
-        personalGrid.add(createProfileFieldTile("Contact Phone Number", currentStudent.getPhone()));
-        personalGrid.add(createProfileFieldTile("Permanent Residence", currentStudent.getAddress()));
+        personalGrid.add(createProfileFieldTile("Official University Email", profileEmailLabel));
+        personalGrid.add(createProfileFieldTile("Contact Phone Number", profilePhoneLabel));
+        personalGrid.add(createProfileFieldTile("Permanent Residence", profileAddressLabel));
 
         categoriesContainer.add(personalGrid);
+        categoriesContainer.add(Box.createVerticalStrut(14));
+
+        // Profile Update Notice & Action Button
+        JPanel contactUpdateBar = new JPanel(new BorderLayout(10, 0));
+        contactUpdateBar.setOpaque(false);
+
+        JLabel lockNotice = new JLabel("🔒 Academic records are managed by Faculty. Undergraduates may update contact details & photo only.");
+        lockNotice.setFont(new Font("Arial", Font.ITALIC, 11));
+        lockNotice.setForeground(new Color(100, 116, 139));
+        contactUpdateBar.add(lockNotice, BorderLayout.CENTER);
+
+        JButton editContactBtn = new JButton("✏️  Edit Contact Details");
+        editContactBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        editContactBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        editContactBtn.setOpaque(true);
+        editContactBtn.setForeground(Color.WHITE);
+        editContactBtn.setBackground(new Color(29, 78, 216)); // Royal Blue
+        editContactBtn.setBorder(new CompoundBorder(
+                new LineBorder(new Color(30, 64, 175), 1, true),
+                new EmptyBorder(8, 16, 8, 16)
+        ));
+        editContactBtn.setFocusPainted(false);
+        editContactBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        editContactBtn.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
+                editContactBtn.setBackground(new Color(37, 99, 235));
+            }
+            public void mouseExited(MouseEvent e) {
+                editContactBtn.setBackground(new Color(29, 78, 216));
+            }
+        });
+        editContactBtn.addActionListener(e -> openEditContactDialog());
+        contactUpdateBar.add(editContactBtn, BorderLayout.EAST);
+
+        categoriesContainer.add(contactUpdateBar);
 
         JScrollPane scrollPane = new JScrollPane(categoriesContainer);
         scrollPane.setBorder(null);
@@ -2765,6 +2809,192 @@ public class StudentDashboard extends JFrame {
         tile.add(Box.createVerticalStrut(3));
         tile.add(val);
         return tile;
+    }
+
+    private JPanel createProfileFieldTile(String label, JLabel valueLabel) {
+        JPanel tile = new JPanel();
+        tile.setLayout(new BoxLayout(tile, BoxLayout.Y_AXIS));
+        tile.setBackground(new Color(248, 250, 252));
+        tile.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(new Color(226, 232, 240), 1, true),
+                new EmptyBorder(7, 12, 7, 12)
+        ));
+
+        JLabel lbl = new JLabel(label.toUpperCase());
+        lbl.setFont(new Font("Arial", Font.BOLD, 9));
+        lbl.setForeground(new Color(100, 116, 139));
+
+        valueLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        valueLabel.setForeground(new Color(15, 23, 42));
+
+        tile.add(lbl);
+        tile.add(Box.createVerticalStrut(3));
+        tile.add(valueLabel);
+        return tile;
+    }
+
+    private void openEditContactDialog() {
+        JDialog dialog = new JDialog(this, "Edit Contact Information - " + currentStudent.getFullName(), true);
+        dialog.setSize(520, 480);
+        dialog.setLocationRelativeTo(this);
+        dialog.setLayout(new BorderLayout());
+        dialog.getContentPane().setBackground(Color.WHITE);
+
+        // Header
+        JPanel head = new JPanel();
+        head.setLayout(new BoxLayout(head, BoxLayout.Y_AXIS));
+        head.setBackground(Color.WHITE);
+        head.setBorder(new EmptyBorder(20, 24, 16, 24));
+
+        JLabel titleLbl = new JLabel("Update Contact Information");
+        titleLbl.setFont(new Font("Arial", Font.BOLD, 17));
+        titleLbl.setForeground(new Color(15, 23, 42));
+
+        JLabel subLbl = new JLabel("Per faculty regulations, undergraduates may only update their contact details and profile picture.");
+        subLbl.setFont(new Font("Arial", Font.PLAIN, 12));
+        subLbl.setForeground(new Color(100, 116, 139));
+
+        head.add(titleLbl);
+        head.add(Box.createVerticalStrut(4));
+        head.add(subLbl);
+        dialog.add(head, BorderLayout.NORTH);
+
+        // Form
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBackground(Color.WHITE);
+        form.setBorder(new EmptyBorder(10, 24, 16, 24));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        gbc.insets = new Insets(6, 0, 6, 0);
+
+        JTextField emailField = new JTextField(currentStudent.getEmail() != null ? currentStudent.getEmail() : "");
+        JTextField phoneField = new JTextField(currentStudent.getPhone() != null ? currentStudent.getPhone() : "");
+        JTextField addressField = new JTextField(currentStudent.getAddress() != null ? currentStudent.getAddress() : "");
+
+        Font fieldFont = new Font("Arial", Font.PLAIN, 13);
+        emailField.setFont(fieldFont);
+        phoneField.setFont(fieldFont);
+        addressField.setFont(fieldFont);
+
+        int y = 0;
+        gbc.gridy = y++;
+        form.add(createDialogReadOnlyRow("Student Index No (Locked):", currentStudent.getIndexNo()), gbc);
+        gbc.gridy = y++;
+        form.add(createDialogReadOnlyRow("Full Legal Name (Locked):", currentStudent.getFullName()), gbc);
+        gbc.gridy = y++;
+        form.add(createDialogEditRow("Official Email Address *:", emailField), gbc);
+        gbc.gridy = y++;
+        form.add(createDialogEditRow("Contact Phone Number *:", phoneField), gbc);
+        gbc.gridy = y++;
+        form.add(createDialogEditRow("Permanent Residence / Address *:", addressField), gbc);
+
+        dialog.add(form, BorderLayout.CENTER);
+
+        // Bottom Actions
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 14));
+        btnPanel.setBackground(new Color(248, 250, 252));
+        btnPanel.setBorder(new CompoundBorder(
+                new LineBorder(new Color(226, 232, 240), 1, true),
+                new EmptyBorder(10, 20, 10, 20)
+        ));
+
+        JButton cancelBtn = new JButton("Cancel");
+        cancelBtn.setFont(new Font("Arial", Font.PLAIN, 12));
+        cancelBtn.setBackground(Color.WHITE);
+        cancelBtn.setForeground(new Color(71, 85, 105));
+        cancelBtn.setFocusPainted(false);
+        cancelBtn.addActionListener(e -> dialog.dispose());
+
+        JButton saveBtn = new JButton("Save Changes");
+        saveBtn.setFont(new Font("Arial", Font.BOLD, 12));
+        saveBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
+        saveBtn.setOpaque(true);
+        saveBtn.setBackground(new Color(29, 78, 216));
+        saveBtn.setForeground(Color.WHITE);
+        saveBtn.setFocusPainted(false);
+        saveBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        saveBtn.addActionListener(e -> {
+            String newEmail = emailField.getText().trim();
+            String newPhone = phoneField.getText().trim();
+            String newAddress = addressField.getText().trim();
+
+            if (newEmail.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Email address cannot be empty.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (!newEmail.contains("@") || !newEmail.contains(".")) {
+                JOptionPane.showMessageDialog(dialog, "Please enter a valid email address.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (newPhone.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Phone number cannot be empty.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (newAddress.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "Permanent address cannot be empty.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            boolean ok = studentDAO.updateContactDetails(currentStudent.getUserId(), newEmail, newPhone, newAddress);
+            if (ok) {
+                currentStudent.setEmail(newEmail);
+                currentStudent.setPhone(newPhone);
+                currentStudent.setAddress(newAddress);
+
+                profileEmailLabel.setText(newEmail);
+                profilePhoneLabel.setText(newPhone);
+                profileAddressLabel.setText(newAddress);
+
+                dialog.dispose();
+                JOptionPane.showMessageDialog(this,
+                        "Contact details updated successfully in the system database!",
+                        "Profile Updated",
+                        JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(dialog,
+                        "Failed to update contact details. Please check database connection.",
+                        "Update Failed",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        btnPanel.add(cancelBtn);
+        btnPanel.add(saveBtn);
+        dialog.add(btnPanel, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
+    }
+
+    private JPanel createDialogReadOnlyRow(String labelText, String val) {
+        JPanel p = new JPanel(new BorderLayout(8, 2));
+        p.setOpaque(false);
+        JLabel lbl = new JLabel(labelText);
+        lbl.setFont(new Font("Arial", Font.BOLD, 11));
+        lbl.setForeground(new Color(100, 116, 139));
+        JLabel valLbl = new JLabel(val != null ? val : "—");
+        valLbl.setFont(new Font("Arial", Font.BOLD, 12));
+        valLbl.setForeground(new Color(71, 85, 105));
+        p.add(lbl, BorderLayout.NORTH);
+        p.add(valLbl, BorderLayout.CENTER);
+        return p;
+    }
+
+    private JPanel createDialogEditRow(String labelText, JTextField tf) {
+        JPanel p = new JPanel(new BorderLayout(8, 4));
+        p.setOpaque(false);
+        JLabel lbl = new JLabel(labelText);
+        lbl.setFont(new Font("Arial", Font.BOLD, 11));
+        lbl.setForeground(new Color(30, 41, 59));
+        tf.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(new Color(203, 213, 225), 1, true),
+                new EmptyBorder(6, 10, 6, 10)
+        ));
+        p.add(lbl, BorderLayout.NORTH);
+        p.add(tf, BorderLayout.CENTER);
+        return p;
     }
 
     private void addProfileField(JPanel panel, String label, String value) {

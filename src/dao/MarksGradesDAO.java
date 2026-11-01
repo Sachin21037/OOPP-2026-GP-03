@@ -521,7 +521,7 @@ public class MarksGradesDAO {
                 String grade;
                 double gradePoint;
                 if (!finalEligible && hasAnyCaMark) {
-                    grade = "F";
+                    grade = "E";
                     gradePoint = 0.0;
                 } else {
                     if (totalFinalMark != null) {
@@ -623,8 +623,8 @@ public class MarksGradesDAO {
         if (mark >= 50.0) return "C+";
         if (mark >= 45.0) return "C";
         if (mark >= 40.0) return "C-";
-        if (mark >= 30.0) return "D";
-        return "F";
+        if (mark >= 35.0) return "D";
+        return "E";
     }
 
     public static double computeGradePoint(String grade) {
@@ -633,13 +633,15 @@ public class MarksGradesDAO {
             case "A+":
             case "A": return 4.0;
             case "A-": return 3.7;
-            case "B+": return 3.5;
+            case "B+": return 3.3;
             case "B": return 3.0;
             case "B-": return 2.7;
             case "C+": return 2.3;
             case "C": return 2.0;
             case "C-": return 1.7;
             case "D": return 1.0;
+            case "E":
+            case "F":
             default: return 0.0;
         }
     }
@@ -759,9 +761,9 @@ public class MarksGradesDAO {
                 } else if ("Pending".equalsIgnoreCase(filterStatus)) {
                     matchesStatus = r.totalMark == null;
                 } else if ("Pass".equalsIgnoreCase(filterStatus)) {
-                    matchesStatus = r.grade != null && !"F".equalsIgnoreCase(r.grade) && !"-".equals(r.grade);
+                    matchesStatus = r.grade != null && !"E".equalsIgnoreCase(r.grade) && !"F".equalsIgnoreCase(r.grade) && !"-".equals(r.grade);
                 } else if ("Fail".equalsIgnoreCase(filterStatus)) {
-                    matchesStatus = "F".equalsIgnoreCase(r.grade);
+                    matchesStatus = "E".equalsIgnoreCase(r.grade) || "F".equalsIgnoreCase(r.grade);
                 }
             }
 
@@ -812,7 +814,7 @@ public class MarksGradesDAO {
                 if (r.totalMark > maxMark) maxMark = r.totalMark;
                 if (r.totalMark < minMark) minMark = r.totalMark;
                 hasScores = true;
-                if (r.grade != null && !"F".equalsIgnoreCase(r.grade) && !"-".equals(r.grade)) {
+                if (r.grade != null && !"E".equalsIgnoreCase(r.grade) && !"F".equalsIgnoreCase(r.grade) && !"-".equals(r.grade)) {
                     passCount++;
                 }
             } else {
