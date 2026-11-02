@@ -20,9 +20,9 @@ import java.awt.*;
  */
 public class PageHeaderBanner extends JPanel {
 
-    private static final Color PRIMARY_NAVY   = new Color(16, 40, 74);    // #10284A
-    private static final Color SECONDARY_BLUE = new Color(27, 85, 155);   // #1B559B
-    private static final Color SUBTITLE_COLOR = new Color(224, 234, 254); // #E0EAFF
+    private static final Color PRIMARY_NAVY   = new Color(26, 83, 71);    // #1A5347 Velvety Deep Sage Pine
+    private static final Color SECONDARY_BLUE = new Color(42, 119, 102);  // #2A7766 Soft Sage Green
+    private static final Color SUBTITLE_COLOR = new Color(226, 240, 235); // #E2F0EB Soft Sage Subtitle
 
     private final JLabel lblTitle;
     private final JLabel lblSubtitle;

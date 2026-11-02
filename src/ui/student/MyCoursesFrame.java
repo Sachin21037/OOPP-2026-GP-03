@@ -18,9 +18,9 @@ import java.util.List;
 
 public class MyCoursesFrame extends JFrame {
 
-    private final Color darkBlue = new Color(27, 67, 103);
-    private final Color lightBackground = new Color(245, 247, 250);
-    private final Color textColor = new Color(35, 45, 55);
+    private final Color darkBlue = new Color(26, 83, 71);
+    private final Color lightBackground = new Color(239, 245, 242);
+    private final Color textColor = new Color(26, 56, 48);
 
     private final StudentDAO studentDAO = new StudentDAO();
     private final Student student;

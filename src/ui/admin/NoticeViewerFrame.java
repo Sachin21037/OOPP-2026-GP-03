@@ -35,11 +35,11 @@ public class NoticeViewerFrame extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
         JPanel rootPanel = new JPanel(new BorderLayout());
-        rootPanel.setBackground(new Color(245, 247, 251));
+        rootPanel.setBackground(new Color(239, 245, 242));
 
         // Top University Branding Bar
         JPanel topBar = new JPanel(new BorderLayout());
-        topBar.setBackground(new Color(16, 40, 74));
+        topBar.setBackground(new Color(26, 83, 71));
         topBar.setBorder(new EmptyBorder(12, 24, 12, 24));
 
         JLabel titleLbl = new JLabel("University of Ruhuna • Faculty of Technology | Academic Notices");
@@ -49,7 +49,7 @@ public class NoticeViewerFrame extends JFrame {
 
         JLabel userLbl = new JLabel("Logged in as: " + displayName + " (" + roleTitle + ")");
         userLbl.setFont(AdminDashboard.getModernFont(Font.PLAIN, 12));
-        userLbl.setForeground(new Color(147, 197, 253));
+        userLbl.setForeground(new Color(226, 240, 235));
         topBar.add(userLbl, BorderLayout.EAST);
 
         rootPanel.add(topBar, BorderLayout.NORTH);

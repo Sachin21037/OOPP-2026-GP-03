@@ -35,17 +35,17 @@ import java.util.List;
 
 public class StudentDashboard extends JFrame {
 
-    // Dashboard colors (as specified by user)
-    Color darkBlue = new Color(27, 67, 103);
-    Color lightBackground = new Color(245, 247, 250);
-    Color sidebarColor = new Color(27, 67, 103); // Blue navigation bar
-    Color textColor = new Color(35, 45, 55);
+    // Dashboard colors - Soft Sage Green Theme
+    Color darkBlue = new Color(26, 83, 71);           // #1A5347 Velvety Deep Sage Pine
+    Color lightBackground = new Color(239, 245, 242); // #EFF5F2 Soft Sage Canvas
+    Color sidebarColor = new Color(26, 83, 71);       // Soft Sage Pine navigation bar
+    Color textColor = new Color(26, 56, 48);          // #1A3830 Deep Sage Slate
 
     // Navigation bar colors
-    Color navTextColor = new Color(220, 235, 248);
-    Color navHoverColor = new Color(38, 85, 128);
-    Color navActiveColor = new Color(18, 48, 76);
-    Color navAccentColor = new Color(180, 240, 220);
+    Color navTextColor = new Color(226, 240, 235);    // #E2F0EB Soft Sage
+    Color navHoverColor = new Color(42, 119, 102);    // #2A7766 Soft Sage Accent Hover
+    Color navActiveColor = new Color(18, 62, 53);      // Dark Sage Active
+    Color navAccentColor = new Color(226, 240, 235);   // Light Sage Highlight
 
     private JPanel contentPanel;
     private CardLayout contentCardLayout;
@@ -2624,7 +2624,7 @@ public class StudentDashboard extends JFrame {
                         g2.drawImage(raw, 0, 0, size, size, null);
                         g2.setClip(null);
 
-                        g2.setColor(new Color(27, 67, 103));
+                        g2.setColor(darkBlue);
                         g2.setStroke(new BasicStroke(2.5f));
                         g2.drawOval(1, 1, size - 3, size - 3);
                         loaded = true;
@@ -4378,7 +4378,7 @@ public class StudentDashboard extends JFrame {
                 g2.fillRoundRect(bx, by, badgeW, badgeH, 8, 8);
 
                 // Badge border
-                g2.setColor(new Color(27, 67, 103)); // match darkBlue header
+                g2.setColor(new Color(26, 83, 71)); // match darkBlue header
                 g2.setStroke(new BasicStroke(1.2f));
                 g2.drawRoundRect(bx, by, badgeW, badgeH, 8, 8);
 

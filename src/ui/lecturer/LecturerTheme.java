@@ -20,16 +20,16 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public final class LecturerTheme {
 
-    // Theme Palette matching Admin Dashboard
-    public static final Color PRIMARY_NAVY    = new Color(16, 40, 74);    // #10284A - dark navy
-    public static final Color NAVY_DARK       = new Color(10, 25, 47);    // #0A192F - deep navy gradient end
-    public static final Color SECONDARY_BLUE  = new Color(29, 78, 216);   // #1D4ED8 - royal blue
-    public static final Color LIGHT_BLUE      = new Color(234, 242, 255); // #EAF2FF - subtle blue highlight
-    public static final Color MAIN_BG         = new Color(245, 247, 251); // #F5F7FB - workspace light-grey
-    public static final Color CARD_BG         = Color.WHITE;              // #FFFFFF - cards & panels
-    public static final Color TEXT_PRIMARY    = new Color(23, 43, 77);    // #172B4D - dark navy headings
-    public static final Color TEXT_SECONDARY  = new Color(113, 128, 150); // #718096 - muted secondary text
-    public static final Color BORDER_COLOR    = new Color(226, 232, 240); // #E2E8F0 - subtle borders
+    // Theme Palette matching Soft Sage Green Theme
+    public static final Color PRIMARY_NAVY    = new Color(26, 83, 71);    // #1A5347 Velvety Deep Sage Pine
+    public static final Color NAVY_DARK       = new Color(18, 62, 53);    // Dark Sage Pine
+    public static final Color SECONDARY_BLUE  = new Color(42, 119, 102);  // #2A7766 Soft Sage Green Accent
+    public static final Color LIGHT_BLUE      = new Color(226, 240, 235); // #E2F0EB Soft Sage Tint
+    public static final Color MAIN_BG         = new Color(239, 245, 242); // #EFF5F2 Soft Sage Canvas
+    public static final Color CARD_BG         = Color.WHITE;              // #FFFFFF Crisp Card White
+    public static final Color TEXT_PRIMARY    = new Color(26, 56, 48);    // #1A3830 Deep Sage Slate
+    public static final Color TEXT_SECONDARY  = new Color(93, 122, 114);  // #5D7A72 Muted Sage Slate
+    public static final Color BORDER_COLOR    = new Color(210, 228, 220); // #D2E4DC Soft Sage Border
     public static final Color NAV_TEXT_MUTED  = new Color(148, 163, 184); // #94A3B8 - section header
     public static final Color NAV_ITEM_TEXT   = new Color(203, 213, 225); // #CBD5E1 - inactive nav text
     public static final Color LOGOUT_RED      = new Color(248, 113, 113); // #F87171 - logout button

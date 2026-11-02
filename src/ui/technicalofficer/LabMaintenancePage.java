@@ -29,9 +29,9 @@ import java.util.List;
  */
 public class LabMaintenancePage extends JPanel {
 
-    // Theme colors
-    private final Color darkNavy = new Color(27, 67, 103);
-    private final Color lightBackground = new Color(245, 247, 250);
+    // Theme colors - Soft Sage Green Theme
+    private final Color darkNavy = new Color(26, 83, 71);
+    private final Color lightBackground = new Color(239, 245, 242);
     private final Color cardWhite = Color.WHITE;
     private final Color primaryBlue = new Color(45, 100, 160);
     private final Color successGreen = new Color(20, 165, 145);

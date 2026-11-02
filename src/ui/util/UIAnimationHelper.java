@@ -56,6 +56,25 @@ public class UIAnimationHelper {
 
                 int w = getWidth();
                 int h = getHeight();
+
+                // Professional high-contrast disabled state
+                if (!isEnabled()) {
+                    g2.setColor(new Color(241, 245, 249));
+                    g2.fillRoundRect(0, 0, w, h, radius, radius);
+                    g2.setColor(new Color(226, 232, 240));
+                    g2.setStroke(new BasicStroke(1.0f));
+                    g2.drawRoundRect(0, 0, w - 1, h - 1, radius, radius);
+
+                    g2.setColor(new Color(148, 163, 184)); // Clear, legible muted text
+                    g2.setFont(getFont());
+                    FontMetrics fm = g2.getFontMetrics();
+                    int tx = (w - fm.stringWidth(getText())) / 2;
+                    int ty = (h - fm.getHeight()) / 2 + fm.getAscent();
+                    g2.drawString(getText(), tx, ty);
+                    g2.dispose();
+                    return;
+                }
+
                 int yOffset = isPressed[0] ? 1 : (int) (-animProgress[0] * 1.5f);
 
                 Color hoverColor = lighten(baseColor, 1.15f);
@@ -73,8 +92,15 @@ public class UIAnimationHelper {
                 g2.setColor(currentColor);
                 g2.fillRoundRect(0, Math.max(0, yOffset), w, h - Math.abs(yOffset), radius, radius);
 
+                // Draw crisp white text explicitly (prevents L&F invisible text bugs)
+                g2.setColor(Color.WHITE);
+                g2.setFont(getFont());
+                FontMetrics fm = g2.getFontMetrics();
+                int tx = (w - fm.stringWidth(getText())) / 2;
+                int ty = (h - fm.getHeight()) / 2 + fm.getAscent() + (isPressed[0] ? 1 : 0);
+                g2.drawString(getText(), tx, ty);
+
                 g2.dispose();
-                super.paintComponent(g);
             }
         };
 
@@ -135,11 +161,30 @@ public class UIAnimationHelper {
 
                 int w = getWidth();
                 int h = getHeight();
+
+                // Professional high-contrast disabled state
+                if (!isEnabled()) {
+                    g2.setColor(new Color(248, 250, 252));
+                    g2.fillRoundRect(0, 0, w, h, radius, radius);
+                    g2.setColor(new Color(226, 232, 240));
+                    g2.setStroke(new BasicStroke(1.0f));
+                    g2.drawRoundRect(0, 0, w - 1, h - 1, radius, radius);
+
+                    g2.setColor(new Color(148, 163, 184)); // Clear, legible muted text
+                    g2.setFont(getFont());
+                    FontMetrics fm = g2.getFontMetrics();
+                    int tx = (w - fm.stringWidth(getText())) / 2;
+                    int ty = (h - fm.getHeight()) / 2 + fm.getAscent();
+                    g2.drawString(getText(), tx, ty);
+                    g2.dispose();
+                    return;
+                }
+
                 int yOffset = isPressed[0] ? 1 : 0;
 
                 // Background fill animation
                 Color bgNormal = Color.WHITE;
-                Color bgHover = new Color(241, 245, 249);
+                Color bgHover = new Color(240, 246, 243);
                 Color currentBg = interpolateColor(bgNormal, bgHover, animProgress[0]);
 
                 g2.setColor(currentBg);
@@ -152,8 +197,16 @@ public class UIAnimationHelper {
                 g2.setStroke(new BasicStroke(1.2f));
                 g2.drawRoundRect(0, yOffset, w - 1, h - yOffset - 1, radius, radius);
 
+                // Draw high-contrast text explicitly (prevents L&F invisible text bugs)
+                Color effectiveFg = getForeground() != null ? getForeground() : textColor;
+                g2.setColor(effectiveFg);
+                g2.setFont(getFont());
+                FontMetrics fm = g2.getFontMetrics();
+                int tx = (w - fm.stringWidth(getText())) / 2;
+                int ty = (h - fm.getHeight()) / 2 + fm.getAscent() + yOffset;
+                g2.drawString(getText(), tx, ty);
+
                 g2.dispose();
-                super.paintComponent(g);
             }
         };
 
@@ -212,6 +265,19 @@ public class UIAnimationHelper {
                 int w = getWidth();
                 int h = getHeight();
 
+                if (!isEnabled()) {
+                    g2.setColor(new Color(248, 250, 252));
+                    g2.fillRoundRect(0, 0, w, h, radius, radius);
+                    g2.setColor(new Color(148, 163, 184));
+                    g2.setFont(getFont());
+                    FontMetrics fm = g2.getFontMetrics();
+                    int tx = (w - fm.stringWidth(getText())) / 2;
+                    int ty = (h - fm.getHeight()) / 2 + fm.getAscent();
+                    g2.drawString(getText(), tx, ty);
+                    g2.dispose();
+                    return;
+                }
+
                 Color bg = interpolateColor(Color.WHITE, hoverBg, animProgress[0]);
                 g2.setColor(bg);
                 g2.fillRoundRect(0, 0, w, h, radius, radius);
@@ -220,8 +286,14 @@ public class UIAnimationHelper {
                 g2.setStroke(new BasicStroke(1.0f));
                 g2.drawRoundRect(0, 0, w - 1, h - 1, radius, radius);
 
+                g2.setColor(baseFg);
+                g2.setFont(getFont());
+                FontMetrics fm = g2.getFontMetrics();
+                int tx = (w - fm.stringWidth(getText())) / 2;
+                int ty = (h - fm.getHeight()) / 2 + fm.getAscent();
+                g2.drawString(getText(), tx, ty);
+
                 g2.dispose();
-                super.paintComponent(g);
             }
         };
 
@@ -273,9 +345,9 @@ public class UIAnimationHelper {
                 g2.setColor(Color.WHITE);
                 g2.fillRoundRect(0, 0, w, h, radius, radius);
 
-                // Focus glow / border
-                Color normalBorder = new Color(226, 232, 240);
-                Color activeBorder = new Color(59, 130, 246);
+                // Focus glow / border - Emerald & Mint Theme
+                Color normalBorder = new Color(209, 229, 222);
+                Color activeBorder = new Color(21, 128, 104);
                 Color currentBorder = interpolateColor(normalBorder, activeBorder, focusAnim[0]);
 
                 g2.setColor(currentBorder);
@@ -361,7 +433,7 @@ public class UIAnimationHelper {
             protected void paintBorder(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Color borderCol = hasFocus() ? new Color(59, 130, 246) : new Color(226, 232, 240);
+                Color borderCol = hasFocus() ? new Color(21, 128, 104) : new Color(209, 229, 222);
                 g2.setColor(borderCol);
                 g2.setStroke(new BasicStroke(hasFocus() ? 1.6f : 1.0f));
                 g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);

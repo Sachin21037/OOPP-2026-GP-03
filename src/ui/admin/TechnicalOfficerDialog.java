@@ -17,15 +17,15 @@ import java.awt.event.MouseEvent;
  */
 public class TechnicalOfficerDialog extends JDialog {
 
-    // Palette harmonized with AdminDashboard & LecturerDialog
-    private static final Color PRIMARY_NAVY    = new Color(16, 40, 74);    // #10284A
-    private static final Color SECONDARY_BLUE  = new Color(29, 78, 216);   // #1D4ED8
-    private static final Color WARNING_COLOR   = new Color(217, 119, 6);   // #D97706
+    // Palette harmonized with Soft Sage Green Theme
+    private static final Color PRIMARY_NAVY    = new Color(26, 83, 71);    // #1A5347 Velvety Deep Sage Pine
+    private static final Color SECONDARY_BLUE  = new Color(42, 119, 102);  // #2A7766 Soft Sage Green Accent
+    private static final Color WARNING_COLOR   = new Color(180, 83, 9);    // #B45309
     private static final Color LIGHT_BG        = new Color(254, 243, 199); // #FEF3C7
-    private static final Color BG_MAIN         = new Color(248, 250, 252); // #F8FAFC
-    private static final Color TEXT_PRIMARY    = new Color(23, 43, 77);    // #172B4D
-    private static final Color TEXT_MUTED      = new Color(100, 116, 139); // #64748B
-    private static final Color BORDER_COLOR    = new Color(203, 213, 225); // #CBD5E1
+    private static final Color BG_MAIN         = new Color(239, 245, 242); // #EFF5F2 Soft Sage Canvas
+    private static final Color TEXT_PRIMARY    = new Color(26, 56, 48);    // #1A3830 Deep Sage Slate
+    private static final Color TEXT_MUTED      = new Color(93, 122, 114);  // #5D7A72 Muted Sage Slate
+    private static final Color BORDER_COLOR    = new Color(210, 228, 220); // #D2E4DC Soft Sage Border
     private static final Color DANGER_COLOR    = new Color(220, 38, 38);   // #DC2626
     private static final Color SUCCESS_COLOR   = new Color(22, 163, 74);   // #16A34A
 

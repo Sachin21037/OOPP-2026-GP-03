@@ -28,14 +28,14 @@ import java.util.Map;
  */
 public class TechnicalOfficerDashboard extends JFrame {
 
-    // Theme Colors matching reference design
-    private final Color darkNavy = new Color(27, 67, 103);      // #1B4367 exact navy
-    private final Color contentBg = new Color(245, 247, 250);   // #F5F7FA
-    private final Color sidebarBg = new Color(27, 67, 103);     // Matching dark navy blue sidebar
-    private final Color sidebarBorder = new Color(20, 52, 82);  // Subtle navy right border
-    private final Color borderColor = new Color(226, 232, 240); // #E2E8F0
-    private final Color textDark = new Color(30, 41, 59);       // #1E293B
-    private final Color textMuted = new Color(100, 116, 139);   // #64748B
+    // Theme Colors matching Soft Sage Green Theme
+    private final Color darkNavy = new Color(26, 83, 71);       // #1A5347 Velvety Deep Sage Pine
+    private final Color contentBg = new Color(239, 245, 242);   // #EFF5F2 Soft Sage Canvas
+    private final Color sidebarBg = new Color(26, 83, 71);      // Soft Sage Pine sidebar
+    private final Color sidebarBorder = new Color(18, 62, 53);  // Subtle dark sage border
+    private final Color borderColor = new Color(210, 228, 220); // #D2E4DC Soft Sage Border
+    private final Color textDark = new Color(26, 56, 48);       // #1A3830 Deep Sage Slate
+    private final Color textMuted = new Color(93, 122, 114);    // #5D7A72 Muted Sage Slate
     private final Color textLight = new Color(148, 163, 184);   // #94A3B8
 
     // Services
@@ -844,7 +844,7 @@ public class TechnicalOfficerDashboard extends JFrame {
             // Green Online Status Dot
             g2.setColor(new Color(16, 185, 129));
             g2.fillOval(22, 22, 9, 9);
-            g2.setColor(new Color(27, 67, 103));
+            g2.setColor(new Color(13, 72, 62));
             g2.setStroke(new BasicStroke(1.5f));
             g2.drawOval(22, 22, 9, 9);
 

@@ -32,19 +32,19 @@ import java.util.Map;
  */
 public class UserManagementPanel extends JPanel {
 
-    // Palette harmonized with AdminDashboard
-    private static final Color PRIMARY_NAVY    = new Color(16, 40, 74);    // #10284A
-    private static final Color SECONDARY_BLUE  = new Color(29, 78, 216);   // #1D4ED8
-    private static final Color PURPLE_ACCENT   = new Color(99, 102, 241);  // #6366F1
-    private static final Color WARNING_COLOR   = new Color(217, 119, 6);   // #D97706
+    // Palette harmonized with Soft Sage Green Theme
+    private static final Color PRIMARY_NAVY    = new Color(26, 83, 71);    // #1A5347 Velvety Deep Sage Pine
+    private static final Color SECONDARY_BLUE  = new Color(42, 119, 102);  // #2A7766 Soft Sage Green Accent
+    private static final Color PURPLE_ACCENT   = new Color(42, 119, 102);  // Replaced with cohesive Soft Sage
+    private static final Color WARNING_COLOR   = new Color(180, 83, 9);    // #B45309
     private static final Color SUCCESS_COLOR   = new Color(22, 163, 74);   // #16A34A
-    private static final Color DANGER_COLOR    = new Color(220, 38, 38);   // #DC2626
-    private static final Color MAIN_BG         = new Color(245, 247, 251); // #F5F7FB
+    private static final Color DANGER_COLOR    = new Color(190, 18, 60);   // #BE123C Refined Rose Crimson
+    private static final Color MAIN_BG         = new Color(239, 245, 242); // #EFF5F2 Soft Sage Canvas
     private static final Color CARD_BG         = Color.WHITE;
-    private static final Color TEXT_PRIMARY    = new Color(23, 43, 77);    // #172B4D
-    private static final Color TEXT_SECONDARY  = new Color(100, 116, 139); // #64748B
-    private static final Color BORDER_COLOR    = new Color(226, 232, 240); // #E2E8F0
-    private static final Color LIGHT_BLUE      = new Color(238, 242, 255); // #EEF2FF
+    private static final Color TEXT_PRIMARY    = new Color(26, 56, 48);    // #1A3830 Deep Sage Slate
+    private static final Color TEXT_SECONDARY  = new Color(93, 122, 114);  // #5D7A72 Muted Sage Slate
+    private static final Color BORDER_COLOR    = new Color(210, 228, 220); // #D2E4DC Soft Sage Border
+    private static final Color LIGHT_BLUE      = new Color(226, 240, 235); // #E2F0EB Soft Sage Tint
 
     // Service reference
     private final UserService userService;
@@ -210,15 +210,15 @@ public class UserManagementPanel extends JPanel {
         gbc.fill = GridBagConstraints.BOTH;
         gbc.weighty = 1.0;
 
-        // Left Panel: Users Table (63% width)
+        // Left Panel: Users Table (60% width)
         gbc.gridx = 0;
-        gbc.weightx = 0.63;
+        gbc.weightx = 0.60;
         gbc.insets = new Insets(0, 0, 0, 12);
         container.add(createTableCard(), gbc);
 
-        // Right Panel: Account Details Form (37% width)
+        // Right Panel: Account Details Form (40% width)
         gbc.gridx = 1;
-        gbc.weightx = 0.37;
+        gbc.weightx = 0.40;
         gbc.insets = new Insets(0, 0, 0, 0);
         container.add(createFormCard(), gbc);
 
@@ -367,7 +367,7 @@ public class UserManagementPanel extends JPanel {
                     c.setBackground(row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252));
                     c.setForeground(TEXT_PRIMARY);
                 } else {
-                    c.setBackground(new Color(224, 237, 255));
+                    c.setBackground(LIGHT_BLUE);
                     c.setForeground(PRIMARY_NAVY);
                 }
                 setBorder(new EmptyBorder(0, 10, 0, 10));
@@ -379,27 +379,28 @@ public class UserManagementPanel extends JPanel {
             usersTable.getColumnModel().getColumn(i).setCellRenderer(defaultRenderer);
         }
 
-        // Column 0: User ID
-        usersTable.getColumnModel().getColumn(0).setPreferredWidth(75);
+        // Column 0: User ID (expanded to 85px so ADM001 / LEC001 is never clipped to ADMO...)
+        usersTable.getColumnModel().getColumn(0).setPreferredWidth(85);
 
         // Column 1: Username
         usersTable.getColumnModel().getColumn(1).setPreferredWidth(95);
 
         // Column 2: Role Badge Renderer
-        usersTable.getColumnModel().getColumn(2).setPreferredWidth(120);
+        usersTable.getColumnModel().getColumn(2).setPreferredWidth(125);
         usersTable.getColumnModel().getColumn(2).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
                                                            boolean isSelected, boolean hasFocus, int row, int column) {
-                JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 7));
+                JPanel p = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 7));
                 p.setOpaque(true);
                 p.setBackground(isSelected ? new Color(224, 237, 255) : (row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252)));
 
                 String role = (value != null) ? value.toString() : "";
-                JLabel badge = new JLabel(" " + role + " ");
+                String displayRole = role.replace("_", " ");
+                JLabel badge = new JLabel("  " + displayRole + "  ");
                 badge.setFont(AdminDashboard.getModernFont(Font.BOLD, 10));
                 badge.setOpaque(true);
-                badge.setBorder(new EmptyBorder(2, 6, 2, 6));
+                badge.setBorder(new EmptyBorder(3, 8, 3, 8));
 
                 if ("ADMIN".equalsIgnoreCase(role)) {
                     badge.setBackground(new Color(238, 242, 255));
@@ -424,13 +425,13 @@ public class UserManagementPanel extends JPanel {
         usersTable.getColumnModel().getColumn(3).setPreferredWidth(140);
 
         // Column 4: Full Name
-        usersTable.getColumnModel().getColumn(4).setPreferredWidth(130);
+        usersTable.getColumnModel().getColumn(4).setPreferredWidth(135);
 
         // Column 5: Email
-        usersTable.getColumnModel().getColumn(5).setPreferredWidth(150);
+        usersTable.getColumnModel().getColumn(5).setPreferredWidth(160);
 
         // Column 6: Account Status Pill Renderer
-        usersTable.getColumnModel().getColumn(6).setPreferredWidth(95);
+        usersTable.getColumnModel().getColumn(6).setPreferredWidth(85);
         usersTable.getColumnModel().getColumn(6).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
@@ -442,10 +443,10 @@ public class UserManagementPanel extends JPanel {
                 String status = (value != null) ? value.toString() : "INACTIVE";
                 boolean active = "ACTIVE".equalsIgnoreCase(status);
 
-                JLabel pill = new JLabel("  " + status + "  ");
+                JLabel pill = new JLabel(active ? " ● ACTIVE " : " ● INACTIVE ");
                 pill.setFont(AdminDashboard.getModernFont(Font.BOLD, 10));
                 pill.setOpaque(true);
-                pill.setBorder(new EmptyBorder(2, 8, 2, 8));
+                pill.setBorder(new EmptyBorder(3, 8, 3, 8));
 
                 if (active) {
                     pill.setBackground(new Color(220, 252, 231));
@@ -593,25 +594,25 @@ public class UserManagementPanel extends JPanel {
         JPanel rowBtns1 = new JPanel(new GridLayout(1, 2, 8, 0));
         rowBtns1.setOpaque(false);
 
-        btnSave = createPrimaryButton("Save Changes", SECONDARY_BLUE, e -> onSaveAccount());
+        btnSave = createPrimaryButton("💾 Save Changes", SECONDARY_BLUE, e -> onSaveAccount());
         btnSave.setEnabled(false);
         rowBtns1.add(btnSave);
 
-        btnToggleStatus = createPrimaryButton("Deactivate", WARNING_COLOR, e -> onToggleStatus());
+        btnToggleStatus = createOutlineButton("⊘ Deactivate", DANGER_COLOR, e -> onToggleStatus());
         btnToggleStatus.setEnabled(false);
         rowBtns1.add(btnToggleStatus);
 
         actionsPanel.add(rowBtns1);
-        actionsPanel.add(Box.createVerticalStrut(6));
+        actionsPanel.add(Box.createVerticalStrut(8));
 
         // Bottom button row: + New Admin + Clear Form
         JPanel rowBtns2 = new JPanel(new GridLayout(1, 2, 8, 0));
         rowBtns2.setOpaque(false);
 
-        btnNewAdmin = createOutlineButton("+ New Admin", PURPLE_ACCENT, e -> onNewAdminMode());
+        btnNewAdmin = createOutlineButton("➕ New Admin", SECONDARY_BLUE, e -> onNewAdminMode());
         rowBtns2.add(btnNewAdmin);
 
-        btnClear = createOutlineButton("Clear Form", TEXT_SECONDARY, e -> clearForm());
+        btnClear = createOutlineButton("↺ Clear Form", TEXT_SECONDARY, e -> clearForm());
         rowBtns2.add(btnClear);
 
         actionsPanel.add(rowBtns2);
@@ -789,12 +790,12 @@ public class UserManagementPanel extends JPanel {
         cmbStatus.setSelectedItem(selectedAccount.getStatus());
 
         // Buttons
-        btnSave.setText("Save Changes");
+        btnSave.setText("💾 Save Changes");
         btnSave.setEnabled(true);
 
         boolean active = selectedAccount.isActive();
-        btnToggleStatus.setText(active ? "Deactivate" : "Activate");
-        btnToggleStatus.setBackground(active ? WARNING_COLOR : SUCCESS_COLOR);
+        btnToggleStatus.setText(active ? "⊘ Deactivate" : "✓ Activate");
+        btnToggleStatus.setForeground(active ? DANGER_COLOR : SECONDARY_BLUE);
         btnToggleStatus.setEnabled(true);
     }
 
@@ -819,7 +820,7 @@ public class UserManagementPanel extends JPanel {
         txtPhone.setText("");
         cmbStatus.setSelectedItem("ACTIVE");
 
-        btnSave.setText("Create Admin");
+        btnSave.setText("➕ Create Admin");
         btnSave.setEnabled(true);
         btnToggleStatus.setEnabled(false);
         txtUsername.requestFocusInWindow();
@@ -845,9 +846,9 @@ public class UserManagementPanel extends JPanel {
         txtPhone.setText("");
         cmbStatus.setSelectedIndex(0);
 
-        btnSave.setText("Save Changes");
+        btnSave.setText("💾 Save Changes");
         btnSave.setEnabled(false);
-        btnToggleStatus.setText("Deactivate");
+        btnToggleStatus.setText("⊘ Deactivate");
         btnToggleStatus.setEnabled(false);
     }
 

@@ -27,18 +27,18 @@ import java.util.Map;
  */
 public class LecturerManagementPanel extends JPanel {
 
-    // Harmonized Palette matching AdminDashboard
-    private static final Color PRIMARY_NAVY    = new Color(16, 40, 74);    // #10284A
-    private static final Color SECONDARY_BLUE  = new Color(29, 78, 216);   // #1D4ED8
-    private static final Color LIGHT_BLUE      = new Color(234, 242, 255); // #EAF2FF
-    private static final Color MAIN_BG         = new Color(245, 247, 251); // #F5F7FB
+    // Harmonized Palette matching Soft Sage Green Theme
+    private static final Color PRIMARY_NAVY    = new Color(26, 83, 71);    // #1A5347 Velvety Deep Sage Pine
+    private static final Color SECONDARY_BLUE  = new Color(42, 119, 102);  // #2A7766 Soft Sage Green Accent
+    private static final Color LIGHT_BLUE      = new Color(226, 240, 235); // #E2F0EB Soft Sage Tint
+    private static final Color MAIN_BG         = new Color(239, 245, 242); // #EFF5F2 Soft Sage Canvas
     private static final Color CARD_BG         = Color.WHITE;
-    private static final Color TEXT_PRIMARY    = new Color(23, 43, 77);    // #172B4D
-    private static final Color TEXT_SECONDARY  = new Color(100, 116, 139); // #64748B
-    private static final Color BORDER_COLOR    = new Color(226, 232, 240); // #E2E8F0
+    private static final Color TEXT_PRIMARY    = new Color(26, 56, 48);    // #1A3830 Deep Sage Slate
+    private static final Color TEXT_SECONDARY  = new Color(93, 122, 114);  // #5D7A72 Muted Sage Slate
+    private static final Color BORDER_COLOR    = new Color(210, 228, 220); // #D2E4DC Soft Sage Border
     private static final Color SUCCESS_COLOR   = new Color(22, 163, 74);   // #16A34A
-    private static final Color WARNING_COLOR   = new Color(217, 119, 6);   // #D97706
-    private static final Color DANGER_COLOR    = new Color(220, 38, 38);   // #DC2626
+    private static final Color WARNING_COLOR   = new Color(180, 83, 9);    // #B45309
+    private static final Color DANGER_COLOR    = new Color(190, 18, 60);   // #BE123C Refined Rose Crimson
 
     // Table Components
     private JTable lecturerTable;
@@ -298,22 +298,23 @@ public class LecturerManagementPanel extends JPanel {
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         rightPanel.setOpaque(false);
 
-        btnRefresh = createIconButton("↻", "Refresh Data", e -> loadLecturersAsync());
+        btnRefresh = createActionButton("🔄 Refresh", TEXT_PRIMARY, e -> loadLecturersAsync());
+        btnRefresh.setToolTipText("Reload academic staff records from database");
         rightPanel.add(btnRefresh);
 
-        btnToggleStatus = createActionButton("Deactivate", WARNING_COLOR, e -> onToggleStatus());
+        btnToggleStatus = createActionButton("⊘ Deactivate", DANGER_COLOR, e -> onToggleStatus());
         btnToggleStatus.setEnabled(false);
         rightPanel.add(btnToggleStatus);
 
-        btnDelete = createActionButton("Delete", DANGER_COLOR, e -> onDeleteLecturer());
+        btnDelete = createActionButton("🗑 Delete", DANGER_COLOR, e -> onDeleteLecturer());
         btnDelete.setEnabled(false);
         rightPanel.add(btnDelete);
 
-        btnEdit = createActionButton("Edit", SECONDARY_BLUE, e -> onEditLecturer());
+        btnEdit = createActionButton("✏ Edit", SECONDARY_BLUE, e -> onEditLecturer());
         btnEdit.setEnabled(false);
         rightPanel.add(btnEdit);
 
-        btnAdd = createPrimaryButton("+ Add Lecturer", new Color(79, 70, 229), e -> onAddLecturer());
+        btnAdd = createPrimaryButton("➕ Add Lecturer", SECONDARY_BLUE, e -> onAddLecturer());
         rightPanel.add(btnAdd);
 
         row1.add(rightPanel, BorderLayout.EAST);
@@ -353,7 +354,7 @@ public class LecturerManagementPanel extends JPanel {
         row2.add(cmbFilterAccountStatus);
 
         // Clear Filters Button
-        JButton btnClear = UIAnimationHelper.createAnimatedSecondaryButton("Reset Filters", TEXT_SECONDARY, BORDER_COLOR, 18, e -> resetFilters());
+        JButton btnClear = UIAnimationHelper.createAnimatedSecondaryButton("↺ Reset Filters", TEXT_SECONDARY, BORDER_COLOR, 18, e -> resetFilters());
         row2.add(btnClear);
 
         toolbar.add(row2);
@@ -432,11 +433,11 @@ public class LecturerManagementPanel extends JPanel {
             Lecturer l = tableModel.getLecturerAt(modelIdx);
             if (l != null) {
                 if ("ACTIVE".equalsIgnoreCase(l.getAccountStatus())) {
-                    btnToggleStatus.setText("Deactivate");
-                    btnToggleStatus.setForeground(WARNING_COLOR);
+                    btnToggleStatus.setText("⊘ Deactivate");
+                    btnToggleStatus.setForeground(DANGER_COLOR);
                 } else {
-                    btnToggleStatus.setText("Activate");
-                    btnToggleStatus.setForeground(SUCCESS_COLOR);
+                    btnToggleStatus.setText("✓ Activate");
+                    btnToggleStatus.setForeground(SECONDARY_BLUE);
                 }
             }
         }

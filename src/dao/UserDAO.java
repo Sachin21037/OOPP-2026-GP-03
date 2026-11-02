@@ -485,6 +485,85 @@ public class UserDAO {
         return "ADM002";
     }
 
+    /**
+     * Verifies whether the provided raw password matches the stored password for the given user ID.
+     */
+    public boolean verifyPassword(String userId, String rawPassword) {
+        if (userId == null || rawPassword == null) return false;
+        String sql = "SELECT password FROM users WHERE user_id = ?";
+        try (Connection conn = DBConnection.getNewConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rawPassword.equals(rs.getString("password"));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[UserDAO ERROR] verifyPassword failed: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Updates an administrator's profile details in both 'users' and 'admins' tables.
+     * Optionally updates the password if newPassword is provided.
+     *
+     * @param userId      the admin user ID (e.g. ADM001)
+     * @param firstName   updated first name
+     * @param lastName    updated last name
+     * @param email       updated email address
+     * @param phone       updated phone number
+     * @param address     updated physical address / faculty office
+     * @param department  updated department / office designation in 'admins'
+     * @param newPassword optional new password (null or blank preserves current)
+     * @return true if updated successfully
+     */
+    public boolean updateAdminProfile(String userId, String firstName, String lastName,
+                                      String email, String phone, String address,
+                                      String department, String newPassword) throws SQLException {
+        if (userId == null || userId.isBlank()) return false;
+
+        boolean changePassword = (newPassword != null && !newPassword.isBlank());
+        String updateUserSql = changePassword
+                ? "UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, address = ?, password = ? WHERE user_id = ?"
+                : "UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, address = ? WHERE user_id = ?";
+
+        String updateAdminSql = "INSERT INTO admins (admin_id, department) VALUES (?, ?) ON DUPLICATE KEY UPDATE department = VALUES(department)";
+
+        try (Connection conn = DBConnection.getNewConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement pu = conn.prepareStatement(updateUserSql);
+                 PreparedStatement pa = conn.prepareStatement(updateAdminSql)) {
+
+                pu.setString(1, firstName != null ? firstName.trim() : "");
+                pu.setString(2, lastName != null ? lastName.trim() : "");
+                pu.setString(3, email != null ? email.trim().toLowerCase() : "");
+                pu.setString(4, phone != null ? phone.trim() : "");
+                pu.setString(5, address != null ? address.trim() : "");
+                if (changePassword) {
+                    pu.setString(6, newPassword.trim());
+                    pu.setString(7, userId.trim());
+                } else {
+                    pu.setString(6, userId.trim());
+                }
+                pu.executeUpdate();
+
+                pa.setString(1, userId.trim());
+                pa.setString(2, department != null && !department.isBlank() ? department.trim() : "Dean Office / Administration");
+                pa.executeUpdate();
+
+                conn.commit();
+                return true;
+            } catch (SQLException ex) {
+                conn.rollback();
+                throw ex;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        }
+    }
+
     private UserAccount mapResultSetToUserAccount(ResultSet rs) throws SQLException {
         UserAccount u = new UserAccount();
         u.setUserId(rs.getString("user_id"));

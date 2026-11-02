@@ -20,18 +20,18 @@ import javax.imageio.ImageIO;
 
 public class AdminDashboard extends JFrame {
 
-    // THEME PALETTE
-    private static final Color PRIMARY_NAVY    = new Color(16, 40, 74);    // #10284A
-    private static final Color SECONDARY_BLUE  = new Color(29, 78, 216);   // #1D4ED8
-    private static final Color LIGHT_BLUE      = new Color(234, 242, 255); // #EAF2FF
-    private static final Color MAIN_BG         = new Color(245, 247, 251); // #F5F7FB
-    private static final Color CARD_BG         = Color.WHITE;              // #FFFFFF
-    private static final Color TEXT_PRIMARY    = new Color(23, 43, 77);    // #172B4D
-    private static final Color TEXT_SECONDARY  = new Color(113, 128, 150); // #718096
+    // THEME PALETTE - Soft Sage Green Theme
+    private static final Color PRIMARY_NAVY    = new Color(26, 83, 71);    // #1A5347 Velvety Deep Sage Pine
+    private static final Color SECONDARY_BLUE  = new Color(42, 119, 102);  // #2A7766 Soft Sage Green Accent
+    private static final Color LIGHT_BLUE      = new Color(226, 240, 235); // #E2F0EB Soft Sage Tint
+    private static final Color MAIN_BG         = new Color(239, 245, 242); // #EFF5F2 Soft Sage Canvas
+    private static final Color CARD_BG         = Color.WHITE;              // #FFFFFF Crisp Card White
+    private static final Color TEXT_PRIMARY    = new Color(26, 56, 48);    // #1A3830 Deep Sage Slate
+    private static final Color TEXT_SECONDARY  = new Color(93, 122, 114);  // #5D7A72 Muted Sage Slate
     private static final Color SUCCESS_COLOR   = new Color(22, 163, 74);   // #16A34A
-    private static final Color WARNING_COLOR   = new Color(245, 158, 11);  // #F59E0B
-    private static final Color DANGER_COLOR    = new Color(220, 38, 38);   // #DC2626
-    private static final Color BORDER_COLOR    = new Color(226, 232, 240); // #E2E8F0
+    private static final Color WARNING_COLOR   = new Color(180, 83, 9);    // #B45309 High Contrast Amber
+    private static final Color DANGER_COLOR    = new Color(190, 18, 60);   // #BE123C Refined Rose Crimson
+    private static final Color BORDER_COLOR    = new Color(210, 228, 220); // #D2E4DC Soft Sage Border
 
     // Statistic Count Labels
     private JLabel lblStudentsCount;
@@ -79,8 +79,16 @@ public class AdminDashboard extends JFrame {
     private JPanel recentActivityContainer;
     private JPanel systemOverviewContainer;
 
-    // Current Administrator Display Name
-    private final String adminDisplayName;
+    // Current Administrator Display State
+    private String adminDisplayName;
+    private String adminEmail = "admin@fams.uor.lk";
+    private JLabel sidebarNameLabel;
+    private JLabel sidebarEmailLabel;
+    private JPanel sidebarAvatarPanel;
+    private JLabel headerAdminNameLabel;
+    private JPanel headerMiniAvatarPanel;
+    private JButton headerBellButton;
+    private int activeNoticesCount = 4;
 
     public AdminDashboard() {
         this("Administrator");
@@ -188,7 +196,7 @@ public class AdminDashboard extends JFrame {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint bg = new GradientPaint(0, 0, PRIMARY_NAVY, 0, getHeight(), new Color(10, 25, 47));
+                GradientPaint bg = new GradientPaint(0, 0, PRIMARY_NAVY, 0, getHeight(), new Color(9, 44, 38));
                 g2.setPaint(bg);
                 g2.fillRect(0, 0, getWidth(), getHeight());
                 g2.dispose();
@@ -608,12 +616,14 @@ public class AdminDashboard extends JFrame {
         avatar.setPreferredSize(new Dimension(240, 68));
         avatar.setMaximumSize(new Dimension(240, 68));
         avatar.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sidebarAvatarPanel = avatar;
 
         // 2. Name directly under that large icon (Centered)
         JLabel lblName = new JLabel(adminDisplayName != null && !adminDisplayName.isBlank() ? adminDisplayName : "System Administrator");
         lblName.setFont(getModernFont(Font.BOLD, 14));
         lblName.setForeground(Color.WHITE);
         lblName.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sidebarNameLabel = lblName;
 
         // 3. Role & Active Status Badge (Centered)
         JPanel badge = new JPanel() {
@@ -652,10 +662,25 @@ public class AdminDashboard extends JFrame {
         badge.add(lblStatus);
 
         // 4. Email / Account details underneath (Centered)
-        JLabel lblEmail = new JLabel("admin@fams.uor.lk");
+        JLabel lblEmail = new JLabel(adminEmail != null ? adminEmail : "admin@fams.uor.lk");
         lblEmail.setFont(getModernFont(Font.PLAIN, 11));
         lblEmail.setForeground(new Color(148, 163, 184));
         lblEmail.setAlignmentX(Component.CENTER_ALIGNMENT);
+        sidebarEmailLabel = lblEmail;
+
+        // 5. Edit Profile Quick Action Button
+        JButton btnEditProfile = UIAnimationHelper.createAnimatedSecondaryButton(
+                "✏ Edit Profile",
+                new Color(147, 197, 253),
+                new Color(255, 255, 255, 40),
+                16,
+                e -> openAdminProfileDialog()
+        );
+        btnEditProfile.setFont(getModernFont(Font.BOLD, 10));
+        btnEditProfile.setMaximumSize(new Dimension(120, 26));
+        btnEditProfile.setPreferredSize(new Dimension(120, 26));
+        btnEditProfile.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnEditProfile.setToolTipText("Open profile settings dialog to edit details and password");
 
         section.add(avatar);
         section.add(Box.createVerticalStrut(8));
@@ -664,12 +689,14 @@ public class AdminDashboard extends JFrame {
         section.add(badge);
         section.add(Box.createVerticalStrut(6));
         section.add(lblEmail);
+        section.add(Box.createVerticalStrut(6));
+        section.add(btnEditProfile);
 
-        // Click to view/manage users smoothly (NO dropdown popup)
+        // Click on profile area opens Edit Profile
         section.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                handleNavigationClick("User Management");
+                openAdminProfileDialog();
             }
         });
 
@@ -869,28 +896,29 @@ public class AdminDashboard extends JFrame {
                 g2.drawLine(9, 21, 27, 21);
                 g2.fillOval(16, 22, 4, 3);
 
-                // Notification indicator dot
-                g2.setColor(SECONDARY_BLUE);
-                g2.fillOval(23, 8, 7, 7);
+                // Notification count badge
+                if (activeNoticesCount > 0) {
+                    g2.setColor(new Color(239, 68, 68)); // Vibrant coral red
+                    g2.fillOval(20, 4, 15, 15);
+                    g2.setColor(Color.WHITE);
+                    g2.setFont(getModernFont(Font.BOLD, 9));
+                    FontMetrics bfm = g2.getFontMetrics();
+                    String cStr = String.valueOf(Math.min(activeNoticesCount, 9));
+                    int strX = 27 - (bfm.stringWidth(cStr) / 2);
+                    g2.drawString(cStr, strX, 15);
+                }
 
                 g2.dispose();
             }
         };
+        headerBellButton = bellBtn;
         bellBtn.setPreferredSize(new Dimension(36, 36));
         bellBtn.setContentAreaFilled(false);
         bellBtn.setBorderPainted(false);
         bellBtn.setFocusPainted(false);
         bellBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        bellBtn.setToolTipText("System Notifications");
-        bellBtn.addActionListener(e -> JOptionPane.showMessageDialog(
-                this,
-                "<html><body style='font-family: sans-serif;'>" +
-                        "<h4 style='color: #10284A; margin: 0 0 6px 0;'>System Notifications</h4>" +
-                        "<p style='color: #4A5568; margin: 0;'>No unread system alerts.<br>All core academic services are operating normally.</p>" +
-                        "</body></html>",
-                "Notifications",
-                JOptionPane.INFORMATION_MESSAGE
-        ));
+        bellBtn.setToolTipText("Academic Notices & Notifications - Click to View");
+        bellBtn.addActionListener(e -> new AdminNotificationsDialog(this, () -> showView("Notice Management")).setVisible(true));
 
         // Admin Pill
         JPanel adminPill = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 4)) {
@@ -908,11 +936,11 @@ public class AdminDashboard extends JFrame {
         };
         adminPill.setOpaque(false);
         adminPill.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        adminPill.setToolTipText("System Administrator Account Profile");
+        adminPill.setToolTipText("Administrator Profile Settings - Click to Edit");
         adminPill.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                handleNavigationClick("User Management");
+                openAdminProfileDialog();
             }
         });
 
@@ -941,10 +969,12 @@ public class AdminDashboard extends JFrame {
         };
         miniAvatar.setOpaque(false);
         miniAvatar.setPreferredSize(new Dimension(26, 26));
+        headerMiniAvatarPanel = miniAvatar;
 
-        JLabel nameLbl = new JLabel(adminDisplayName);
+        JLabel nameLbl = new JLabel(adminDisplayName != null && !adminDisplayName.isBlank() ? adminDisplayName : "System Administrator");
         nameLbl.setFont(getModernFont(Font.BOLD, 12));
         nameLbl.setForeground(TEXT_PRIMARY);
+        headerAdminNameLabel = nameLbl;
 
         adminPill.add(miniAvatar);
         adminPill.add(nameLbl);
@@ -1177,38 +1207,58 @@ public class AdminDashboard extends JFrame {
         list.setOpaque(false);
         list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
 
-        list.add(createActionItem("Manage Users", "Add, edit, or configure accounts", SECONDARY_BLUE));
+        list.add(createActionItem("Manage Users", "Add, edit, or configure accounts", SECONDARY_BLUE, "👥"));
         list.add(Box.createVerticalStrut(8));
-        list.add(createActionItem("Manage Courses", "Assign lecturers and courses", new Color(79, 70, 229)));
+        list.add(createActionItem("Manage Courses", "Assign lecturers and courses", SECONDARY_BLUE, "📚"));
         list.add(Box.createVerticalStrut(8));
-        list.add(createActionItem("View Notices", "Publish notices and announcements", WARNING_COLOR));
+        list.add(createActionItem("View Notices", "Publish notices and announcements", SECONDARY_BLUE, "📢"));
         list.add(Box.createVerticalStrut(8));
-        list.add(createActionItem("View Reports", "Export academic and user reports", SUCCESS_COLOR));
+        list.add(createActionItem("View Reports", "View timetable & academic schedules", SECONDARY_BLUE, "📅"));
 
         card.add(list, BorderLayout.CENTER);
         return card;
     }
 
-    private JPanel createActionItem(String title, String desc, Color accent) {
+    private JPanel createActionItem(String title, String desc, Color accent, String iconSymbol) {
         final boolean[] isHovered = {false};
-        JPanel item = new JPanel(new BorderLayout(10, 0)) {
+        JPanel item = new JPanel(new BorderLayout(12, 0)) {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(isHovered[0] ? new Color(224, 237, 255) : LIGHT_BLUE);
+                g2.setColor(isHovered[0] ? new Color(210, 230, 222) : LIGHT_BLUE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
-                g2.setColor(isHovered[0] ? SECONDARY_BLUE : new Color(219, 234, 254));
+                g2.setColor(isHovered[0] ? SECONDARY_BLUE : BORDER_COLOR);
                 g2.setStroke(new BasicStroke(1.0f));
                 g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
                 g2.dispose();
             }
         };
         item.setOpaque(false);
-        item.setBorder(new EmptyBorder(10, 14, 10, 14));
+        item.setBorder(new EmptyBorder(8, 12, 8, 14));
         item.setMaximumSize(new Dimension(Integer.MAX_VALUE, 56));
         item.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        JPanel iconPill = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillOval(0, 0, 32, 32);
+                g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 70));
+                g2.drawOval(0, 0, 31, 31);
+                g2.dispose();
+            }
+        };
+        iconPill.setOpaque(false);
+        iconPill.setPreferredSize(new Dimension(32, 32));
+        iconPill.setLayout(new GridBagLayout());
+        JLabel iconLbl = new JLabel(iconSymbol);
+        iconLbl.setFont(getModernFont(Font.PLAIN, 15));
+        iconPill.add(iconLbl);
 
         JPanel text = new JPanel();
         text.setOpaque(false);
@@ -1230,6 +1280,7 @@ public class AdminDashboard extends JFrame {
         arrow.setFont(getModernFont(Font.BOLD, 14));
         arrow.setForeground(accent);
 
+        item.add(iconPill, BorderLayout.WEST);
         item.add(text, BorderLayout.CENTER);
         item.add(arrow, BorderLayout.EAST);
 
@@ -1248,7 +1299,11 @@ public class AdminDashboard extends JFrame {
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                handleNavigationClick(title);
+                if ("View Reports".equalsIgnoreCase(title)) {
+                    showView("Timetable Management");
+                } else {
+                    handleNavigationClick(title);
+                }
             }
         });
 
@@ -1396,9 +1451,14 @@ public class AdminDashboard extends JFrame {
         row.add(text, BorderLayout.CENTER);
         row.add(badge, BorderLayout.EAST);
 
-        if (item.getDescription() != null && !item.getDescription().isBlank()) {
-            row.setToolTipText("<html><b>" + item.getTitle() + "</b><br>" + item.getDescription() + "</html>");
-        }
+        row.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        row.setToolTipText("Click to view published notices and details");
+        row.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                new AdminNotificationsDialog(AdminDashboard.this, () -> showView("Notice Management")).setVisible(true);
+            }
+        });
 
         return row;
     }
@@ -1530,6 +1590,38 @@ public class AdminDashboard extends JFrame {
         return name.toUpperCase();
     }
 
+    /**
+     * Opens the modern Administrator Profile & Account Settings Dialog.
+     */
+    public void openAdminProfileDialog() {
+        new AdminProfileDialog(this, "ADM001", updated -> {
+            if (updated != null) {
+                String newName = (updated.getFirstName() + " " + updated.getLastName()).trim();
+                if (newName.isEmpty()) newName = updated.getUsername();
+                updateAdminProfileUI(newName, updated.getEmail());
+            }
+        }).setVisible(true);
+    }
+
+    /**
+     * Dynamically updates the administrator profile information across the sidebar and header.
+     */
+    public void updateAdminProfileUI(String newDisplayName, String newEmail) {
+        if (newDisplayName != null && !newDisplayName.isBlank()) {
+            this.adminDisplayName = newDisplayName;
+        }
+        if (newEmail != null && !newEmail.isBlank()) {
+            this.adminEmail = newEmail;
+        }
+
+        if (sidebarNameLabel != null) sidebarNameLabel.setText(this.adminDisplayName);
+        if (sidebarEmailLabel != null) sidebarEmailLabel.setText(this.adminEmail);
+        if (sidebarAvatarPanel != null) sidebarAvatarPanel.repaint();
+
+        if (headerAdminNameLabel != null) headerAdminNameLabel.setText(this.adminDisplayName);
+        if (headerMiniAvatarPanel != null) headerMiniAvatarPanel.repaint();
+    }
+
     // =========================================================================
     // DATABASE INTEGRATION & ASYNCHRONOUS DATA LOADING (JDBC / SwingWorker)
     // =========================================================================
@@ -1575,6 +1667,11 @@ public class AdminDashboard extends JFrame {
         if (lblOfficersCount != null)  lblOfficersCount.setText(String.valueOf(stats.getTotalTechnicalOfficers()));
         if (lblCoursesCount != null)   lblCoursesCount.setText(String.valueOf(stats.getTotalCourses()));
         if (lblNoticesCount != null)   lblNoticesCount.setText(String.valueOf(stats.getTotalNotices()));
+
+        this.activeNoticesCount = stats.getTotalNotices();
+        if (headerBellButton != null) {
+            headerBellButton.repaint();
+        }
 
         // 2. Update Subtitle Status Labels
         if (lblStudentsSub != null)  lblStudentsSub.setText(stats.getTotalStudents() + " Active Learners");

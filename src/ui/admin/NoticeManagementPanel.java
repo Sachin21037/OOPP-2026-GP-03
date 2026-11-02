@@ -31,19 +31,19 @@ import java.util.Map;
  */
 public class NoticeManagementPanel extends JPanel {
 
-    // Color Palette matching FAMS Design System
-    private static final Color PRIMARY_NAVY     = new Color(16, 40, 74);    // #10284A
-    private static final Color SECONDARY_BLUE   = new Color(27, 85, 155);   // #1B559B
-    private static final Color LIGHT_BLUE       = new Color(234, 242, 255); // #EAF2FF
-    private static final Color MAIN_BG          = new Color(245, 247, 251); // #F5F7FB
+    // Color Palette matching Soft Sage Green Theme
+    private static final Color PRIMARY_NAVY     = new Color(26, 83, 71);    // #1A5347 Velvety Deep Sage Pine
+    private static final Color SECONDARY_BLUE   = new Color(42, 119, 102);  // #2A7766 Soft Sage Green Accent
+    private static final Color LIGHT_BLUE       = new Color(226, 240, 235); // #E2F0EB Soft Sage Tint
+    private static final Color MAIN_BG          = new Color(239, 245, 242); // #EFF5F2 Soft Sage Canvas
     private static final Color CARD_BG          = Color.WHITE;
-    private static final Color TEXT_PRIMARY     = new Color(23, 43, 77);    // #172B4D
-    private static final Color TEXT_SECONDARY   = new Color(113, 128, 150); // #718096
+    private static final Color TEXT_PRIMARY     = new Color(26, 56, 48);    // #1A3830 Deep Sage Slate
+    private static final Color TEXT_SECONDARY   = new Color(93, 122, 114);  // #5D7A72 Muted Sage Slate
     private static final Color SUCCESS_COLOR    = new Color(22, 163, 74);   // #16A34A
-    private static final Color WARNING_COLOR    = new Color(245, 158, 11);  // #F59E0B
-    private static final Color DANGER_COLOR     = new Color(220, 38, 38);   // #DC2626
-    private static final Color PURPLE_COLOR     = new Color(124, 58, 237);  // #7C3AED
-    private static final Color BORDER_COLOR     = new Color(226, 232, 240); // #E2E8F0
+    private static final Color WARNING_COLOR    = new Color(180, 83, 9);    // #B45309
+    private static final Color DANGER_COLOR     = new Color(190, 18, 60);   // #BE123C Refined Rose Crimson
+    private static final Color PURPLE_COLOR     = new Color(42, 119, 102);
+    private static final Color BORDER_COLOR     = new Color(210, 228, 220); // #D2E4DC Soft Sage Border
 
     private final String currentUserRole;
     private final String currentUserId;
@@ -129,7 +129,7 @@ public class NoticeManagementPanel extends JPanel {
                 isAdmin ? "Manage official faculty announcements, exam notices, and academic circulars."
                         : "Official announcements, notices, and academic updates published by Faculty Administration.",
                 "0 Notices",
-                "↻ Refresh",
+                "🔄 Refresh",
                 () -> {
                     loadNoticesAsync();
                     if (onNoticeChangedCallback != null) {
@@ -326,7 +326,7 @@ public class NoticeManagementPanel extends JPanel {
         }
 
         // Reset Button
-        JButton btnReset = UIAnimationHelper.createAnimatedSecondaryButton("Reset", TEXT_SECONDARY, BORDER_COLOR, 18, e -> resetFilters());
+        JButton btnReset = UIAnimationHelper.createAnimatedSecondaryButton("↺ Reset", TEXT_SECONDARY, BORDER_COLOR, 18, e -> resetFilters());
         leftPanel.add(btnReset);
 
         toolbar.add(leftPanel, BorderLayout.CENTER);
@@ -426,7 +426,7 @@ public class NoticeManagementPanel extends JPanel {
         lblFormMode.setForeground(PRIMARY_NAVY);
         formHeader.add(lblFormMode, BorderLayout.WEST);
 
-        btnClear = UIAnimationHelper.createAnimatedSecondaryButton("Clear", TEXT_SECONDARY, BORDER_COLOR, 16, e -> clearForm());
+        btnClear = UIAnimationHelper.createAnimatedSecondaryButton("↺ Clear", TEXT_SECONDARY, BORDER_COLOR, 16, e -> clearForm());
         formHeader.add(btnClear, BorderLayout.EAST);
 
         card.add(formHeader, BorderLayout.NORTH);
@@ -519,14 +519,14 @@ public class NoticeManagementPanel extends JPanel {
         JPanel actionRow = new JPanel(new GridLayout(1, 3, 8, 0));
         actionRow.setOpaque(false);
 
-        btnAdd = UIAnimationHelper.createAnimatedPillButton("Publish", SECONDARY_BLUE, 20, e -> performAddNotice());
+        btnAdd = UIAnimationHelper.createAnimatedPillButton("📢 Publish", SECONDARY_BLUE, 20, e -> performAddNotice());
         actionRow.add(btnAdd);
 
-        btnUpdate = UIAnimationHelper.createAnimatedPillButton("Update", SUCCESS_COLOR, 20, e -> performUpdateNotice());
+        btnUpdate = UIAnimationHelper.createAnimatedPillButton("💾 Update", SECONDARY_BLUE, 20, e -> performUpdateNotice());
         btnUpdate.setEnabled(false);
         actionRow.add(btnUpdate);
 
-        btnDelete = UIAnimationHelper.createAnimatedPillButton("Delete", DANGER_COLOR, 20, e -> performDeleteNotice());
+        btnDelete = UIAnimationHelper.createAnimatedSecondaryButton("🗑 Delete", DANGER_COLOR, BORDER_COLOR, 20, e -> performDeleteNotice());
         btnDelete.setEnabled(false);
         actionRow.add(btnDelete);
 

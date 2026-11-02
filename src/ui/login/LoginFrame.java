@@ -25,307 +25,354 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 
+/**
+ * Modern University Login Interface for Faculty Academic Management System (FAMS).
+ * Reproduces 100% the layout, structure, and aesthetic of the reference LMS interface:
+ * - Full-bleed photographic & artistic background (university campus, desk, laptop, books, green curves).
+ * - Left side: Academic Emblem, "FAMS" wordmark, "Faculty Academic Management System", and "Learn • Access • Excel" divider.
+ * - Right side: Floating white rounded card with drop shadow, "Welcome Back!", "Sign in to continue",
+ *   icon-adorned username and password fields with vector eye visibility toggle,
+ *   administration contact notice, "Login →" deep sage pill button, and graduation cap footer divider.
+ */
 public class LoginFrame extends JFrame {
 
-    // Theme Palette - Harmonized with Admin Dashboard
-    private static final Color PRIMARY_NAVY    = new Color(16, 40, 74);    // #10284A
-    private static final Color SECONDARY_BLUE  = new Color(29, 78, 216);   // #1D4ED8
-    private static final Color LIGHT_BLUE      = new Color(234, 242, 255); // #EAF2FF
-    private static final Color BG_LEFT_TOP     = new Color(245, 248, 254);
-    private static final Color BG_LEFT_BOTTOM  = new Color(228, 238, 252);
-    private static final Color PRIMARY_BLUE    = new Color(29, 78, 216);   // #1D4ED8
-    private static final Color PRIMARY_HOVER   = new Color(16, 40, 74);    // #10284A
-    private static final Color PRIMARY_PRESSED = new Color(10, 25, 47);    // #0A192F
-
-    private static final Color TEXT_PRIMARY    = new Color(23, 43, 77);    // #172B4D
-    private static final Color TEXT_SECONDARY  = new Color(71, 85, 105);
-    private static final Color TEXT_MUTED      = new Color(100, 116, 139);
-    private static final Color BORDER_COLOR    = new Color(203, 213, 225);
-    private static final Color BG_INPUT        = new Color(248, 250, 252);
+    // Palette harmonized with Soft Sage Green theme and Reference Image
+    private static final Color SAGE_DEEP        = new Color(47, 82, 68);    // #2F5244 Deep Academic Sage (Emblem, FAMS)
+    private static final Color SAGE_ACCENT      = new Color(59, 91, 76);    // #3B5B4C Login Button Base Color
+    private static final Color SAGE_HOVER       = new Color(45, 73, 60);    // #2D493C Login Button Hover Color
+    private static final Color SAGE_PRESSED     = new Color(32, 53, 44);    // #20352C Login Button Pressed Color
+    private static final Color GOLD_ARCH        = new Color(205, 166, 92);  // #CDA65C Emblem Gold Arch
+    private static final Color TEXT_DARK        = new Color(31, 56, 47);    // #1F382F "Welcome Back!" heading
+    private static final Color TEXT_MUTED       = new Color(100, 116, 139); // #64748B Subtitle, placeholders, footers
+    private static final Color ICON_MUTED       = new Color(148, 163, 184); // #94A3B8 Input field icons
+    private static final Color BORDER_INPUT     = new Color(209, 213, 219); // #D1D5DB Input border
+    private static final Color BORDER_FOCUS     = new Color(42, 119, 102);  // #2A7766 Focus border
 
     // UI Components
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JButton eyeButton;
-    private JCheckBox rememberMeCheckbox;
-    private JLabel forgotPasswordLabel;
     private JButton loginButton;
 
     private boolean isPasswordVisible = false;
     private char defaultEchoChar = '•';
-    private BufferedImage illustrationImage;
+    private BufferedImage backgroundImage;
 
     private final StudentDAO studentDAO = new StudentDAO();
 
     public LoginFrame() {
         setTitle("Faculty Academic Management System - Sign In");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setPreferredSize(new Dimension(900, 550));
-        setMinimumSize(new Dimension(800, 500));
-        setSize(900, 550);
+        setPreferredSize(new Dimension(1024, 600));
+        setMinimumSize(new Dimension(960, 560));
+        setSize(1024, 600);
         setLocationRelativeTo(null);
 
-        loadIllustrationImage();
+        loadBackgroundImage();
         initUI();
     }
 
     /**
-     * Loads the 3D illustration image from resources or local file paths (supporting PNG and JPG).
+     * Loads the high-resolution clean background image from resources or local directories.
      */
-    private void loadIllustrationImage() {
+    private void loadBackgroundImage() {
         try {
             String[] resourcePaths = {
-                    "/ui/login/login_illustration.png",
+                    "/ui/login/login_bg.jpg",
                     "/ui/login/login_illustration.jpg",
-                    "login_illustration.png",
+                    "login_bg.jpg",
                     "login_illustration.jpg"
             };
             for (String path : resourcePaths) {
                 URL imgUrl = getClass().getResource(path);
                 if (imgUrl != null) {
-                    illustrationImage = ImageIO.read(imgUrl);
-                    if (illustrationImage != null) return;
+                    backgroundImage = ImageIO.read(imgUrl);
+                    if (backgroundImage != null) return;
                 }
             }
 
             String[] filePaths = {
-                    "src/ui/login/login_illustration.png",
+                    "src/ui/login/login_bg.jpg",
                     "src/ui/login/login_illustration.jpg",
-                    "out/production/OOPP-2026-GP-03/ui/login/login_illustration.png",
+                    "out/production/OOPP-2026-GP-03/ui/login/login_bg.jpg",
                     "out/production/OOPP-2026-GP-03/ui/login/login_illustration.jpg",
-                    "login_illustration.png",
+                    "bin/ui/login/login_bg.jpg",
                     "login_illustration.jpg"
             };
             for (String path : filePaths) {
                 File file = new File(path);
                 if (file.exists()) {
-                    illustrationImage = ImageIO.read(file);
-                    if (illustrationImage != null) return;
+                    backgroundImage = ImageIO.read(file);
+                    if (backgroundImage != null) return;
                 }
             }
         } catch (Exception e) {
-            System.err.println("Notice: Could not load illustration image: " + e.getMessage());
+            System.err.println("Notice: Could not load background image: " + e.getMessage());
         }
     }
 
     private void initUI() {
-        // Main container with 42% / 58% split using GridBagLayout
-        JPanel rootPanel = new JPanel(new GridBagLayout());
-        rootPanel.setBackground(Color.WHITE);
+        JPanel rootPanel = buildRootPanel();
+        setContentPane(rootPanel);
+
+        // Default enter key triggers login
+        if (loginButton != null) {
+            getRootPane().setDefaultButton(loginButton);
+        }
+    }
+
+    public JPanel buildRootPanel() {
+        // Root panel that paints the full-bleed background image
+        JPanel rootPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int w = getWidth();
+                int h = getHeight();
+
+                if (backgroundImage != null) {
+                    g2.drawImage(backgroundImage, 0, 0, w, h, null);
+                } else {
+                    // Fallback Soft Sage gradient
+                    GradientPaint gp = new GradientPaint(0, 0, new Color(239, 245, 242), w, h, new Color(220, 236, 230));
+                    g2.setPaint(gp);
+                    g2.fillRect(0, 0, w, h);
+                }
+                g2.dispose();
+            }
+        };
+        rootPanel.setLayout(new GridBagLayout());
 
         GridBagConstraints gbc = new GridBagConstraints();
 
-        // Left Panel (42% width)
-        JPanel leftPanel = createLeftPanel();
+        // 1. Left Column (52% width) - Academic Branding (Emblem, FAMS, Title, Tagline divider)
+        JPanel leftPanel = createLeftBrandingPanel();
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.weightx = 0.42;
+        gbc.weightx = 0.52;
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         rootPanel.add(leftPanel, gbc);
 
-        // Right Panel (58% width)
-        JPanel rightPanel = createRightPanel();
+        // 2. Right Column (48% width) - Floating White Login Card
+        JPanel rightPanel = createRightCardPanel();
         gbc.gridx = 1;
         gbc.gridy = 0;
-        gbc.weightx = 0.58;
+        gbc.weightx = 0.48;
         gbc.weighty = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
         rootPanel.add(rightPanel, gbc);
 
-        setContentPane(rootPanel);
-
-        // Configure default Enter key behavior
-        getRootPane().setDefaultButton(loginButton);
+        return rootPanel;
     }
 
+    /**
+     * Creates the Left Branding Section matching 100% the reference structure:
+     * - Vector Academic Emblem with gold arc and tassel
+     * - Bold "FAMS" uppercase wordmark
+     * - "Faculty Academic Management System" subtitle
+     * - Elegant "Learn • Access • Excel" divider rule
+     */
+    private JPanel createLeftBrandingPanel() {
+        JPanel leftPanel = new JPanel(new BorderLayout());
+        leftPanel.setOpaque(false);
+        leftPanel.setBorder(new EmptyBorder(22, 60, 20, 20));
 
-     //Creates the Left Panel (42% width):
-     //Soft light-blue gradient background, FAMS header branding, descriptive platform summary,
-     // the exact 3D academic/technology illustration image card.
+        JPanel brandingBox = new JPanel();
+        brandingBox.setOpaque(false);
+        brandingBox.setLayout(new BoxLayout(brandingBox, BoxLayout.Y_AXIS));
 
-    private JPanel createLeftPanel() {
-        JPanel leftPanel = new JPanel() {
+        // Row 1: Academic Emblem + FAMS Title
+        JPanel rowHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
+        rowHeader.setOpaque(false);
+        rowHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        AcademicEmblem emblem = new AcademicEmblem();
+        rowHeader.add(emblem);
+
+        JLabel lblFAMS = new JLabel("FAMS");
+        lblFAMS.setFont(new Font("SansSerif", Font.BOLD, 46));
+        lblFAMS.setForeground(SAGE_DEEP);
+        rowHeader.add(lblFAMS);
+
+        brandingBox.add(rowHeader);
+        brandingBox.add(Box.createVerticalStrut(2));
+
+        // Row 2: Full System Name
+        JLabel lblFullTitle = new JLabel("Faculty Academic Management System");
+        lblFullTitle.setFont(new Font("SansSerif", Font.BOLD, 17));
+        lblFullTitle.setForeground(SAGE_DEEP);
+        lblFullTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        brandingBox.add(lblFullTitle);
+        brandingBox.add(Box.createVerticalStrut(8));
+
+        // Row 3: Tagline Divider rule
+        LearnDivider divider = new LearnDivider();
+        divider.setAlignmentX(Component.LEFT_ALIGNMENT);
+        brandingBox.add(divider);
+
+        leftPanel.add(brandingBox, BorderLayout.NORTH);
+        return leftPanel;
+    }
+
+    /**
+     * Creates the Right Column containing the centered floating white card.
+     */
+    private JPanel createRightCardPanel() {
+        JPanel rightPanel = new JPanel(new GridBagLayout());
+        rightPanel.setOpaque(false);
+        rightPanel.setBorder(new EmptyBorder(20, 10, 20, 60));
+
+        // Floating White Card
+        FloatingCardPanel card = new FloatingCardPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(32, 30, 24, 30));
+        card.setPreferredSize(new Dimension(380, 480));
+        card.setMaximumSize(new Dimension(410, 500));
+
+        // 1. Heading: Welcome Back!
+        JLabel lblHeading = new JLabel("Welcome Back!");
+        lblHeading.setFont(new Font("SansSerif", Font.BOLD, 24));
+        lblHeading.setForeground(TEXT_DARK);
+        lblHeading.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // 2. Subtitle: Sign in to continue (as explicitly instructed by user)
+        JLabel lblSubtitle = new JLabel("Sign in to continue");
+        lblSubtitle.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        lblSubtitle.setForeground(TEXT_MUTED);
+        lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // 3. Username Input Container with Person Icon (👤)
+        ModernInputFieldContainer usernameContainer = new ModernInputFieldContainer();
+        usernameContainer.setLayout(new BorderLayout());
+        usernameContainer.setPreferredSize(new Dimension(320, 42));
+        usernameContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        usernameContainer.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // Person icon component
+        JComponent personIcon = new JComponent() {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
-                // Light blue gradient background
-                GradientPaint bgGradient = new GradientPaint(
-                        0, 0, BG_LEFT_TOP,
-                        0, getHeight(), BG_LEFT_BOTTOM
-                );
-                g2.setPaint(bgGradient);
-                g2.fillRect(0, 0, getWidth(), getHeight());
+                int cx = getWidth() / 2;
+                int cy = getHeight() / 2;
 
-                // Subtle ambient geometric shapes in Admin Navy & Blue
-                g2.setColor(new Color(16, 40, 74, 15));
-                g2.fillOval(-40, -40, 160, 160);
-                g2.setColor(new Color(29, 78, 216, 20));
-                g2.fillOval(getWidth() - 90, getHeight() / 2 - 50, 150, 150);
+                g2.setColor(ICON_MUTED);
+                g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
-                // Draw exact 3D illustration image in the lower section with Admin Dashboard colors
-                if (illustrationImage != null) {
-                    int padX = 24;
-                    int targetW = getWidth() - (padX * 2);
-                    // Maintain aspect ratio (735 x 490 = 3:2)
-                    int targetH = (int) (targetW * (490.0 / 735.0));
-                    int targetY = getHeight() - targetH - 24;
-
-                    // 1. Soft Navy card shadow
-                    g2.setColor(new Color(16, 40, 74, 38));
-                    g2.fill(new RoundRectangle2D.Float(padX - 2, targetY + 3, targetW + 4, targetH + 4, 18, 18));
-
-                    // 2. Admin Light Blue container mat / backing
-                    RoundRectangle2D.Float matRect = new RoundRectangle2D.Float(padX - 3, targetY - 3, targetW + 6, targetH + 6, 18, 18);
-                    g2.setColor(LIGHT_BLUE);
-                    g2.fill(matRect);
-
-                    // 3. Admin Secondary Blue accent border around the mat
-                    g2.setColor(new Color(29, 78, 216, 120));
-                    g2.setStroke(new BasicStroke(1.5f));
-                    g2.draw(matRect);
-
-                    // 4. Rounded card clip for the image
-                    RoundRectangle2D.Float clipRect = new RoundRectangle2D.Float(padX, targetY, targetW, targetH, 14, 14);
-                    Shape oldClip = g2.getClip();
-                    g2.clip(clipRect);
-                    g2.drawImage(illustrationImage, padX, targetY, targetW, targetH, null);
-                    g2.setClip(oldClip);
-
-                    // 5. Crisp inner border
-                    g2.setColor(new Color(255, 255, 255, 230));
-                    g2.setStroke(new BasicStroke(1.2f));
-                    g2.draw(clipRect);
-                }
+                // Head circle
+                g2.drawOval(cx - 5, cy - 8, 10, 10);
+                // Shoulders arc
+                g2.drawArc(cx - 9, cy + 3, 18, 12, 35, 110);
 
                 g2.dispose();
             }
         };
-        leftPanel.setLayout(new BorderLayout());
-        leftPanel.setPreferredSize(new Dimension(378, 550));
+        personIcon.setPreferredSize(new Dimension(38, 42));
 
-        // Content branding & description panel (Logo removed, title sized up)
-        JPanel contentPanel = new JPanel();
-        contentPanel.setOpaque(false);
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBorder(new EmptyBorder(30, 28, 8, 28));
-
-        // Sized-up Faculty Academic Management System title matching sign button color
-        JLabel appCategoryLabel = new JLabel("Faculty Academic Management System");
-        appCategoryLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        appCategoryLabel.setForeground(SECONDARY_BLUE);
-        appCategoryLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        // Main Welcome Heading
-        JLabel welcomeHeading = new JLabel("Welcome Back!");
-        welcomeHeading.setFont(new Font("SansSerif", Font.BOLD, 22));
-        welcomeHeading.setForeground(TEXT_PRIMARY);
-        welcomeHeading.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        // FAMS Description Section
-        JLabel famsHeadline = new JLabel("One Platform. Every Academic Need.");
-        famsHeadline.setFont(new Font("SansSerif", Font.BOLD, 12));
-        famsHeadline.setForeground(SECONDARY_BLUE);
-        famsHeadline.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel famsDesc = new JLabel(
-                "<html><body style='width: 315px; color: #475569; font-family: sans-serif; font-size: 10px; line-height: 1.4;'>" +
-                "FAMS is a user-friendly Faculty Academic Management System designed to simplify " +
-                "academic activities for students, lecturers, technical officers, and administrators." +
-                "</body></html>"
-        );
-        famsDesc.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        contentPanel.add(appCategoryLabel);
-        contentPanel.add(Box.createVerticalStrut(8));
-        contentPanel.add(welcomeHeading);
-        contentPanel.add(Box.createVerticalStrut(10));
-        contentPanel.add(famsHeadline);
-        contentPanel.add(Box.createVerticalStrut(5));
-        contentPanel.add(famsDesc);
-
-        leftPanel.add(contentPanel, BorderLayout.NORTH);
-
-        return leftPanel;
-    }
-
-      //Creates the Right Panel (58% width):
-    //Pure white background, clean Sign In header, modern rounded inputs, custom vector eye
-     //password visibility toggle, remember me, forgot password, prominent royal-blue login button.
-    private JPanel createRightPanel() {
-        JPanel rightWrapper = new JPanel(new GridBagLayout());
-        rightWrapper.setBackground(Color.WHITE);
-        rightWrapper.setPreferredSize(new Dimension(522, 550));
-
-        // Inner form container with fixed comfortable width
-        JPanel formPanel = new JPanel();
-        formPanel.setBackground(Color.WHITE);
-        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-        formPanel.setBorder(new EmptyBorder(20, 48, 20, 48));
-        formPanel.setPreferredSize(new Dimension(420, 480));
-        formPanel.setMaximumSize(new Dimension(440, 500));
-
-        // 1. Heading & Subtitle
-        JLabel signInHeading = new JLabel("Sign In");
-        signInHeading.setFont(new Font("SansSerif", Font.BOLD, 26));
-        signInHeading.setForeground(TEXT_PRIMARY);
-        signInHeading.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel signInSubtitle = new JLabel("Access your account to continue");
-        signInSubtitle.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        signInSubtitle.setForeground(TEXT_MUTED);
-        signInSubtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        // 2. Username Label & Field
-        JLabel usernameLabel = new JLabel("Username");
-        usernameLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
-        usernameLabel.setForeground(TEXT_PRIMARY);
-        usernameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        usernameField = new JTextField();
+        usernameField = new JTextField() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                if (getText().isEmpty() && !isFocusOwner()) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                    g2.setColor(new Color(156, 163, 175));
+                    g2.setFont(getFont());
+                    FontMetrics fm = g2.getFontMetrics();
+                    int y = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
+                    g2.drawString("Username", getInsets().left, y);
+                    g2.dispose();
+                }
+            }
+        };
         usernameField.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        usernameField.setForeground(TEXT_PRIMARY);
+        usernameField.setForeground(TEXT_DARK);
+        usernameField.setCaretColor(BORDER_FOCUS);
         usernameField.setOpaque(false);
-        usernameField.setBorder(new EmptyBorder(8, 12, 8, 12));
-
-        RoundedFieldContainer usernameContainer = new RoundedFieldContainer();
-        usernameContainer.setLayout(new BorderLayout());
-        usernameContainer.add(usernameField, BorderLayout.CENTER);
-        usernameContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-        usernameContainer.setPreferredSize(new Dimension(320, 42));
-        usernameContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
+        usernameField.setBorder(new EmptyBorder(0, 0, 0, 8));
 
         usernameField.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                usernameContainer.setFocused(true);
-            }
-            @Override
-            public void focusLost(FocusEvent e) {
-                usernameContainer.setFocused(false);
-            }
+            @Override public void focusGained(FocusEvent e) { usernameContainer.setFocused(true); }
+            @Override public void focusLost(FocusEvent e) { usernameContainer.setFocused(false); }
         });
+        usernameField.addActionListener(e -> handleLogin());
 
-        // 3. Password Label & Field with Custom Vector Eye Show/Hide toggle
-        JLabel passwordLabel = new JLabel("Password");
-        passwordLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
-        passwordLabel.setForeground(TEXT_PRIMARY);
-        passwordLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        usernameContainer.add(personIcon, BorderLayout.WEST);
+        usernameContainer.add(usernameField, BorderLayout.CENTER);
 
-        passwordField = new JPasswordField();
+        // 4. Password Input Container with Lock Icon (🔒) and Eye toggle
+        ModernInputFieldContainer passwordContainer = new ModernInputFieldContainer();
+        passwordContainer.setLayout(new BorderLayout());
+        passwordContainer.setPreferredSize(new Dimension(320, 42));
+        passwordContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        passwordContainer.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // Lock icon component
+        JComponent lockIcon = new JComponent() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                int cx = getWidth() / 2;
+                int cy = getHeight() / 2;
+
+                g2.setColor(ICON_MUTED);
+                g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+                // Shackle
+                g2.drawArc(cx - 5, cy - 8, 10, 10, 0, 180);
+                // Body
+                g2.drawRoundRect(cx - 7, cy - 2, 14, 11, 3, 3);
+                // Keyhole
+                g2.fillOval(cx - 1, cy + 2, 2, 2);
+                g2.drawLine(cx, cy + 4, cx, cy + 6);
+
+                g2.dispose();
+            }
+        };
+        lockIcon.setPreferredSize(new Dimension(38, 42));
+
+        passwordField = new JPasswordField() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                if (getPassword().length == 0 && !isFocusOwner()) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                    g2.setColor(new Color(156, 163, 175));
+                    g2.setFont(getFont());
+                    FontMetrics fm = g2.getFontMetrics();
+                    int y = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
+                    g2.drawString("Password", getInsets().left, y);
+                    g2.dispose();
+                }
+            }
+        };
         passwordField.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        passwordField.setForeground(TEXT_PRIMARY);
+        passwordField.setForeground(TEXT_DARK);
+        passwordField.setCaretColor(BORDER_FOCUS);
         passwordField.setOpaque(false);
-        passwordField.setBorder(new EmptyBorder(8, 12, 8, 4));
-
+        passwordField.setBorder(new EmptyBorder(0, 0, 0, 4));
         defaultEchoChar = passwordField.getEchoChar();
 
-        // Eye Button painted directly with Java2D
+        passwordField.addFocusListener(new FocusAdapter() {
+            @Override public void focusGained(FocusEvent e) { passwordContainer.setFocused(true); }
+            @Override public void focusLost(FocusEvent e) { passwordContainer.setFocused(false); }
+        });
+        passwordField.addActionListener(e -> handleLogin());
+
+        // Eye Button painted with Java2D
         eyeButton = new JButton() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -333,20 +380,18 @@ public class LoginFrame extends JFrame {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                int w = getWidth();
-                int h = getHeight();
-                int cx = w / 2;
-                int cy = h / 2;
+                int cx = getWidth() / 2;
+                int cy = getHeight() / 2;
 
-                Color iconColor = getModel().isRollover() ? PRIMARY_BLUE : TEXT_MUTED;
+                Color iconColor = getModel().isRollover() ? BORDER_FOCUS : ICON_MUTED;
                 g2.setColor(iconColor);
-                g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2.setStroke(new BasicStroke(1.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
                 // Eye contour
                 Path2D.Double eyeContour = new Path2D.Double();
-                eyeContour.moveTo(cx - 9, cy);
-                eyeContour.curveTo(cx - 5, cy - 6, cx + 5, cy - 6, cx + 9, cy);
-                eyeContour.curveTo(cx + 5, cy + 6, cx - 5, cy + 6, cx - 9, cy);
+                eyeContour.moveTo(cx - 8, cy);
+                eyeContour.curveTo(cx - 4, cy - 5, cx + 4, cy - 5, cx + 8, cy);
+                eyeContour.curveTo(cx + 4, cy + 5, cx - 4, cy + 5, cx - 8, cy);
                 eyeContour.closePath();
                 g2.draw(eyeContour);
 
@@ -354,9 +399,9 @@ public class LoginFrame extends JFrame {
                 g2.fillOval(cx - 3, cy - 3, 6, 6);
 
                 if (!isPasswordVisible) {
-                    // Diagonal slash when masked/hidden
-                    g2.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                    g2.drawLine(cx - 8, cy - 7, cx + 8, cy + 7);
+                    // Diagonal slash when password hidden
+                    g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                    g2.drawLine(cx - 7, cy - 6, cx + 7, cy + 6);
                 }
 
                 g2.dispose();
@@ -366,147 +411,69 @@ public class LoginFrame extends JFrame {
         eyeButton.setBorderPainted(false);
         eyeButton.setFocusPainted(false);
         eyeButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        eyeButton.setPreferredSize(new Dimension(36, 36));
-        eyeButton.setToolTipText("Show password");
+        eyeButton.setPreferredSize(new Dimension(36, 42));
+        eyeButton.setToolTipText("Show / Hide password");
         eyeButton.addActionListener(e -> togglePasswordVisibility());
 
-        RoundedFieldContainer passwordContainer = new RoundedFieldContainer();
-        passwordContainer.setLayout(new BorderLayout());
+        passwordContainer.add(lockIcon, BorderLayout.WEST);
         passwordContainer.add(passwordField, BorderLayout.CENTER);
         passwordContainer.add(eyeButton, BorderLayout.EAST);
-        passwordContainer.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-        passwordContainer.setPreferredSize(new Dimension(320, 42));
-        passwordContainer.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        passwordField.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                passwordContainer.setFocused(true);
-            }
-            @Override
-            public void focusLost(FocusEvent e) {
-                passwordContainer.setFocused(false);
-            }
-        });
+        // 5. Administration Notice (Replaces Remember Me & Forgot Password link as requested)
+        JLabel forgotNotice = new JLabel("<html><center style='color:#64748B; font-family:sans-serif; font-size:11px; line-height:1.2;'>" +
+                "If you forgot your password,<br>please contact the administration." +
+                "</center></html>");
+        forgotNotice.setHorizontalAlignment(SwingConstants.CENTER);
+        forgotNotice.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // 4. Remember Me & Forgot Password Row
-        JPanel optionsRow = new JPanel(new BorderLayout());
-        optionsRow.setBackground(Color.WHITE);
-        optionsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
-        optionsRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        rememberMeCheckbox = new JCheckBox("Remember Me");
-        rememberMeCheckbox.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        rememberMeCheckbox.setForeground(TEXT_MUTED);
-        rememberMeCheckbox.setBackground(Color.WHITE);
-        rememberMeCheckbox.setFocusPainted(false);
-        rememberMeCheckbox.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        forgotPasswordLabel = new JLabel("Forgot Password?");
-        forgotPasswordLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
-        forgotPasswordLabel.setForeground(PRIMARY_BLUE);
-        forgotPasswordLabel.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        forgotPasswordLabel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                showForgotPasswordMessage();
-            }
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                forgotPasswordLabel.setForeground(PRIMARY_HOVER);
-            }
-            @Override
-            public void mouseExited(MouseEvent e) {
-                forgotPasswordLabel.setForeground(PRIMARY_BLUE);
-            }
-        });
-
-        optionsRow.add(rememberMeCheckbox, BorderLayout.WEST);
-        optionsRow.add(forgotPasswordLabel, BorderLayout.EAST);
-
-        // 5. Prominent Navy & Blue LOGIN Button (Admin Dashboard Theme)
-        loginButton = new RoundedButton("LOGIN", PRIMARY_NAVY, SECONDARY_BLUE, PRIMARY_PRESSED, 8);
-        loginButton.setFont(new Font("SansSerif", Font.BOLD, 13));
-        loginButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-        loginButton.setPreferredSize(new Dimension(320, 42));
-        loginButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // 6. Modern Login Button with Arrow (Login →)
+        loginButton = new ModernLoginButton("Login  →");
+        loginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         loginButton.addActionListener(e -> handleLogin());
 
-        // Pressing Enter in text fields triggers login
-        usernameField.addActionListener(e -> handleLogin());
-        passwordField.addActionListener(e -> handleLogin());
+        // 7. Divider with Graduation Cap Icon
+        CardCapDivider capDivider = new CardCapDivider();
+        capDivider.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // 6. Security Footer
-        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 0));
-        footerPanel.setBackground(Color.WHITE);
-        footerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
-        footerPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // 8. Card Footer Tagline
+        JLabel lblTagline = new JLabel("Education Beyond Boundaries");
+        lblTagline.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        lblTagline.setForeground(TEXT_MUTED);
+        lblTagline.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JComponent lockIcon = new JComponent() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        // Assemble Form Components with balanced layout
+        card.add(Box.createVerticalGlue());
+        card.add(lblHeading);
+        card.add(Box.createVerticalStrut(6));
+        card.add(lblSubtitle);
+        card.add(Box.createVerticalStrut(24));
 
-                g2.setColor(TEXT_MUTED);
-                g2.setStroke(new BasicStroke(1.3f));
-                g2.drawArc(3, 1, 6, 6, 0, 180);
-                g2.fillRoundRect(2, 4, 8, 7, 2, 2);
+        card.add(usernameContainer);
+        card.add(Box.createVerticalStrut(14));
 
-                g2.dispose();
-            }
-        };
-        lockIcon.setPreferredSize(new Dimension(13, 13));
+        card.add(passwordContainer);
+        card.add(Box.createVerticalStrut(14));
 
-        JLabel footerLabel = new JLabel("Secure access to your academic portal.");
-        footerLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        footerLabel.setForeground(TEXT_MUTED);
+        card.add(forgotNotice);
+        card.add(Box.createVerticalStrut(16));
 
-        footerPanel.add(lockIcon);
-        footerPanel.add(footerLabel);
+        card.add(loginButton);
+        card.add(Box.createVerticalStrut(20));
 
-        // Assemble Form Components with balanced spacing
-        formPanel.add(Box.createVerticalGlue());
-        formPanel.add(signInHeading);
-        formPanel.add(Box.createVerticalStrut(4));
-        formPanel.add(signInSubtitle);
-        formPanel.add(Box.createVerticalStrut(24));
+        card.add(capDivider);
+        card.add(Box.createVerticalStrut(8));
 
-        formPanel.add(usernameLabel);
-        formPanel.add(Box.createVerticalStrut(6));
-        formPanel.add(usernameContainer);
-        formPanel.add(Box.createVerticalStrut(14));
+        card.add(lblTagline);
+        card.add(Box.createVerticalGlue());
 
-        formPanel.add(passwordLabel);
-        formPanel.add(Box.createVerticalStrut(6));
-        formPanel.add(passwordContainer);
-        formPanel.add(Box.createVerticalStrut(12));
-
-        formPanel.add(optionsRow);
-        formPanel.add(Box.createVerticalStrut(20));
-
-        formPanel.add(loginButton);
-        formPanel.add(Box.createVerticalStrut(22));
-
-        formPanel.add(footerPanel);
-        formPanel.add(Box.createVerticalGlue());
-
-        rightWrapper.add(formPanel, new GridBagConstraints());
-        return rightWrapper;
+        rightPanel.add(card, new GridBagConstraints());
+        return rightPanel;
     }
 
-    /*
-      Toggles password visibility between masked and plain text.
+    /**
+     * Toggles password visibility between masked and plain text.
      */
     private void togglePasswordVisibility() {
-        if (passwordField != null && defaultEchoChar == '•') {
-            char ec = passwordField.getEchoChar();
-            if (ec != 0) {
-                defaultEchoChar = ec;
-            }
-        }
         isPasswordVisible = !isPasswordVisible;
         if (isPasswordVisible) {
             passwordField.setEchoChar((char) 0);
@@ -518,22 +485,9 @@ public class LoginFrame extends JFrame {
         eyeButton.repaint();
     }
 
-    /*
-     Displays a temporary placeholder notice for the Forgot Password action.
+    /**
+     * Handles the database-authenticated login action.
      */
-    private void showForgotPasswordMessage() {
-        JOptionPane.showMessageDialog(
-                this,
-                "The self-service password reset feature is currently being integrated.\n" +
-                "Please contact your university administrator for assistance.",
-                "Forgot Password",
-                JOptionPane.INFORMATION_MESSAGE
-        );
-    }
-
-
-     //Handles the database-authenticated login action:
-
     private void handleLogin() {
         String usernameInput = usernameField.getText().trim();
         char[] passwordChars = passwordField.getPassword();
@@ -655,7 +609,7 @@ public class LoginFrame extends JFrame {
                                     null,
                                     options,
                                     options[0]
-                            );
+                                );
                             if (choice == 0) {
                                 SwingUtilities.invokeLater(() -> {
                                     TimetableViewerFrame viewer = new TimetableViewerFrame(role, displayName);
@@ -719,13 +673,163 @@ public class LoginFrame extends JFrame {
         }
     }
 
+    // =========================================================================
+    // CUSTOM VECTOR GRAPHICS & FLOATING CARD COMPONENTS
+    // =========================================================================
 
-    // Custom container panel with smooth rounded borders and dynamic focus highlighting
-    private static class RoundedFieldContainer extends JPanel {
-        private final int radius = 8;
+    /**
+     * Vector Academic Emblem:
+     * Golden Arch with tassel + Deep Sage Mortarboard cap + Open Book pages.
+     */
+    public static class AcademicEmblem extends JComponent {
+        public AcademicEmblem() {
+            setPreferredSize(new Dimension(68, 68));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+
+            // 1. Golden Arch
+            g2.setColor(GOLD_ARCH);
+            g2.setStroke(new BasicStroke(2.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawArc(6, 6, 52, 48, 15, 150);
+
+            // Tassel hanging on the right side of the arch
+            g2.drawLine(53, 24, 53, 34);
+            g2.fillOval(51, 34, 4, 5);
+
+            // 2. Deep Sage Green Mortarboard Cap
+            g2.setColor(SAGE_DEEP);
+            Path2D.Double cap = new Path2D.Double();
+            cap.moveTo(32, 16);
+            cap.lineTo(54, 25);
+            cap.lineTo(32, 34);
+            cap.lineTo(10, 25);
+            cap.closePath();
+            g2.fill(cap);
+
+            // Cap skull under the mortarboard
+            Path2D.Double skull = new Path2D.Double();
+            skull.moveTo(21, 30);
+            skull.lineTo(21, 37);
+            skull.curveTo(21, 42, 43, 42, 43, 37);
+            skull.lineTo(43, 30);
+            skull.closePath();
+            g2.fill(skull);
+
+            // 3. Open Book beneath cap
+            Path2D.Double bookLeft = new Path2D.Double();
+            bookLeft.moveTo(31, 46);
+            bookLeft.curveTo(25, 43, 17, 43, 11, 45);
+            bookLeft.lineTo(11, 55);
+            bookLeft.curveTo(17, 53, 25, 54, 31, 58);
+            bookLeft.closePath();
+            g2.fill(bookLeft);
+
+            Path2D.Double bookRight = new Path2D.Double();
+            bookRight.moveTo(33, 46);
+            bookRight.curveTo(39, 43, 47, 43, 53, 45);
+            bookRight.lineTo(53, 55);
+            bookRight.curveTo(47, 53, 39, 54, 33, 58);
+            bookRight.closePath();
+            g2.fill(bookRight);
+
+            g2.dispose();
+        }
+    }
+
+    /**
+     * Elegant "Learn • Access • Excel" divider rule.
+     */
+    public static class LearnDivider extends JComponent {
+        public LearnDivider() {
+            setPreferredSize(new Dimension(320, 20));
+            setMaximumSize(new Dimension(320, 20));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            String text = "Learn  •  Access  •  Excel";
+            g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            FontMetrics fm = g2.getFontMetrics();
+            int textW = fm.stringWidth(text);
+            int cy = getHeight() / 2;
+
+            int totalW = 320;
+            int textX = (totalW - textW) / 2;
+
+            g2.setColor(new Color(93, 122, 114));
+            g2.drawString(text, textX, cy + fm.getAscent() / 2 - 1);
+
+            // Left line
+            g2.setColor(new Color(178, 195, 188));
+            g2.setStroke(new BasicStroke(1.0f));
+            g2.drawLine(8, cy, textX - 12, cy);
+
+            // Right line
+            g2.drawLine(textX + textW + 12, cy, totalW - 8, cy);
+
+            g2.dispose();
+        }
+    }
+
+    /**
+     * Floating White Card with soft ambient drop shadow and rounded corners.
+     */
+    public static class FloatingCardPanel extends JPanel {
+        private final int radius = 26;
+
+        public FloatingCardPanel() {
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            // Multi-layered soft drop shadow
+            g2.setColor(new Color(0, 0, 0, 8));
+            g2.fillRoundRect(2, 6, w - 4, h - 6, radius, radius);
+            g2.setColor(new Color(0, 0, 0, 16));
+            g2.fillRoundRect(3, 8, w - 6, h - 8, radius, radius);
+            g2.setColor(new Color(0, 0, 0, 24));
+            g2.fillRoundRect(4, 12, w - 8, h - 12, radius, radius);
+
+            // Crisp white background (translucent 98%)
+            g2.setColor(new Color(255, 255, 255, 252));
+            g2.fillRoundRect(0, 0, w, h, radius, radius);
+
+            // Subtle border
+            g2.setColor(new Color(226, 232, 240, 220));
+            g2.setStroke(new BasicStroke(1.0f));
+            g2.drawRoundRect(0, 0, w - 1, h - 1, radius, radius);
+
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    /**
+     * Rounded input container with animated border glow on focus.
+     */
+    public static class ModernInputFieldContainer extends JPanel {
+        private final int radius = 12;
         private boolean focused = false;
 
-        public RoundedFieldContainer() {
+        public ModernInputFieldContainer() {
             setOpaque(false);
         }
 
@@ -743,22 +847,23 @@ public class LoginFrame extends JFrame {
             int h = getHeight();
 
             // Background fill
-            g2.setColor(BG_INPUT);
+            g2.setColor(Color.WHITE);
             g2.fill(new RoundRectangle2D.Float(1, 1, w - 2, h - 2, radius, radius));
 
-            // Border stroke
             if (focused) {
-                // Focus ring in primary blue with subtle glow
-                g2.setColor(new Color(37, 99, 235, 45));
+                // Focus glow ring
+                g2.setColor(new Color(BORDER_FOCUS.getRed(), BORDER_FOCUS.getGreen(), BORDER_FOCUS.getBlue(), 40));
                 g2.setStroke(new BasicStroke(2.5f));
                 g2.draw(new RoundRectangle2D.Float(1.5f, 1.5f, w - 3, h - 3, radius, radius));
 
-                g2.setColor(PRIMARY_BLUE);
-                g2.setStroke(new BasicStroke(1.4f));
+                // Inner border
+                g2.setColor(BORDER_FOCUS);
+                g2.setStroke(new BasicStroke(1.3f));
                 g2.draw(new RoundRectangle2D.Float(1, 1, w - 2, h - 2, radius, radius));
             } else {
-                g2.setColor(BORDER_COLOR);
-                g2.setStroke(new BasicStroke(1.2f));
+                // Standard border
+                g2.setColor(BORDER_INPUT);
+                g2.setStroke(new BasicStroke(1.1f));
                 g2.draw(new RoundRectangle2D.Float(1, 1, w - 2, h - 2, radius, radius));
             }
 
@@ -767,46 +872,119 @@ public class LoginFrame extends JFrame {
         }
     }
 
-
-     //Custom button with rounded corners, anti-aliased rendering, and hover/press feedback.
-
-    private static class RoundedButton extends JButton {
-        private final Color normalColor;
-        private final Color hoverColor;
-        private final Color pressedColor;
-        private final int radius;
-
-        public RoundedButton(String text, Color normalColor, Color hoverColor, Color pressedColor, int radius) {
+    /**
+     * Deep Sage rounded pill button with arrow (Login →).
+     */
+    public static class ModernLoginButton extends JButton {
+        public ModernLoginButton(String text) {
             super(text);
-            this.normalColor = normalColor;
-            this.hoverColor = hoverColor;
-            this.pressedColor = pressedColor;
-            this.radius = radius;
             setContentAreaFilled(false);
             setFocusPainted(false);
             setBorderPainted(false);
-            setForeground(Color.WHITE);
             setCursor(new Cursor(Cursor.HAND_CURSOR));
+            setFont(new Font("SansSerif", Font.BOLD, 14));
+            setForeground(Color.WHITE);
+            setPreferredSize(new Dimension(320, 44));
+            setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
         }
 
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+            int radius = h; // pill shape (22px)
 
             if (getModel().isPressed()) {
-                g2.setColor(pressedColor);
+                g2.setColor(SAGE_PRESSED);
             } else if (getModel().isRollover()) {
-                g2.setColor(hoverColor);
+                g2.setColor(SAGE_HOVER);
             } else {
-                GradientPaint gp = new GradientPaint(0, 0, normalColor, getWidth(), 0, hoverColor);
-                g2.setPaint(gp);
+                g2.setColor(SAGE_ACCENT);
             }
 
-            g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), radius, radius));
-            g2.dispose();
+            g2.fill(new RoundRectangle2D.Float(0, 0, w, h, radius, radius));
 
-            super.paintComponent(g);
+            // Centered high-contrast text with arrow
+            g2.setColor(Color.WHITE);
+            g2.setFont(getFont());
+            FontMetrics fm = g2.getFontMetrics();
+            int tx = (w - fm.stringWidth(getText())) / 2;
+            int ty = (h - fm.getHeight()) / 2 + fm.getAscent() + (getModel().isPressed() ? 1 : 0);
+            g2.drawString(getText(), tx, ty);
+
+            g2.dispose();
         }
+    }
+
+    /**
+     * Subtle horizontal rule with a graduation cap icon in the center.
+     */
+    public static class CardCapDivider extends JComponent {
+        public CardCapDivider() {
+            setPreferredSize(new Dimension(300, 20));
+            setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int cy = getHeight() / 2;
+            int cx = w / 2;
+
+            // Subtle divider lines
+            g2.setColor(new Color(226, 232, 240));
+            g2.setStroke(new BasicStroke(1.0f));
+            g2.drawLine(20, cy, cx - 16, cy);
+            g2.drawLine(cx + 16, cy, w - 20, cy);
+
+            // Graduation Cap Icon in Center
+            g2.setColor(new Color(93, 122, 114));
+
+            // Mortarboard diamond
+            Path2D.Double cap = new Path2D.Double();
+            cap.moveTo(cx, cy - 6);
+            cap.lineTo(cx + 11, cy - 2);
+            cap.lineTo(cx, cy + 2);
+            cap.lineTo(cx - 11, cy - 2);
+            cap.closePath();
+            g2.fill(cap);
+
+            // Cap skull
+            Path2D.Double neck = new Path2D.Double();
+            neck.moveTo(cx - 6, cy);
+            neck.lineTo(cx - 6, cy + 4);
+            neck.curveTo(cx - 6, cy + 6, cx + 6, cy + 6, cx + 6, cy + 4);
+            neck.lineTo(cx + 6, cy);
+            neck.closePath();
+            g2.fill(neck);
+
+            // Tassel
+            g2.drawLine(cx + 11, cy - 2, cx + 11, cy + 3);
+            g2.fillOval(cx + 10, cy + 3, 2, 2);
+
+            g2.dispose();
+        }
+    }
+
+    /**
+     * Main method for standalone testing of the modern LoginFrame.
+     */
+    public static void main(String[] args) {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception ignored) {}
+
+        SwingUtilities.invokeLater(() -> {
+            LoginFrame frame = new LoginFrame();
+            frame.setVisible(true);
+        });
     }
 }

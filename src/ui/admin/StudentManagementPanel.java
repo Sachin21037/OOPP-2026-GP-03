@@ -26,18 +26,18 @@ import java.util.List;
  */
 public class StudentManagementPanel extends JPanel {
 
-    // Harmonized Palette matching AdminDashboard
-    private static final Color PRIMARY_NAVY    = new Color(16, 40, 74);    // #10284A
-    private static final Color SECONDARY_BLUE  = new Color(29, 78, 216);   // #1D4ED8
-    private static final Color LIGHT_BLUE      = new Color(234, 242, 255); // #EAF2FF
-    private static final Color MAIN_BG         = new Color(245, 247, 251); // #F5F7FB
+    // Harmonized Palette matching Soft Sage Green Theme
+    private static final Color PRIMARY_NAVY    = new Color(26, 83, 71);    // #1A5347 Velvety Deep Sage Pine
+    private static final Color SECONDARY_BLUE  = new Color(42, 119, 102);  // #2A7766 Soft Sage Green Accent
+    private static final Color LIGHT_BLUE      = new Color(226, 240, 235); // #E2F0EB Soft Sage Tint
+    private static final Color MAIN_BG         = new Color(239, 245, 242); // #EFF5F2 Soft Sage Canvas
     private static final Color CARD_BG         = Color.WHITE;
-    private static final Color TEXT_PRIMARY    = new Color(23, 43, 77);    // #172B4D
-    private static final Color TEXT_SECONDARY  = new Color(100, 116, 139); // #64748B
-    private static final Color BORDER_COLOR    = new Color(226, 232, 240); // #E2E8F0
+    private static final Color TEXT_PRIMARY    = new Color(26, 56, 48);    // #1A3830 Deep Sage Slate
+    private static final Color TEXT_SECONDARY  = new Color(93, 122, 114);  // #5D7A72 Muted Sage Slate
+    private static final Color BORDER_COLOR    = new Color(210, 228, 220); // #D2E4DC Soft Sage Border
     private static final Color SUCCESS_COLOR   = new Color(22, 163, 74);   // #16A34A
-    private static final Color WARNING_COLOR   = new Color(217, 119, 6);   // #D97706
-    private static final Color DANGER_COLOR    = new Color(220, 38, 38);   // #DC2626
+    private static final Color WARNING_COLOR   = new Color(180, 83, 9);    // #B45309
+    private static final Color DANGER_COLOR    = new Color(190, 18, 60);   // #BE123C Refined Rose Crimson
 
     // Table Components
     private JTable studentTable;
@@ -97,7 +97,7 @@ public class StudentManagementPanel extends JPanel {
                 "Student Management",
                 "Manage undergraduate records, academic status, and system access.",
                 null,
-                "↻ Refresh",
+                "🔄 Refresh",
                 () -> loadStudentsAsync()
         );
         topContainer.add(headerBanner);
@@ -245,7 +245,7 @@ public class StudentManagementPanel extends JPanel {
         btnEdit.setToolTipText("Modify details of selected student");
         btnEdit.addActionListener(e -> handleEditStudent());
 
-        btnAdd = createButton("Add Student", "+", true, SECONDARY_BLUE);
+        btnAdd = createButton("Add Student", "➕", true, SECONDARY_BLUE);
         btnAdd.setToolTipText("Register a new student");
         btnAdd.addActionListener(e -> handleAddStudent());
 
@@ -284,7 +284,7 @@ public class StudentManagementPanel extends JPanel {
         cmbFilterBatch.addActionListener(e -> applyFilters());
         row2.add(cmbFilterBatch);
 
-        JButton btnClear = UIAnimationHelper.createAnimatedSecondaryButton("Clear Filters", TEXT_SECONDARY, BORDER_COLOR, 18, e -> clearFilters());
+        JButton btnClear = UIAnimationHelper.createAnimatedSecondaryButton("↺ Clear Filters", TEXT_SECONDARY, BORDER_COLOR, 18, e -> clearFilters());
         row2.add(btnClear);
 
         toolbar.add(row2);
@@ -304,7 +304,7 @@ public class StudentManagementPanel extends JPanel {
         studentTable.setShowVerticalLines(false);
         studentTable.setShowHorizontalLines(true);
         studentTable.setGridColor(new Color(241, 245, 249));
-        studentTable.setSelectionBackground(new Color(224, 237, 255));
+        studentTable.setSelectionBackground(LIGHT_BLUE);
         studentTable.setSelectionForeground(PRIMARY_NAVY);
         studentTable.setFont(AdminDashboard.getModernFont(Font.PLAIN, 12));
         studentTable.setFillsViewportHeight(true);
@@ -318,18 +318,17 @@ public class StudentManagementPanel extends JPanel {
         header.setReorderingAllowed(false);
         ((DefaultTableCellRenderer) header.getDefaultRenderer()).setHorizontalAlignment(JLabel.LEFT);
 
-        // Column widths
+        // Refined column widths avoiding any truncation
         studentTable.getColumnModel().getColumn(0).setPreferredWidth(95);  // ID
-        studentTable.getColumnModel().getColumn(1).setPreferredWidth(105); // Index No
-        studentTable.getColumnModel().getColumn(2).setPreferredWidth(140); // Full Name
+        studentTable.getColumnModel().getColumn(1).setPreferredWidth(120); // Index No (wide enough for TG/2024/2165)
+        studentTable.getColumnModel().getColumn(2).setPreferredWidth(160); // Full Name
         studentTable.getColumnModel().getColumn(3).setPreferredWidth(170); // Email
-        studentTable.getColumnModel().getColumn(4).setPreferredWidth(95);  // Phone
+        studentTable.getColumnModel().getColumn(4).setPreferredWidth(100); // Phone
         studentTable.getColumnModel().getColumn(5).setPreferredWidth(85);  // Batch
         studentTable.getColumnModel().getColumn(6).setPreferredWidth(75);  // Year
-        studentTable.getColumnModel().getColumn(7).setPreferredWidth(180); // Dept
-        studentTable.getColumnModel().getColumn(8).setPreferredWidth(130); // Status
-        studentTable.getColumnModel().getColumn(9).setPreferredWidth(85);  // Account
-        studentTable.getColumnModel().getColumn(9).setPreferredWidth(85);  // Account
+        studentTable.getColumnModel().getColumn(7).setPreferredWidth(175); // Dept
+        studentTable.getColumnModel().getColumn(8).setPreferredWidth(125); // Status
+        studentTable.getColumnModel().getColumn(9).setPreferredWidth(90);  // Account
 
         // Custom Cell Renderers for Badges
         studentTable.getColumnModel().getColumn(8).setCellRenderer(new AcademicStatusBadgeRenderer());
@@ -433,16 +432,30 @@ public class StudentManagementPanel extends JPanel {
                 if (!isEnabled()) {
                     g2.setColor(new Color(241, 245, 249));
                     g2.fillRoundRect(0, 0, w, h, 20, 20);
-                    g2.setColor(new Color(203, 213, 225));
+                    g2.setColor(new Color(226, 232, 240));
+                    g2.setStroke(new BasicStroke(1.0f));
                     g2.drawRoundRect(0, 0, w - 1, h - 1, 20, 20);
-                } else if (primary) {
+
+                    g2.setColor(new Color(148, 163, 184)); // Clear, legible muted text
+                    g2.setFont(getFont());
+                    FontMetrics fm = g2.getFontMetrics();
+                    int tx = (w - fm.stringWidth(getText())) / 2;
+                    int ty = (h - fm.getHeight()) / 2 + fm.getAscent();
+                    g2.drawString(getText(), tx, ty);
+                    g2.dispose();
+                    return;
+                }
+
+                if (primary) {
                     Color hoverCol = UIAnimationHelper.lighten(color, 1.15f);
                     Color curCol = UIAnimationHelper.interpolateColor(color, hoverCol, animProgress[0]);
                     if (getModel().isPressed()) curCol = UIAnimationHelper.darken(color, 0.88f);
                     g2.setColor(curCol);
                     g2.fillRoundRect(0, 0, w, h, 20, 20);
+
+                    g2.setColor(Color.WHITE);
                 } else {
-                    Color bgHover = new Color(241, 245, 249);
+                    Color bgHover = new Color(240, 246, 243);
                     Color curBg = UIAnimationHelper.interpolateColor(Color.WHITE, bgHover, animProgress[0]);
                     g2.setColor(curBg);
                     g2.fillRoundRect(0, 0, w, h, 20, 20);
@@ -451,9 +464,17 @@ public class StudentManagementPanel extends JPanel {
                     g2.setColor(curBorder);
                     g2.setStroke(new BasicStroke(1.2f));
                     g2.drawRoundRect(0, 0, w - 1, h - 1, 20, 20);
+
+                    g2.setColor(color != null ? color : TEXT_PRIMARY);
                 }
+
+                g2.setFont(getFont());
+                FontMetrics fm = g2.getFontMetrics();
+                int tx = (w - fm.stringWidth(getText())) / 2;
+                int ty = (h - fm.getHeight()) / 2 + fm.getAscent();
+                g2.drawString(getText(), tx, ty);
+
                 g2.dispose();
-                super.paintComponent(g);
             }
         };
 

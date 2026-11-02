@@ -27,10 +27,10 @@ import java.util.List;
  */
 public class TimetablePage extends JPanel {
 
-    // Theme palette harmonized with FAMS Technical Officer Dashboard
-    private final Color darkNavy = new Color(27, 67, 103);       // #1B4367 exact navy
-    private final Color primaryBlue = new Color(45, 100, 160);
-    private final Color lightBg = new Color(245, 247, 250);       // #F5F7FA
+    // Theme palette harmonized with FAMS Technical Officer Dashboard - Soft Sage Green Theme
+    private final Color darkNavy = new Color(26, 83, 71);       // #1A5347 Velvety Deep Sage Pine
+    private final Color primaryBlue = new Color(42, 119, 102);   // #2A7766 Soft Sage Green Accent
+    private final Color lightBg = new Color(239, 245, 242);      // #EFF5F2 Soft Sage Canvas
     private final Color borderColor = new Color(226, 232, 240);   // #E2E8F0
     private final Color textDark = new Color(30, 41, 59);         // #1E293B
     private final Color textMuted = new Color(100, 116, 139);     // #64748B
