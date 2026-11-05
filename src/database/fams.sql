@@ -124,6 +124,8 @@ CREATE TABLE `course_materials` (
   `description` varchar(500) DEFAULT NULL,
   `file_name` varchar(255) DEFAULT NULL,
   `file_path` varchar(500) DEFAULT NULL,
+  `visible_from` date DEFAULT NULL,
+  `visible_to` date DEFAULT NULL,
   `uploaded_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

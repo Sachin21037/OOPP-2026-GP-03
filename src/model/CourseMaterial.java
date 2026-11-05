@@ -1,5 +1,6 @@
 package model;
 
+import java.sql.Date;
 import java.sql.Timestamp;
 
 public class CourseMaterial {
@@ -13,6 +14,8 @@ public class CourseMaterial {
     private String description;
     private String fileName;
     private String filePath;
+    private Date visibleFrom;
+    private Date visibleTo;
     private Timestamp uploadedAt;
 
     public CourseMaterial() {}
@@ -47,6 +50,39 @@ public class CourseMaterial {
     public String getFilePath() { return filePath; }
     public void setFilePath(String filePath) { this.filePath = filePath; }
 
+    public Date getVisibleFrom() { return visibleFrom; }
+    public void setVisibleFrom(Date visibleFrom) { this.visibleFrom = visibleFrom; }
+
+    public Date getVisibleTo() { return visibleTo; }
+    public void setVisibleTo(Date visibleTo) { this.visibleTo = visibleTo; }
+
     public Timestamp getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(Timestamp uploadedAt) { this.uploadedAt = uploadedAt; }
+
+    /**
+     * Checks if this material is currently visible based on visibleFrom and visibleTo dates.
+     * Permanent (always visible) when both dates are null.
+     */
+    public boolean isCurrentlyVisible() {
+        Date today = new Date(System.currentTimeMillis());
+        if (visibleFrom != null && today.before(visibleFrom)) {
+            return false;
+        }
+        if (visibleTo != null && today.after(visibleTo)) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Formatted string showing access period.
+     */
+    public String getVisibilityPeriodString() {
+        if (visibleFrom == null && visibleTo == null) {
+            return "Permanent (Always)";
+        }
+        String fromStr = visibleFrom != null ? visibleFrom.toString() : "Anytime";
+        String toStr = visibleTo != null ? visibleTo.toString() : "Indefinite";
+        return fromStr + " to " + toStr;
+    }
 }

@@ -918,6 +918,8 @@ public class StudentDAO {
                      "JOIN courses c ON co.course_id = c.course_id COLLATE utf8mb4_unicode_ci " +
                      "LEFT JOIN users u ON cm.lecturer_id = u.user_id COLLATE utf8mb4_unicode_ci " +
                      "WHERE e.student_id = ? " +
+                     "  AND (cm.visible_from IS NULL OR CURRENT_DATE >= cm.visible_from) " +
+                     "  AND (cm.visible_to IS NULL OR CURRENT_DATE <= cm.visible_to) " +
                      "ORDER BY cm.uploaded_at DESC";
 
         try {
@@ -938,6 +940,8 @@ public class StudentDAO {
                             mat.setDescription(rs.getString("description"));
                             mat.setFileName(rs.getString("file_name"));
                             mat.setFilePath(rs.getString("file_path"));
+                            mat.setVisibleFrom(rs.getDate("visible_from"));
+                            mat.setVisibleTo(rs.getDate("visible_to"));
                             mat.setUploadedAt(rs.getTimestamp("uploaded_at"));
                             list.add(mat);
                         }
@@ -953,6 +957,8 @@ public class StudentDAO {
                                      "LEFT JOIN course_offerings co ON cm.offering_id = co.offering_id " +
                                      "LEFT JOIN courses c ON co.course_id = c.course_id " +
                                      "LEFT JOIN users u ON cm.lecturer_id = u.user_id " +
+                                     "WHERE (cm.visible_from IS NULL OR CURRENT_DATE >= cm.visible_from) " +
+                                     "  AND (cm.visible_to IS NULL OR CURRENT_DATE <= cm.visible_to) " +
                                      "ORDER BY cm.uploaded_at DESC";
                 try (Statement stmt = conn.createStatement();
                      ResultSet rs = stmt.executeQuery(fallbackSql)) {
@@ -968,6 +974,8 @@ public class StudentDAO {
                         mat.setDescription(rs.getString("description"));
                         mat.setFileName(rs.getString("file_name"));
                         mat.setFilePath(rs.getString("file_path"));
+                        mat.setVisibleFrom(rs.getDate("visible_from"));
+                        mat.setVisibleTo(rs.getDate("visible_to"));
                         mat.setUploadedAt(rs.getTimestamp("uploaded_at"));
                         list.add(mat);
                     }

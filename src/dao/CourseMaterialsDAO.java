@@ -52,11 +52,14 @@ public class CourseMaterialsDAO {
         public final String filePath;
         public final String uploadedAt;
         public final long fileSizeBytes;
+        public final Date visibleFrom;
+        public final Date visibleTo;
 
         public MaterialRecord(
                 String materialId, String offeringId, String courseCode, String courseName,
                 String lecturerId, String lecturerName, String title, String description,
-                String fileName, String filePath, String uploadedAt, long fileSizeBytes
+                String fileName, String filePath, String uploadedAt, long fileSizeBytes,
+                Date visibleFrom, Date visibleTo
         ) {
             this.materialId = materialId != null ? materialId : "";
             this.offeringId = offeringId != null ? offeringId : "";
@@ -70,6 +73,38 @@ public class CourseMaterialsDAO {
             this.filePath = filePath != null ? filePath : "";
             this.uploadedAt = uploadedAt != null ? uploadedAt : "";
             this.fileSizeBytes = fileSizeBytes;
+            this.visibleFrom = visibleFrom;
+            this.visibleTo = visibleTo;
+        }
+
+        public MaterialRecord(
+                String materialId, String offeringId, String courseCode, String courseName,
+                String lecturerId, String lecturerName, String title, String description,
+                String fileName, String filePath, String uploadedAt, long fileSizeBytes
+        ) {
+            this(materialId, offeringId, courseCode, courseName, lecturerId, lecturerName, title, description, fileName, filePath, uploadedAt, fileSizeBytes, null, null);
+        }
+
+        public String getAccessPeriodDisplay() {
+            if (visibleFrom == null && visibleTo == null) {
+                return "Permanent / Always";
+            }
+            Date today = new Date(System.currentTimeMillis());
+            String range;
+            if (visibleFrom != null && visibleTo != null) {
+                range = visibleFrom.toString() + " to " + visibleTo.toString();
+            } else if (visibleFrom != null) {
+                range = "From " + visibleFrom.toString();
+            } else {
+                range = "Until " + visibleTo.toString();
+            }
+            if (visibleFrom != null && today.before(visibleFrom)) {
+                return range + " (Scheduled)";
+            } else if (visibleTo != null && today.after(visibleTo)) {
+                return range + " (Expired)";
+            } else {
+                return range + " (Active)";
+            }
         }
 
         public Object[] toTableRow() {
@@ -79,6 +114,7 @@ public class CourseMaterialsDAO {
                     title,
                     (description == null || description.trim().isEmpty()) ? "-" : description,
                     (fileName == null || fileName.trim().isEmpty()) ? "-" : fileName,
+                    getAccessPeriodDisplay(),
                     (lecturerName == null || lecturerName.trim().isEmpty()) ? "-" : lecturerName,
                     (uploadedAt == null || uploadedAt.trim().isEmpty()) ? "-" : uploadedAt
             };
@@ -141,7 +177,8 @@ public class CourseMaterialsDAO {
 
         String sql = "SELECT DISTINCT cm.material_id, cm.offering_id, c.course_code, c.course_name, " +
                 "       cm.lecturer_id, u.first_name, u.last_name, " +
-                "       cm.title, cm.description, cm.file_name, cm.file_path, cm.uploaded_at " +
+                "       cm.title, cm.description, cm.file_name, cm.file_path, cm.uploaded_at, " +
+                "       cm.visible_from, cm.visible_to " +
                 "FROM course_materials cm " +
                 "JOIN course_offerings co ON cm.offering_id = co.offering_id " +
                 "JOIN courses c ON co.course_id = c.course_id " +
@@ -176,6 +213,9 @@ public class CourseMaterialsDAO {
                     Timestamp ts = rs.getTimestamp("uploaded_at");
                     String uploadedStr = ts != null ? sdf.format(ts) : "-";
 
+                    Date visibleFrom = rs.getDate("visible_from");
+                    Date visibleTo = rs.getDate("visible_to");
+
                     long fsize = 0;
                     if (filePath != null && !filePath.isEmpty()) {
                         File f = resolveFile(filePath);
@@ -187,7 +227,8 @@ public class CourseMaterialsDAO {
                     list.add(new MaterialRecord(
                             matId, offId, code, cname,
                             lecId, lecName, title, desc,
-                            fileName, filePath, uploadedStr, fsize
+                            fileName, filePath, uploadedStr, fsize,
+                            visibleFrom, visibleTo
                     ));
                 }
             }
@@ -196,11 +237,12 @@ public class CourseMaterialsDAO {
     }
 
     /**
-     * Saves a new course material record and copies uploaded file into materials/ folder.
+     * Saves a new course material record with visibility period and copies uploaded file into materials/ folder.
      */
     public static String saveMaterial(
             String offeringId, String title, String description,
-            File sourceFile, String lecturerId
+            File sourceFile, String lecturerId,
+            Date visibleFrom, Date visibleTo
     ) throws SQLException, IOException {
         String newId;
         String storedPath = null;
@@ -220,8 +262,8 @@ public class CourseMaterialsDAO {
                 storedPath = "materials/" + uniqueName;
             }
 
-            String insertSql = "INSERT INTO course_materials (material_id, offering_id, lecturer_id, title, description, file_name, file_path, uploaded_at) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+            String insertSql = "INSERT INTO course_materials (material_id, offering_id, lecturer_id, title, description, file_name, file_path, visible_from, visible_to, uploaded_at) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
             try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
                 ps.setString(1, newId);
                 ps.setString(2, offeringId != null ? offeringId.trim() : "");
@@ -230,18 +272,28 @@ public class CourseMaterialsDAO {
                 ps.setString(5, description != null ? description.trim() : "");
                 ps.setString(6, fileName);
                 ps.setString(7, storedPath);
+                ps.setDate(8, visibleFrom);
+                ps.setDate(9, visibleTo);
                 ps.executeUpdate();
             }
         }
         return newId;
     }
 
+    public static String saveMaterial(
+            String offeringId, String title, String description,
+            File sourceFile, String lecturerId
+    ) throws SQLException, IOException {
+        return saveMaterial(offeringId, title, description, sourceFile, lecturerId, null, null);
+    }
+
     /**
-     * Updates an existing course material record.
+     * Updates an existing course material record with visibility period.
      */
     public static boolean updateMaterial(
             String materialId, String offeringId, String title,
-            String description, File sourceFile, String lecturerId
+            String description, File sourceFile, String lecturerId,
+            Date visibleFrom, Date visibleTo
     ) throws SQLException, IOException {
         String storedPath = null;
         String fileName = null;
@@ -258,7 +310,7 @@ public class CourseMaterialsDAO {
         }
 
         try (Connection conn = DBConnection.getConnection()) {
-            StringBuilder sql = new StringBuilder("UPDATE course_materials SET title = ?, description = ?");
+            StringBuilder sql = new StringBuilder("UPDATE course_materials SET title = ?, description = ?, visible_from = ?, visible_to = ?");
             if (offeringId != null && !offeringId.trim().isEmpty()) {
                 sql.append(", offering_id = ?");
             }
@@ -271,6 +323,8 @@ public class CourseMaterialsDAO {
                 int p = 1;
                 ps.setString(p++, title != null ? title.trim() : "");
                 ps.setString(p++, description != null ? description.trim() : "");
+                ps.setDate(p++, visibleFrom);
+                ps.setDate(p++, visibleTo);
                 if (offeringId != null && !offeringId.trim().isEmpty()) {
                     ps.setString(p++, offeringId.trim());
                 }
@@ -283,6 +337,13 @@ public class CourseMaterialsDAO {
                 return ps.executeUpdate() > 0;
             }
         }
+    }
+
+    public static boolean updateMaterial(
+            String materialId, String offeringId, String title,
+            String description, File sourceFile, String lecturerId
+    ) throws SQLException, IOException {
+        return updateMaterial(materialId, offeringId, title, description, sourceFile, lecturerId, null, null);
     }
 
     /**

@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.sql.Date;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -254,13 +255,14 @@ public class CourseMaterialsUI extends JFrame {
         listHeader.add(tableCountLabel, BorderLayout.EAST);
         tableContainer.add(listHeader, BorderLayout.NORTH);
 
-        // Table (7 columns)
+        // Table (8 columns)
         String[] columns = {
                 "Material ID",
                 "Course",
                 "Title",
                 "Description",
                 "File Name",
+                "Access Period",
                 "Uploaded By",
                 "Upload Date"
         };
@@ -326,7 +328,7 @@ public class CourseMaterialsUI extends JFrame {
         bottomBar.setOpaque(false);
         bottomBar.setBorder(new EmptyBorder(8, 0, 0, 0));
 
-        // Left Controls: Course [ All Courses ▾ ] Search [      ]
+        // Left Controls: Course [ All Courses ] Search [      ]
         JPanel leftControls = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         leftControls.setOpaque(false);
 
@@ -525,12 +527,12 @@ public class CourseMaterialsUI extends JFrame {
         }
 
         JDialog dialog = new JDialog(this, "Upload Course Material", true);
-        dialog.setSize(480, 400);
+        dialog.setSize(520, 520);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout(10, 10));
         dialog.getContentPane().setBackground(WHITE);
 
-        JPanel form = new JPanel(new GridLayout(4, 2, 10, 14));
+        JPanel form = new JPanel(new GridLayout(6, 2, 10, 14));
         form.setBackground(WHITE);
         form.setBorder(new EmptyBorder(20, 24, 16, 24));
 
@@ -562,6 +564,14 @@ public class CourseMaterialsUI extends JFrame {
         fileRow.add(fileLbl, BorderLayout.CENTER);
         fileRow.add(chooseBtn, BorderLayout.EAST);
 
+        JTextField fromField = new JTextField();
+        fromField.setFont(LecturerTheme.FONT_PLAIN_13);
+        fromField.setToolTipText("e.g. 2026-11-05 (leave blank for permanent access)");
+
+        JTextField toField = new JTextField();
+        toField.setFont(LecturerTheme.FONT_PLAIN_13);
+        toField.setToolTipText("e.g. 2026-11-07 (leave blank for permanent access)");
+
         form.add(makeFieldLabel("Course Offering:"));
         form.add(offCombo);
         form.add(makeFieldLabel("Document Title:"));
@@ -570,6 +580,10 @@ public class CourseMaterialsUI extends JFrame {
         form.add(descField);
         form.add(makeFieldLabel("Attachment File:"));
         form.add(fileRow);
+        form.add(makeFieldLabel("Visible From (YYYY-MM-DD):"));
+        form.add(fromField);
+        form.add(makeFieldLabel("Visible To (YYYY-MM-DD):"));
+        form.add(toField);
 
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 14));
         btnPanel.setBackground(WHITE);
@@ -588,8 +602,34 @@ public class CourseMaterialsUI extends JFrame {
             CourseOfferingItem off = (CourseOfferingItem) offCombo.getSelectedItem();
             String offId = off != null ? off.offeringId : "";
 
+            String fromStr = fromField.getText().trim();
+            String toStr = toField.getText().trim();
+            Date fromDate = null;
+            Date toDate = null;
+
+            if (!fromStr.isEmpty()) {
+                try {
+                    fromDate = Date.valueOf(fromStr);
+                } catch (IllegalArgumentException ex) {
+                    JOptionPane.showMessageDialog(dialog, "Please enter Visible From date in YYYY-MM-DD format (e.g. 2026-11-05), or leave blank for permanent access.", "Invalid Date Format", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+            }
+            if (!toStr.isEmpty()) {
+                try {
+                    toDate = Date.valueOf(toStr);
+                } catch (IllegalArgumentException ex) {
+                    JOptionPane.showMessageDialog(dialog, "Please enter Visible To date in YYYY-MM-DD format (e.g. 2026-11-07), or leave blank for permanent access.", "Invalid Date Format", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+            }
+            if (fromDate != null && toDate != null && fromDate.after(toDate)) {
+                JOptionPane.showMessageDialog(dialog, "Visible From date cannot be after Visible To date.", "Invalid Date Range", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
             try {
-                String newId = CourseMaterialsDAO.saveMaterial(offId, title, descField.getText().trim(), chosenFile[0], lecturerId);
+                String newId = CourseMaterialsDAO.saveMaterial(offId, title, descField.getText().trim(), chosenFile[0], lecturerId, fromDate, toDate);
                 JOptionPane.showMessageDialog(dialog, "Material '" + newId + "' uploaded successfully.", "Upload Success", JOptionPane.INFORMATION_MESSAGE);
                 dialog.dispose();
                 loadDatabaseData();
@@ -627,12 +667,12 @@ public class CourseMaterialsUI extends JFrame {
         if (rec == null) return;
 
         JDialog dialog = new JDialog(this, "Edit Material - " + mid, true);
-        dialog.setSize(480, 400);
+        dialog.setSize(520, 520);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout(10, 10));
         dialog.getContentPane().setBackground(WHITE);
 
-        JPanel form = new JPanel(new GridLayout(4, 2, 10, 14));
+        JPanel form = new JPanel(new GridLayout(6, 2, 10, 14));
         form.setBackground(WHITE);
         form.setBorder(new EmptyBorder(20, 24, 16, 24));
 
@@ -669,6 +709,14 @@ public class CourseMaterialsUI extends JFrame {
         fileRow.add(fileLbl, BorderLayout.CENTER);
         fileRow.add(chooseBtn, BorderLayout.EAST);
 
+        JTextField fromField = new JTextField(rec.visibleFrom != null ? rec.visibleFrom.toString() : "");
+        fromField.setFont(LecturerTheme.FONT_PLAIN_13);
+        fromField.setToolTipText("e.g. 2026-11-05 (leave blank for permanent access)");
+
+        JTextField toField = new JTextField(rec.visibleTo != null ? rec.visibleTo.toString() : "");
+        toField.setFont(LecturerTheme.FONT_PLAIN_13);
+        toField.setToolTipText("e.g. 2026-11-07 (leave blank for permanent access)");
+
         form.add(makeFieldLabel("Course Offering:"));
         form.add(offCombo);
         form.add(makeFieldLabel("Document Title:"));
@@ -677,6 +725,10 @@ public class CourseMaterialsUI extends JFrame {
         form.add(descField);
         form.add(makeFieldLabel("Attachment:"));
         form.add(fileRow);
+        form.add(makeFieldLabel("Visible From (YYYY-MM-DD):"));
+        form.add(fromField);
+        form.add(makeFieldLabel("Visible To (YYYY-MM-DD):"));
+        form.add(toField);
 
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 14));
         btnPanel.setBackground(WHITE);
@@ -696,8 +748,34 @@ public class CourseMaterialsUI extends JFrame {
             CourseOfferingItem off = (CourseOfferingItem) offCombo.getSelectedItem();
             String offId = off != null ? off.offeringId : "";
 
+            String fromStr = fromField.getText().trim();
+            String toStr = toField.getText().trim();
+            Date fromDate = null;
+            Date toDate = null;
+
+            if (!fromStr.isEmpty()) {
+                try {
+                    fromDate = Date.valueOf(fromStr);
+                } catch (IllegalArgumentException ex) {
+                    JOptionPane.showMessageDialog(dialog, "Please enter Visible From date in YYYY-MM-DD format (e.g. 2026-11-05), or leave blank for permanent access.", "Invalid Date Format", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+            }
+            if (!toStr.isEmpty()) {
+                try {
+                    toDate = Date.valueOf(toStr);
+                } catch (IllegalArgumentException ex) {
+                    JOptionPane.showMessageDialog(dialog, "Please enter Visible To date in YYYY-MM-DD format (e.g. 2026-11-07), or leave blank for permanent access.", "Invalid Date Format", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+            }
+            if (fromDate != null && toDate != null && fromDate.after(toDate)) {
+                JOptionPane.showMessageDialog(dialog, "Visible From date cannot be after Visible To date.", "Invalid Date Range", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
             try {
-                boolean ok = CourseMaterialsDAO.updateMaterial(targetMid, offId, title, descField.getText().trim(), chosenFile[0], lecturerId);
+                boolean ok = CourseMaterialsDAO.updateMaterial(targetMid, offId, title, descField.getText().trim(), chosenFile[0], lecturerId, fromDate, toDate);
                 if (ok) {
                     JOptionPane.showMessageDialog(dialog, "Material updated successfully.", "Update Success", JOptionPane.INFORMATION_MESSAGE);
                     dialog.dispose();

@@ -47,16 +47,62 @@ public class DBConnection {
 
     // Static block to explicitly load the JDBC driver
     static {
+        loadDriverClass();
+    }
+
+    private static void loadDriverClass() {
         try {
             Class.forName(DRIVER_CLASS);
-        } catch (ClassNotFoundException e) {
-            System.err.println("======================================================================");
-            System.err.println("[FAMS DBConnection WARNING] MySQL Connector/J driver class not found!");
-            System.err.println("Driver Class: " + DRIVER_CLASS);
-            System.err.println("Resolution  : Please ensure mysql-connector-j-*.jar is added to your");
-            System.err.println("              IntelliJ Project Libraries (File -> Project Structure -> Libraries).");
-            System.err.println("======================================================================");
+            return;
+        } catch (ClassNotFoundException ignored) {}
+
+        // Fallback: Attempt dynamic loading from project lib/ folder
+        File[] candidatePaths = {
+                new File("lib"),
+                new File("../lib"),
+                new File(System.getProperty("user.dir"), "lib")
+        };
+
+        for (File dir : candidatePaths) {
+            if (dir.exists() && dir.isDirectory()) {
+                File[] jars = dir.listFiles((d, name) -> name.startsWith("mysql-connector-j") && name.endsWith(".jar"));
+                if (jars != null && jars.length > 0) {
+                    for (File jar : jars) {
+                        try {
+                            java.net.URLClassLoader loader = new java.net.URLClassLoader(
+                                    new java.net.URL[]{jar.toURI().toURL()},
+                                    DBConnection.class.getClassLoader()
+                            );
+                            Class<?> driverClass = Class.forName(DRIVER_CLASS, true, loader);
+                            java.sql.Driver driver = (java.sql.Driver) driverClass.getDeclaredConstructor().newInstance();
+                            DriverManager.registerDriver(new DriverShim(driver));
+                            System.out.println("[FAMS DBConnection] Auto-loaded MySQL Driver from " + jar.getName());
+                            return;
+                        } catch (Exception ex) {
+                            System.err.println("[FAMS DBConnection] Failed dynamic jar load from " + jar.getAbsolutePath() + ": " + ex.getMessage());
+                        }
+                    }
+                }
+            }
         }
+
+        System.err.println("======================================================================");
+        System.err.println("[FAMS DBConnection WARNING] MySQL Connector/J driver class not found!");
+        System.err.println("Driver Class: " + DRIVER_CLASS);
+        System.err.println("Resolution  : Please ensure mysql-connector-j-*.jar is in lib/ folder.");
+        System.err.println("======================================================================");
+    }
+
+    private static class DriverShim implements java.sql.Driver {
+        private final java.sql.Driver driver;
+        public DriverShim(java.sql.Driver d) { this.driver = d; }
+        @Override public Connection connect(String u, java.util.Properties p) throws SQLException { return driver.connect(u, p); }
+        @Override public boolean acceptsURL(String u) throws SQLException { return driver.acceptsURL(u); }
+        @Override public java.sql.DriverPropertyInfo[] getPropertyInfo(String u, java.util.Properties p) throws SQLException { return driver.getPropertyInfo(u, p); }
+        @Override public int getMajorVersion() { return driver.getMajorVersion(); }
+        @Override public int getMinorVersion() { return driver.getMinorVersion(); }
+        @Override public boolean jdbcCompliant() { return driver.jdbcCompliant(); }
+        @Override public java.util.logging.Logger getParentLogger() throws java.sql.SQLFeatureNotSupportedException { return driver.getParentLogger(); }
     }
 
     /**
@@ -285,8 +331,23 @@ public class DBConnection {
                 System.out.println("[FAMS DBConnection] Database '" + DB_NAME + "' in XAMPP is missing core tables. Auto-importing src/database/fams.sql...");
                 executeSqlFile(conn, "src/database/fams.sql");
             }
+            ensureCourseMaterialsColumns(conn);
         } catch (Exception ignored) {
         }
+    }
+
+    /**
+     * Guarantees visible_from and visible_to columns exist in course_materials table.
+     */
+    private static void ensureCourseMaterialsColumns(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            try {
+                stmt.execute("ALTER TABLE `course_materials` ADD COLUMN `visible_from` DATE DEFAULT NULL");
+            } catch (SQLException ignored) {}
+            try {
+                stmt.execute("ALTER TABLE `course_materials` ADD COLUMN `visible_to` DATE DEFAULT NULL");
+            } catch (SQLException ignored) {}
+        } catch (Exception ignored) {}
     }
 
     /**
@@ -362,12 +423,12 @@ public class DBConnection {
      */
     private static void handleConnectionError(SQLException e, String attemptedPort) {
         System.err.println("\n[FAMS Database Connection Error]");
-        System.err.println("• Error Message  : " + e.getMessage());
-        System.err.println("• Error Code     : " + e.getErrorCode());
-        System.err.println("• SQL State      : " + e.getSQLState());
-        System.err.println("• Target Host    : " + workingHost);
-        System.err.println("• Target Port    : " + attemptedPort + " (XAMPP configured port)");
-        System.err.println("• Target URL     : " + buildJdbcUrl(attemptedPort));
+        System.err.println("  - Error Message  : " + e.getMessage());
+        System.err.println("  - Error Code     : " + e.getErrorCode());
+        System.err.println("  - SQL State      : " + e.getSQLState());
+        System.err.println("  - Target Host    : " + workingHost);
+        System.err.println("  - Target Port    : " + attemptedPort + " (XAMPP configured port)");
+        System.err.println("  - Target URL     : " + buildJdbcUrl(attemptedPort));
 
         int code = e.getErrorCode();
         if (code == 1049) {
