@@ -2,6 +2,7 @@ package ui.technicalofficer;
 
 import model.CourseOffering;
 import model.Medical;
+import model.Undergraduate;
 import service.AttendanceService;
 import service.MedicalService;
 
@@ -18,6 +19,8 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -31,7 +34,7 @@ import java.util.List;
  */
 public class MedicalManagementPage extends JPanel {
 
-    // theme colors matching technical officer dashboard - Soft Sage Green Theme
+    // Theme colors matching Technical Officer Dashboard - Soft Sage Green Theme
     private final Color darkNavy = new Color(26, 83, 71);
     private final Color lightBackground = new Color(239, 245, 242);
     private final Color cardWhite = Color.WHITE;
@@ -51,23 +54,23 @@ public class MedicalManagementPage extends JPanel {
     private final AttendanceService attendanceService = new AttendanceService();
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
-    // search & filter controls
+    // Search & filter controls
     private JTextField searchStudentField;
     private JComboBox<String> statusFilterCombo;
     private JComboBox<String> courseFilterCombo;
 
-    // table, model, and sorter
+    // Table, model, and sorter
     private JTable medicalTable;
     private DefaultTableModel tableModel;
     private TableRowSorter<DefaultTableModel> rowSorter;
 
-    // footer counter badges
+    // Footer counter badges
     private JLabel totalMedicalsLabel;
     private JLabel pendingCountLabel;
     private JLabel approvedCountLabel;
     private JLabel rejectedCountLabel;
 
-    // action buttons
+    // Action buttons
     private JButton addMedicalButton;
     private JButton approveButton;
     private JButton rejectButton;
@@ -88,7 +91,7 @@ public class MedicalManagementPage extends JPanel {
         contentPanel.setBackground(lightBackground);
         contentPanel.setBorder(new EmptyBorder(16, 20, 16, 20));
 
-        // title header
+        // Title header
         JPanel titlePanel = new JPanel();
         titlePanel.setBackground(lightBackground);
         titlePanel.setLayout(new BoxLayout(titlePanel, BoxLayout.Y_AXIS));
@@ -98,7 +101,7 @@ public class MedicalManagementPage extends JPanel {
         title.setFont(new Font("Arial", Font.BOLD, 22));
         title.setForeground(textDark);
 
-        JLabel subtitle = new JLabel("Monitor, verify, and approve student medical submissions for attendance.");
+        JLabel subtitle = new JLabel("Monitor, verify, and add student medical submissions for classes with 2-week submission deadline check.");
         subtitle.setFont(new Font("Arial", Font.PLAIN, 13));
         subtitle.setForeground(textMuted);
 
@@ -106,7 +109,7 @@ public class MedicalManagementPage extends JPanel {
         titlePanel.add(Box.createVerticalStrut(4));
         titlePanel.add(subtitle);
 
-        // center body
+        // Center body
         JPanel centerBody = new JPanel(new BorderLayout(0, 12));
         centerBody.setBackground(lightBackground);
         centerBody.add(createFilterPanel(), BorderLayout.NORTH);
@@ -119,7 +122,7 @@ public class MedicalManagementPage extends JPanel {
         add(contentPanel, BorderLayout.CENTER);
     }
 
-    // search and filter card
+    // Search and filter card
     private JPanel createFilterPanel() {
         JPanel card = createCardPanel();
         card.setLayout(new BorderLayout(0, 10));
@@ -135,7 +138,7 @@ public class MedicalManagementPage extends JPanel {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
 
-        // search field
+        // Search field
         searchStudentField = new JTextField("");
         styleTextField(searchStudentField);
         searchStudentField.getDocument().addDocumentListener(new DocumentListener() {
@@ -144,13 +147,13 @@ public class MedicalManagementPage extends JPanel {
             public void changedUpdate(DocumentEvent e) { applyFilters(); }
         });
 
-        // status filter
+        // Status filter
         String[] statuses = {"All Statuses", "Pending", "Approved", "Rejected"};
         statusFilterCombo = new JComboBox<>(statuses);
         styleComboBox(statusFilterCombo);
         statusFilterCombo.addActionListener(e -> applyFilters());
 
-        // course filter loaded dynamically from course offerings
+        // Course filter loaded dynamically from course offerings
         courseFilterCombo = new JComboBox<>();
         courseFilterCombo.addItem("-- All Courses --");
         List<CourseOffering> offerings = attendanceService.getCourseOfferings();
@@ -160,7 +163,7 @@ public class MedicalManagementPage extends JPanel {
         styleComboBox(courseFilterCombo);
         courseFilterCombo.addActionListener(e -> applyFilters());
 
-        // action buttons
+        // Action buttons
         JButton filterButton = createStyledButton("Apply Filter", primaryBlue, Color.WHITE);
         filterButton.addActionListener(e -> applyFilters());
 
@@ -192,7 +195,7 @@ public class MedicalManagementPage extends JPanel {
         return card;
     }
 
-    // table panel
+    // Table panel
     private JPanel createTablePanel() {
         JPanel card = createCardPanel();
         card.setLayout(new BorderLayout(0, 8));
@@ -237,7 +240,9 @@ public class MedicalManagementPage extends JPanel {
                 "Student ID",
                 "Index No",
                 "Student Name",
-                "Medical Date",
+                "Submission Date",
+                "Medical Start Date",
+                "Medical End Date",
                 "Course Offering",
                 "Reason",
                 "Document Path",
@@ -249,7 +254,7 @@ public class MedicalManagementPage extends JPanel {
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 7 || column == 11;
+                return column == 9 || column == 13;
             }
 
             @Override
@@ -309,18 +314,20 @@ public class MedicalManagementPage extends JPanel {
 
         setColumnWidth(0, 40, 50);
         setColumnWidth(1, 80, 95);
-        setColumnWidth(2, 85, 100);
-        setColumnWidth(3, 110, 130);
-        setColumnWidth(4, 140, 180);
-        setColumnWidth(5, 100, 120);
-        setColumnWidth(6, 180, 240);
-        setColumnWidth(7, 160, 240);
-        setColumnWidth(8, 140, 180);
-        setColumnWidth(9, 110, 130);
-        setColumnWidth(10, 90, 110);
-        setColumnWidth(11, 140, 200);
+        setColumnWidth(2, 80, 95);
+        setColumnWidth(3, 100, 120);
+        setColumnWidth(4, 130, 170);
+        setColumnWidth(5, 105, 120);
+        setColumnWidth(6, 105, 120);
+        setColumnWidth(7, 105, 120);
+        setColumnWidth(8, 160, 220);
+        setColumnWidth(9, 140, 200);
+        setColumnWidth(10, 110, 150);
+        setColumnWidth(11, 105, 120);
+        setColumnWidth(12, 85, 105);
+        setColumnWidth(13, 150, 220);
 
-        medicalTable.getColumnModel().getColumn(9).setCellRenderer(new MedicalStatusRenderer());
+        medicalTable.getColumnModel().getColumn(11).setCellRenderer(new MedicalStatusRenderer());
         medicalTable.setDefaultRenderer(String.class, new AlternateRowRenderer());
 
         tableModel.addTableModelListener(e -> {
@@ -346,14 +353,19 @@ public class MedicalManagementPage extends JPanel {
         List<Medical> list = medicalService.getAllMedicals();
         int count = 1;
         for (Medical m : list) {
-            String dateStr = m.getMedicalDate() != null ? dateFormat.format(m.getMedicalDate()) : "-";
+            String subDateStr = m.getMedicalDate() != null ? dateFormat.format(m.getMedicalDate()) : "-";
+            String startStr = m.getStartDate() != null ? dateFormat.format(m.getStartDate()) : subDateStr;
+            String endStr = m.getEndDate() != null ? dateFormat.format(m.getEndDate()) : startStr;
+
             tableModel.addRow(new Object[]{
                     String.valueOf(count++),
                     m.getMedicalCode(),
                     m.getStudentCode(),
                     m.getIndexNo(),
                     m.getStudentName(),
-                    dateStr,
+                    subDateStr,
+                    startStr,
+                    endStr,
                     m.getCourseOfferingName(),
                     m.getReason(),
                     m.getDocumentPath(),
@@ -396,7 +408,7 @@ public class MedicalManagementPage extends JPanel {
         }
 
         int modelRow = medicalTable.convertRowIndexToModel(viewRow);
-        String currentStatus = (String) tableModel.getValueAt(modelRow, 9);
+        String currentStatus = (String) tableModel.getValueAt(modelRow, 11);
         if ("Approved".equalsIgnoreCase(currentStatus)) {
             JOptionPane.showMessageDialog(this,
                     "This medical certificate is already approved.",
@@ -409,9 +421,9 @@ public class MedicalManagementPage extends JPanel {
 
         medicalService.approveMedical(medId, "TO001");
 
-        tableModel.setValueAt("Approved", modelRow, 9);
-        tableModel.setValueAt("TO001", modelRow, 10);
-        tableModel.setValueAt("Approved after document verification.", modelRow, 11);
+        tableModel.setValueAt("Approved", modelRow, 11);
+        tableModel.setValueAt("TO001", modelRow, 12);
+        tableModel.setValueAt("Approved after document verification.", modelRow, 13);
 
         JOptionPane.showMessageDialog(this,
                 String.format("Medical ID %s for Student %s has been APPROVED successfully.\nApproved by: TO001\nStatus: Approved",
@@ -436,9 +448,9 @@ public class MedicalManagementPage extends JPanel {
 
         medicalService.rejectMedical(medId, "TO001");
 
-        tableModel.setValueAt("Rejected", modelRow, 9);
-        tableModel.setValueAt("TO001", modelRow, 10);
-        tableModel.setValueAt("Supporting document rejected after review.", modelRow, 11);
+        tableModel.setValueAt("Rejected", modelRow, 11);
+        tableModel.setValueAt("TO001", modelRow, 12);
+        tableModel.setValueAt("Supporting document rejected after review.", modelRow, 13);
 
         JOptionPane.showMessageDialog(this,
                 String.format("Medical ID %s for Student %s has been REJECTED.\nDecision by: TO001\nStatus: Rejected",
@@ -462,29 +474,33 @@ public class MedicalManagementPage extends JPanel {
         String sId = (String) tableModel.getValueAt(modelRow, 2);
         String indexNo = (String) tableModel.getValueAt(modelRow, 3);
         String studentName = (String) tableModel.getValueAt(modelRow, 4);
-        String medDate = (String) tableModel.getValueAt(modelRow, 5);
-        String course = (String) tableModel.getValueAt(modelRow, 6);
-        String reason = (String) tableModel.getValueAt(modelRow, 7);
-        String docPath = (String) tableModel.getValueAt(modelRow, 8);
-        String status = (String) tableModel.getValueAt(modelRow, 9);
-        String approvedBy = (String) tableModel.getValueAt(modelRow, 10);
-        String remarks = (String) tableModel.getValueAt(modelRow, 11);
+        String subDate = (String) tableModel.getValueAt(modelRow, 5);
+        String startDate = (String) tableModel.getValueAt(modelRow, 6);
+        String endDate = (String) tableModel.getValueAt(modelRow, 7);
+        String course = (String) tableModel.getValueAt(modelRow, 8);
+        String reason = (String) tableModel.getValueAt(modelRow, 9);
+        String docPath = (String) tableModel.getValueAt(modelRow, 10);
+        String status = (String) tableModel.getValueAt(modelRow, 11);
+        String approvedBy = (String) tableModel.getValueAt(modelRow, 12);
+        String remarks = (String) tableModel.getValueAt(modelRow, 13);
 
         String details = String.format(
                 "--- Medical Certificate Document Details ---\n\n" +
-                "Medical ID      : %s\n" +
-                "Student ID      : %s\n" +
-                "Index No        : %s\n" +
-                "Student Name    : %s\n" +
-                "Medical Date    : %s\n" +
-                "Course Offering : %s\n" +
-                "Reason          : %s\n" +
-                "Document Path   : %s\n" +
-                "Current Status  : %s\n" +
-                "Approved By     : %s\n" +
-                "Remarks         : %s\n\n" +
+                "Medical ID          : %s\n" +
+                "Student ID          : %s\n" +
+                "Index No            : %s\n" +
+                "Student Name        : %s\n" +
+                "Submission Date     : %s\n" +
+                "Medical Start Date  : %s\n" +
+                "Medical End Date    : %s\n" +
+                "Course Offering     : %s\n" +
+                "Reason              : %s\n" +
+                "Document Path       : %s\n" +
+                "Current Status      : %s\n" +
+                "Approved By         : %s\n" +
+                "Remarks             : %s\n\n" +
                 "Certificate File verified: [Official Medical Center Verification Record]",
-                medId, sId, indexNo, studentName, medDate, course, reason, docPath, status, approvedBy, remarks
+                medId, sId, indexNo, studentName, subDate, startDate, endDate, course, reason, docPath, status, approvedBy, remarks
         );
 
         JOptionPane.showMessageDialog(this, details, "Medical Document Viewer", JOptionPane.INFORMATION_MESSAGE);
@@ -492,18 +508,40 @@ public class MedicalManagementPage extends JPanel {
 
     private void showAddMedicalDialog() {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Record Medical Submission", true);
-        dialog.setSize(520, 560);
+        dialog.setSize(600, 700);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
 
-        JPanel formPanel = new JPanel(new GridLayout(8, 2, 8, 10));
-        formPanel.setBackground(Color.WHITE);
-        formPanel.setBorder(new EmptyBorder(16, 20, 16, 20));
+        JPanel formWrapper = new JPanel(new BorderLayout());
+        formWrapper.setBackground(Color.WHITE);
+        formWrapper.setBorder(new EmptyBorder(18, 24, 18, 24));
 
+        JPanel formGrid = new JPanel(new GridBagLayout());
+        formGrid.setBackground(Color.WHITE);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 6, 5, 6);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.WEST;
+
+        // Input fields
         JTextField studentIdField = new JTextField("STU005");
         JTextField indexNoField = new JTextField("TG/2024/2005");
         JTextField nameField = new JTextField("Sanduni Fernando");
-        JTextField dateField = new JTextField(dateFormat.format(new Date()));
+
+        // Dynamic auto-fill on student ID change
+        studentIdField.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                String input = studentIdField.getText().trim();
+                if (!input.isEmpty()) {
+                    Undergraduate u = attendanceService.findStudentByIndex(input);
+                    if (u != null) {
+                        indexNoField.setText(u.getIndexNo());
+                        nameField.setText(u.getFullName());
+                    }
+                }
+            }
+        });
 
         JComboBox<String> courseCombo = new JComboBox<>();
         List<CourseOffering> offerings = attendanceService.getCourseOfferings();
@@ -511,37 +549,102 @@ public class MedicalManagementPage extends JPanel {
             courseCombo.addItem(o.getOfferingCode() + ": " + o.getCourseCode() + " - " + o.getCourseName());
         }
 
-        JTextField reasonField = new JTextField("Fever and medical treatment");
+        String todayStr = dateFormat.format(new Date());
+        JTextField subDateField = new JTextField(todayStr);
+        JTextField startDateField = new JTextField(todayStr);
+        JTextField endDateField = new JTextField(todayStr);
+
+        JTextField reasonField = new JTextField("Viral fever and medical treatment");
         JTextField docPathField = new JTextField("medical/slip_new.pdf");
         JTextField remarksField = new JTextField("Submitted by student");
 
         styleTextField(studentIdField);
         styleTextField(indexNoField);
         styleTextField(nameField);
-        styleTextField(dateField);
         styleComboBox(courseCombo);
+        styleTextField(subDateField);
+        styleTextField(startDateField);
+        styleTextField(endDateField);
         styleTextField(reasonField);
         styleTextField(docPathField);
         styleTextField(remarksField);
 
-        formPanel.add(new JLabel("Student ID (e.g. STU005):"));
-        formPanel.add(studentIdField);
-        formPanel.add(new JLabel("Index No (e.g. TG/2024/2005):"));
-        formPanel.add(indexNoField);
-        formPanel.add(new JLabel("Student Name:"));
-        formPanel.add(nameField);
-        formPanel.add(new JLabel("Medical Date (YYYY-MM-DD):"));
-        formPanel.add(dateField);
-        formPanel.add(new JLabel("Course Offering:"));
-        formPanel.add(courseCombo);
-        formPanel.add(new JLabel("Reason:"));
-        formPanel.add(reasonField);
-        formPanel.add(new JLabel("Document File Path:"));
-        formPanel.add(docPathField);
-        formPanel.add(new JLabel("Initial Remarks:"));
-        formPanel.add(remarksField);
+        // Live preview banner for date difference and status
+        JPanel previewPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        previewPanel.setBackground(new Color(236, 248, 245));
+        previewPanel.setBorder(new LineBorder(new Color(175, 230, 220), 1, true));
 
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        JLabel previewLabel = new JLabel("✓ Difference: 0 days | Expected Status: PENDING (Within 2-week deadline)");
+        previewLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        previewLabel.setForeground(successGreen);
+        previewPanel.add(previewLabel);
+
+        Runnable recalculatePreview = () -> {
+            String sSub = subDateField.getText().trim();
+            String sStart = startDateField.getText().trim();
+            try {
+                Date dSub = dateFormat.parse(sSub);
+                Date dStart = dateFormat.parse(sStart);
+                long diffMs = dSub.getTime() - dStart.getTime();
+                long diffDays = diffMs / (1000L * 60 * 60 * 24);
+
+                if (diffDays > 14) {
+                    previewLabel.setText(String.format("⚠️ Difference: %d days (> 14 days) | Submission Status: REJECTED (Late)", diffDays));
+                    previewLabel.setForeground(alertRed);
+                    previewPanel.setBackground(new Color(254, 237, 237));
+                    previewPanel.setBorder(new LineBorder(new Color(248, 180, 180), 1, true));
+                } else if (diffDays >= 0) {
+                    previewLabel.setText(String.format("✓ Difference: %d days (<= 14 days) | Submission Status: PENDING (Within 2 weeks)", diffDays));
+                    previewLabel.setForeground(successGreen);
+                    previewPanel.setBackground(new Color(236, 248, 245));
+                    previewPanel.setBorder(new LineBorder(new Color(175, 230, 220), 1, true));
+                } else {
+                    previewLabel.setText("✓ Advance submission / Same day | Submission Status: PENDING");
+                    previewLabel.setForeground(primaryBlue);
+                    previewPanel.setBackground(new Color(240, 245, 252));
+                    previewPanel.setBorder(new LineBorder(new Color(195, 215, 240), 1, true));
+                }
+            } catch (Exception ex) {
+                previewLabel.setText("ℹ️ Enter dates as YYYY-MM-DD to verify 2-week submission limit.");
+                previewLabel.setForeground(textMuted);
+                previewPanel.setBackground(new Color(248, 250, 252));
+                previewPanel.setBorder(new LineBorder(borderColor, 1, true));
+            }
+        };
+
+        DocumentListener dateListener = new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { recalculatePreview.run(); }
+            public void removeUpdate(DocumentEvent e) { recalculatePreview.run(); }
+            public void changedUpdate(DocumentEvent e) { recalculatePreview.run(); }
+        };
+        subDateField.getDocument().addDocumentListener(dateListener);
+        startDateField.getDocument().addDocumentListener(dateListener);
+
+        int row = 0;
+        addFormRow(formGrid, gbc, row++, "Student ID (e.g. STU005) *:", studentIdField);
+        addFormRow(formGrid, gbc, row++, "Index No (e.g. TG/2024/2005) *:", indexNoField);
+        addFormRow(formGrid, gbc, row++, "Student Name *:", nameField);
+        addFormRow(formGrid, gbc, row++, "Course Offering *:", courseCombo);
+        addFormRow(formGrid, gbc, row++, "Medical Submission Date (YYYY-MM-DD) *:", subDateField);
+        addFormRow(formGrid, gbc, row++, "Medical Starting Date (YYYY-MM-DD) *:", startDateField);
+        addFormRow(formGrid, gbc, row++, "Medical Ending Date (YYYY-MM-DD) *:", endDateField);
+
+        // Add preview banner
+        gbc.gridx = 0; gbc.gridy = row++;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        gbc.insets = new Insets(8, 6, 8, 6);
+        formGrid.add(previewPanel, gbc);
+
+        gbc.gridwidth = 1;
+        gbc.insets = new Insets(5, 6, 5, 6);
+        addFormRow(formGrid, gbc, row++, "Reason for Medical *:", reasonField);
+        addFormRow(formGrid, gbc, row++, "Document File Path:", docPathField);
+        addFormRow(formGrid, gbc, row++, "Initial Remarks:", remarksField);
+
+        formWrapper.add(formGrid, BorderLayout.CENTER);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 12));
         btnPanel.setBackground(lightBackground);
 
         JButton cancelBtn = createStyledButton("Cancel", Color.WHITE, textDark);
@@ -552,24 +655,72 @@ public class MedicalManagementPage extends JPanel {
             String sId = studentIdField.getText().trim();
             String idx = indexNoField.getText().trim();
             String name = nameField.getText().trim();
-            String mDate = dateField.getText().trim();
+            String subDateStr = subDateField.getText().trim();
+            String startDateStr = startDateField.getText().trim();
+            String endDateStr = endDateField.getText().trim();
             String selectedCourse = (String) courseCombo.getSelectedItem();
             String reason = reasonField.getText().trim();
             String doc = docPathField.getText().trim();
             String remarks = remarksField.getText().trim();
 
-            if (sId.isEmpty() || idx.isEmpty() || name.isEmpty() || mDate.isEmpty()) {
-                JOptionPane.showMessageDialog(dialog, "Please fill in all required fields.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+            if (sId.isEmpty() || idx.isEmpty() || name.isEmpty() ||
+                subDateStr.isEmpty() || startDateStr.isEmpty() || endDateStr.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog,
+                        "Please fill in all required fields (Student ID, Index No, Name, and all Date fields).",
+                        "Validation Error", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
-            int nextNum = tableModel.getRowCount() + 1;
-            String medId = String.format("MED%03d", nextNum);
+            Date parsedSubDate;
+            Date parsedStartDate;
+            Date parsedEndDate;
 
-            Date parsedDate = new Date();
             try {
-                parsedDate = dateFormat.parse(mDate);
-            } catch (Exception ignored) {
+                parsedSubDate = dateFormat.parse(subDateStr);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog,
+                        "Invalid Medical Submission Date format. Please use YYYY-MM-DD (e.g. 2026-03-15).",
+                        "Invalid Date", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            try {
+                parsedStartDate = dateFormat.parse(startDateStr);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog,
+                        "Invalid Medical Starting Date format. Please use YYYY-MM-DD (e.g. 2026-02-20).",
+                        "Invalid Date", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            try {
+                parsedEndDate = dateFormat.parse(endDateStr);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog,
+                        "Invalid Medical Ending Date format. Please use YYYY-MM-DD (e.g. 2026-02-25).",
+                        "Invalid Date", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            if (parsedEndDate.before(parsedStartDate)) {
+                JOptionPane.showMessageDialog(dialog,
+                        "Medical ending date cannot be earlier than medical starting date.",
+                        "Invalid Date Range", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            // Compare medical submission date and medical starting date
+            long diffMillis = parsedSubDate.getTime() - parsedStartDate.getTime();
+            long diffDays = diffMillis / (1000L * 60 * 60 * 24);
+
+            boolean isLateSubmission = (diffDays > 14);
+            String status = isLateSubmission ? "Rejected" : "Pending";
+            String approvedBy = isLateSubmission ? "TO001" : "-";
+            String remarksToSave = remarks;
+
+            if (isLateSubmission) {
+                String lateTag = String.format("[Auto-Rejected: Submitted %d days after start date (exceeds 2-week limit)]", diffDays);
+                remarksToSave = remarksToSave.isEmpty() ? lateTag : remarksToSave + " " + lateTag;
             }
 
             String offeringCode = "OFF001";
@@ -577,41 +728,85 @@ public class MedicalManagementPage extends JPanel {
                 offeringCode = selectedCourse.split(":")[0].trim();
             }
 
+            String medId = medicalService.getNextMedicalId();
+
             Medical newMed = new Medical(
                     medId, sId, idx, name, offeringCode, selectedCourse,
-                    parsedDate, reason.isEmpty() ? "Medical Certificate" : reason,
-                    doc.isEmpty() ? "medical/slip.pdf" : doc,
-                    "Pending", "-", remarks
+                    parsedSubDate, parsedStartDate, parsedEndDate,
+                    reason.isEmpty() ? "Medical Certificate" : reason,
+                    doc.isEmpty() ? "medical/" + medId + ".pdf" : doc,
+                    status, approvedBy, remarksToSave
             );
 
             medicalService.addMedical(newMed);
 
             tableModel.addRow(new Object[]{
-                    String.valueOf(nextNum),
+                    String.valueOf(tableModel.getRowCount() + 1),
                     medId,
                     sId,
                     idx,
                     name,
-                    mDate,
+                    dateFormat.format(parsedSubDate),
+                    dateFormat.format(parsedStartDate),
+                    dateFormat.format(parsedEndDate),
                     selectedCourse,
                     reason,
                     doc,
-                    "Pending",
-                    "-",
-                    remarks
+                    status,
+                    approvedBy,
+                    remarksToSave
             });
 
             dialog.dispose();
             updateLiveCounters();
-            JOptionPane.showMessageDialog(this, "Medical submission " + medId + " recorded successfully.", "Recorded", JOptionPane.INFORMATION_MESSAGE);
+
+            if (isLateSubmission) {
+                JOptionPane.showMessageDialog(this,
+                        String.format("⚠️ Medical submission %s has been submitted with REJECTED status!\n\n" +
+                                "• Student: %s (%s)\n" +
+                                "• Medical Starting Date: %s\n" +
+                                "• Submission Date: %s\n" +
+                                "• Time Difference: %d days (Exceeds 2-week / 14-day limit)\n" +
+                                "• Decision: Auto-rejected\n" +
+                                "• Recorded By: TO001\n" +
+                                "• Status: REJECTED",
+                                medId, name, sId, dateFormat.format(parsedStartDate), dateFormat.format(parsedSubDate), diffDays),
+                        "Medical Submission Auto-Rejected",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        String.format("Medical submission %s recorded successfully.\n\n" +
+                                "• Student: %s (%s)\n" +
+                                "• Medical Starting Date: %s\n" +
+                                "• Submission Date: %s\n" +
+                                "• Time Difference: %d days (Within 2-week limit)\n" +
+                                "• Status: PENDING",
+                                medId, name, sId, dateFormat.format(parsedStartDate), dateFormat.format(parsedSubDate), diffDays),
+                        "Medical Recorded",
+                        JOptionPane.INFORMATION_MESSAGE);
+            }
         });
 
         btnPanel.add(cancelBtn);
         btnPanel.add(saveBtn);
 
-        dialog.add(formPanel, BorderLayout.CENTER);
+        dialog.add(new JScrollPane(formWrapper), BorderLayout.CENTER);
         dialog.add(btnPanel, BorderLayout.SOUTH);
         dialog.setVisible(true);
+    }
+
+    private void addFormRow(JPanel panel, GridBagConstraints gbc, int row, String labelText, JComponent field) {
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.weightx = 0.35;
+        JLabel lbl = new JLabel(labelText);
+        lbl.setFont(new Font("Arial", Font.BOLD, 12));
+        lbl.setForeground(textDark);
+        panel.add(lbl, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.65;
+        panel.add(field, gbc);
     }
 
     private void removeSelectedRow() {
@@ -655,14 +850,14 @@ public class MedicalManagementPage extends JPanel {
                 }
 
                 if (status != null && !"All Statuses".equalsIgnoreCase(status)) {
-                    String st = entry.getStringValue(9);
+                    String st = entry.getStringValue(11);
                     if (!status.equalsIgnoreCase(st)) {
                         return false;
                     }
                 }
 
                 if (course != null && !"-- All Courses --".equalsIgnoreCase(course)) {
-                    String crs = entry.getStringValue(6);
+                    String crs = entry.getStringValue(8);
                     if (!crs.toLowerCase().contains(course.toLowerCase())) {
                         return false;
                     }
@@ -691,7 +886,7 @@ public class MedicalManagementPage extends JPanel {
         int rejected = 0;
 
         for (int i = 0; i < total; i++) {
-            Object statusObj = tableModel.getValueAt(i, 9);
+            Object statusObj = tableModel.getValueAt(i, 11);
             String st = statusObj != null ? statusObj.toString() : "";
             if ("Pending".equalsIgnoreCase(st)) {
                 pending++;
@@ -810,7 +1005,7 @@ public class MedicalManagementPage extends JPanel {
         comboBox.setPreferredSize(new Dimension(comboBox.getPreferredSize().width, 30));
     }
 
-    // render approval status badge
+    // Render approval status badge
     private class MedicalStatusRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
@@ -841,7 +1036,7 @@ public class MedicalManagementPage extends JPanel {
         }
     }
 
-    // zebra striping renderer
+    // Zebra striping renderer
     private class AlternateRowRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
@@ -861,7 +1056,7 @@ public class MedicalManagementPage extends JPanel {
                 c.setBackground(tableSelectionBg);
             }
 
-            if (column == 0 || column == 1 || column == 2 || column == 3 || column == 5 || column == 10) {
+            if (column == 0 || column == 1 || column == 2 || column == 3 || column == 5 || column == 6 || column == 7 || column == 12) {
                 setHorizontalAlignment(SwingConstants.CENTER);
             } else {
                 setHorizontalAlignment(SwingConstants.LEFT);

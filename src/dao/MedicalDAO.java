@@ -28,32 +28,35 @@ public class MedicalDAO {
             Medical m1 = new Medical(
                     "MED001", "STU005", "TG/2024/2005", "Sanduni Fernando",
                     "OFF001", "ICT2132 - Object Oriented Programming (2024/2025)",
-                    sdf.parse("2026-02-10"), "Fever and medical treatment",
+                    sdf.parse("2026-02-15"), sdf.parse("2026-02-10"), sdf.parse("2026-02-12"),
+                    "Viral fever and respiratory infection",
                     "medical/STU005_MED001.pdf", "Approved", "TO001",
-                    "Approved after document verification."
+                    "Approved after official verification by Faculty Medical Officer."
             );
-            m1.setApprovedDate(sdf.parse("2026-02-10"));
+            m1.setApprovedDate(sdf.parse("2026-02-15"));
             mockMedicals.add(m1);
 
             // Row 2: MED002 from fams.sql
             Medical m2 = new Medical(
                     "MED002", "STU010", "TG/2024/2010", "Piumi Kumari",
                     "OFF001", "ICT2132 - Object Oriented Programming (2024/2025)",
-                    sdf.parse("2026-03-02"), "Viral infection",
+                    sdf.parse("2026-02-20"), sdf.parse("2026-02-18"), sdf.parse("2026-02-22"),
+                    "Sprained ankle sustained during sports",
                     "medical/STU010_MED002.pdf", "Pending", "-",
-                    "Awaiting verification."
+                    "Pending submission of government hospital certificate."
             );
             mockMedicals.add(m2);
 
             // Row 3: MED003 from fams.sql
             Medical m3 = new Medical(
                     "MED003", "STU016", "TG/2024/2016", "Isuru Fernando",
-                    "OFF002", "ICT2142 - E-Business (2024/2025)",
-                    sdf.parse("2026-03-18"), "Medical appointment",
+                    "OFF001", "ICT2132 - Object Oriented Programming (2024/2025)",
+                    sdf.parse("2026-03-01"), sdf.parse("2026-02-10"), sdf.parse("2026-02-12"),
+                    "Severe migraine during lab session",
                     "medical/STU016_MED003.pdf", "Rejected", "TO002",
-                    "Supporting document was incomplete."
+                    "Rejected due to late submission beyond 2-week limit."
             );
-            m3.setApprovedDate(sdf.parse("2026-03-18"));
+            m3.setApprovedDate(sdf.parse("2026-03-01"));
             mockMedicals.add(m3);
         } catch (Exception e) {
             e.printStackTrace();
@@ -69,7 +72,7 @@ public class MedicalDAO {
             try {
                 String sql = "SELECT m.medical_id, m.student_id, u.index_no, usr.first_name, usr.last_name, " +
                              "       m.offering_id, c.course_code, c.course_name, co.batch, " +
-                             "       m.medical_date, m.reason, m.document_path, m.approval_status, m.approved_by, m.remarks " +
+                             "       m.medical_date, m.start_date, m.end_date, m.reason, m.document_path, m.approval_status, m.approved_by, m.remarks " +
                              "FROM medicals m " +
                              "LEFT JOIN undergraduates u ON m.student_id = u.student_id " +
                              "LEFT JOIN users usr ON m.student_id = usr.user_id " +
@@ -93,6 +96,12 @@ public class MedicalDAO {
                         courseInfo += " (" + rs.getString("batch") + ")";
                     }
 
+                    Date medDate = rs.getDate("medical_date");
+                    Date startDate = rs.getDate("start_date");
+                    Date endDate = rs.getDate("end_date");
+                    if (startDate == null) startDate = medDate;
+                    if (endDate == null) endDate = startDate;
+
                     Medical m = new Medical(
                             rs.getString("medical_id"),
                             rs.getString("student_id"),
@@ -100,7 +109,9 @@ public class MedicalDAO {
                             studentName.trim(),
                             rs.getString("offering_id"),
                             courseInfo.trim(),
-                            rs.getDate("medical_date"),
+                            medDate,
+                            startDate,
+                            endDate,
                             rs.getString("reason"),
                             rs.getString("document_path"),
                             status,
@@ -130,7 +141,7 @@ public class MedicalDAO {
             try {
                 String sql = "SELECT m.medical_id, m.student_id, u.index_no, usr.first_name, usr.last_name, " +
                              "       m.offering_id, c.course_code, c.course_name, co.batch, " +
-                             "       m.medical_date, m.reason, m.document_path, m.approval_status, m.approved_by, m.remarks " +
+                             "       m.medical_date, m.start_date, m.end_date, m.reason, m.document_path, m.approval_status, m.approved_by, m.remarks " +
                              "FROM medicals m " +
                              "LEFT JOIN undergraduates u ON m.student_id = u.student_id " +
                              "LEFT JOIN users usr ON m.student_id = usr.user_id " +
@@ -153,6 +164,12 @@ public class MedicalDAO {
                     String courseInfo = (rs.getString("course_code") != null ? rs.getString("course_code") : "") + " - " +
                                         (rs.getString("course_name") != null ? rs.getString("course_name") : "");
 
+                    Date medDate = rs.getDate("medical_date");
+                    Date startDate = rs.getDate("start_date");
+                    Date endDate = rs.getDate("end_date");
+                    if (startDate == null) startDate = medDate;
+                    if (endDate == null) endDate = startDate;
+
                     Medical m = new Medical(
                             rs.getString("medical_id"),
                             rs.getString("student_id"),
@@ -160,7 +177,9 @@ public class MedicalDAO {
                             studentName.trim(),
                             rs.getString("offering_id"),
                             courseInfo.trim(),
-                            rs.getDate("medical_date"),
+                            medDate,
+                            startDate,
+                            endDate,
                             rs.getString("reason"),
                             rs.getString("document_path"),
                             status,
@@ -276,30 +295,78 @@ public class MedicalDAO {
         return true;
     }
 
+    public String getNextMedicalId() {
+        Connection conn = DatabaseConnection.getConnection();
+        if (conn != null) {
+            try (Statement st = conn.createStatement();
+                 ResultSet rs = st.executeQuery("SELECT MAX(CAST(SUBSTRING(medical_id, 4) AS UNSIGNED)) FROM medicals")) {
+                if (rs.next()) {
+                    int nextNum = rs.getInt(1) + 1;
+                    return String.format("MED%03d", nextNum);
+                }
+            } catch (SQLException e) {
+                System.err.println("[MedicalDAO] Error fetching next ID: " + e.getMessage());
+            }
+        }
+        return String.format("MED%03d", getAllMedicals().size() + 1);
+    }
+
     public boolean addMedical(Medical medical) {
         if (medical == null) return false;
+
+        String dbStatus = "PENDING";
+        if (medical.getApprovalStatus() != null) {
+            String st = medical.getApprovalStatus().toUpperCase();
+            if (st.contains("REJECT") || st.contains("NOT_APPROVED")) {
+                dbStatus = "NOT_APPROVED";
+            } else if (st.contains("APPROV")) {
+                dbStatus = "APPROVED";
+            }
+        }
 
         Connection conn = DatabaseConnection.getConnection();
         if (conn != null) {
             try {
-                String sql = "INSERT INTO medicals (medical_id, student_id, offering_id, medical_date, reason, document_path, approval_status, approved_by, remarks) " +
-                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) " +
-                             "ON DUPLICATE KEY UPDATE offering_id = VALUES(offering_id), medical_date = VALUES(medical_date), reason = VALUES(reason), " +
-                             "document_path = VALUES(document_path), approval_status = VALUES(approval_status), approved_by = VALUES(approved_by), remarks = VALUES(remarks)";
+                String sql = "INSERT INTO medicals (medical_id, student_id, offering_id, medical_date, start_date, end_date, reason, document_path, approval_status, approved_by, remarks) " +
+                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                             "ON DUPLICATE KEY UPDATE offering_id = VALUES(offering_id), medical_date = VALUES(medical_date), start_date = VALUES(start_date), end_date = VALUES(end_date), " +
+                             "reason = VALUES(reason), document_path = VALUES(document_path), approval_status = VALUES(approval_status), approved_by = VALUES(approved_by), remarks = VALUES(remarks)";
                 PreparedStatement ps = conn.prepareStatement(sql);
                 ps.setString(1, medical.getMedicalCode());
                 ps.setString(2, medical.getStudentCode());
                 ps.setString(3, medical.getOfferingCode() != null ? medical.getOfferingCode() : "OFF001");
                 ps.setDate(4, new java.sql.Date(medical.getMedicalDate() != null ? medical.getMedicalDate().getTime() : System.currentTimeMillis()));
-                ps.setString(5, medical.getReason() != null ? medical.getReason() : "Medical certificate");
-                ps.setString(6, medical.getDocumentPath() != null ? medical.getDocumentPath() : "medical/slip.pdf");
-                ps.setString(7, "PENDING");
-                ps.setString(8, null);
-                ps.setString(9, medical.getRemarks() != null ? medical.getRemarks() : "Submitted for approval");
+                ps.setDate(5, medical.getStartDate() != null ? medical.getStartDate() : (medical.getMedicalDate() != null ? new java.sql.Date(medical.getMedicalDate().getTime()) : new java.sql.Date(System.currentTimeMillis())));
+                ps.setDate(6, medical.getEndDate() != null ? medical.getEndDate() : (medical.getStartDate() != null ? medical.getStartDate() : new java.sql.Date(System.currentTimeMillis())));
+                ps.setString(7, medical.getReason() != null ? medical.getReason() : "Medical certificate");
+                ps.setString(8, medical.getDocumentPath() != null ? medical.getDocumentPath() : "medical/slip.pdf");
+                ps.setString(9, dbStatus);
+                ps.setString(10, medical.getApprovedBy() != null && !"-".equals(medical.getApprovedBy()) ? medical.getApprovedBy() : null);
+                ps.setString(11, medical.getRemarks() != null ? medical.getRemarks() : "Submitted for approval");
                 int rows = ps.executeUpdate();
-                System.out.println("[MedicalDAO] Added/Upserted medical " + medical.getMedicalCode() + " in MySQL, affected rows: " + rows);
+                System.out.println("[MedicalDAO] Added/Upserted medical " + medical.getMedicalCode() + " in MySQL, status=" + dbStatus + ", affected rows: " + rows);
             } catch (SQLException e) {
                 System.err.println("[MedicalDAO] Error adding medical: " + e.getMessage());
+                // Fallback attempt without start_date / end_date in case schema lacks columns
+                try {
+                    String sqlFallback = "INSERT INTO medicals (medical_id, student_id, offering_id, medical_date, reason, document_path, approval_status, approved_by, remarks) " +
+                                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                                         "ON DUPLICATE KEY UPDATE offering_id = VALUES(offering_id), medical_date = VALUES(medical_date), reason = VALUES(reason), " +
+                                         "document_path = VALUES(document_path), approval_status = VALUES(approval_status), approved_by = VALUES(approved_by), remarks = VALUES(remarks)";
+                    PreparedStatement psFb = conn.prepareStatement(sqlFallback);
+                    psFb.setString(1, medical.getMedicalCode());
+                    psFb.setString(2, medical.getStudentCode());
+                    psFb.setString(3, medical.getOfferingCode() != null ? medical.getOfferingCode() : "OFF001");
+                    psFb.setDate(4, new java.sql.Date(medical.getMedicalDate() != null ? medical.getMedicalDate().getTime() : System.currentTimeMillis()));
+                    psFb.setString(5, medical.getReason() != null ? medical.getReason() : "Medical certificate");
+                    psFb.setString(6, medical.getDocumentPath() != null ? medical.getDocumentPath() : "medical/slip.pdf");
+                    psFb.setString(7, dbStatus);
+                    psFb.setString(8, medical.getApprovedBy() != null && !"-".equals(medical.getApprovedBy()) ? medical.getApprovedBy() : null);
+                    psFb.setString(9, medical.getRemarks() != null ? medical.getRemarks() : "Submitted for approval");
+                    psFb.executeUpdate();
+                } catch (SQLException ex2) {
+                    System.err.println("[MedicalDAO] Fallback error adding medical: " + ex2.getMessage());
+                }
             }
         }
 

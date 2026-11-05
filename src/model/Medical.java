@@ -24,7 +24,7 @@ public class Medical {
     private Date endDate;
     private String reason;
     private String documentPath;
-    private String approvalStatus; // "PENDING", "APPROVED", "NOT_APPROVED", "Approved", etc.
+    private String approvalStatus; // "PENDING", "APPROVED", "NOT_APPROVED", "Approved", "Rejected", etc.
     private String approvedBy;
     private Date approvedDate;
     private String remarks;
@@ -82,6 +82,16 @@ public class Medical {
         this.approvalStatus = approvalStatus;
         this.approvedBy = approvedBy;
         this.remarks = remarks;
+    }
+
+    public Medical(String medicalCode, String studentCode, String indexNo, String studentName,
+                   String offeringCode, String courseOfferingName, Date medicalDate,
+                   Date startDate, Date endDate,
+                   String reason, String documentPath, String approvalStatus, String approvedBy, String remarks) {
+        this(medicalCode, studentCode, indexNo, studentName, offeringCode, courseOfferingName, medicalDate,
+             reason, documentPath, approvalStatus, approvedBy, remarks);
+        this.startDate = (startDate != null) ? startDate : medicalDate;
+        this.endDate = (endDate != null) ? endDate : (startDate != null ? startDate : medicalDate);
     }
 
     public String getMedicalId() {

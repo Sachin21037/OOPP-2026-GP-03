@@ -50,6 +50,10 @@ public class MedicalService {
         return medicalDAO.rejectMedical(medicalCode, approvedBy);
     }
 
+    public String getNextMedicalId() {
+        return medicalDAO.getNextMedicalId();
+    }
+
     public boolean addMedical(Medical medical) {
         return medicalDAO.addMedical(medical);
     }

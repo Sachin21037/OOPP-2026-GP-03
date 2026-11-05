@@ -31,7 +31,7 @@ public class DBConnection {
     private static final String[] DB_HOSTS = {"127.0.0.1", "localhost"};
     private static final String DB_NAME = "fams";
     private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = ""; // Default XAMPP MySQL password is empty
+    private static final String DB_PASSWORD = "21037"; // Default XAMPP MySQL password is empty
     private static final String[] CANDIDATE_PASSWORDS = {"", "12345678", "root", "1234", "21037", "admin", "password"};
     private static String workingHost = "127.0.0.1";
     private static String workingPort = null;
