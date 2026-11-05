@@ -4852,6 +4852,9 @@ CREATE TABLE `notices` (
   `title` varchar(200) NOT NULL,
   `description` text NOT NULL,
   `notice_date` date NOT NULL,
+  `from_date` date DEFAULT NULL,
+  `to_date` date DEFAULT NULL,
+  `target_audience` varchar(100) DEFAULT 'ALL',
   `created_by` varchar(10) NOT NULL,
   `status` enum('ACTIVE','INACTIVE') DEFAULT 'ACTIVE'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

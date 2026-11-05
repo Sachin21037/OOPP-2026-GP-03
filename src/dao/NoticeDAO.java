@@ -24,9 +24,26 @@ import java.util.Set;
 public class NoticeDAO {
 
     private final Set<String> readNoticeIds = new HashSet<>();
+    private static volatile boolean schemaInitialized = false;
+
+    private static synchronized void ensureNoticeSchema(Connection conn) {
+        if (schemaInitialized) return;
+        try (Statement stmt = conn.createStatement()) {
+            try {
+                stmt.execute("ALTER TABLE `notices` ADD COLUMN `from_date` DATE NULL");
+            } catch (SQLException ignored) {}
+            try {
+                stmt.execute("ALTER TABLE `notices` ADD COLUMN `to_date` DATE NULL");
+            } catch (SQLException ignored) {}
+            try {
+                stmt.execute("ALTER TABLE `notices` ADD COLUMN `target_audience` VARCHAR(100) DEFAULT 'ALL'");
+            } catch (SQLException ignored) {}
+            schemaInitialized = true;
+        } catch (Exception ignored) {}
+    }
 
     private static final String BASE_SELECT =
-            "SELECT n.notice_id, n.title, n.description, n.notice_date, n.created_by, n.status, " +
+            "SELECT n.*, " +
             "       TRIM(CONCAT(IFNULL(u.first_name, ''), ' ', IFNULL(u.last_name, ''))) AS creator_name, " +
             "       u.username AS creator_username " +
             "FROM notices n " +
@@ -227,42 +244,77 @@ public class NoticeDAO {
     public boolean addNotice(Notice notice) throws SQLException {
         if (notice == null) return false;
 
-        String sql = "INSERT INTO notices (notice_id, title, description, notice_date, created_by, status) " +
-                     "VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DBConnection.getNewConnection()) {
+            ensureNoticeSchema(conn);
 
-        try (Connection conn = DBConnection.getNewConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            String sql = "INSERT INTO notices (notice_id, title, description, notice_date, from_date, to_date, target_audience, created_by, status) " +
+                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-            pstmt.setString(1, notice.getNoticeId());
-            pstmt.setString(2, notice.getTitle());
-            pstmt.setString(3, notice.getDescription());
-            pstmt.setDate(4, notice.getNoticeDate() != null ? notice.getNoticeDate() : Date.valueOf(java.time.LocalDate.now()));
-            pstmt.setString(5, (notice.getCreatedBy() != null && !notice.getCreatedBy().isBlank()) ? notice.getCreatedBy() : getDefaultAdminId());
-            pstmt.setString(6, notice.getStatus());
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, notice.getNoticeId());
+                pstmt.setString(2, notice.getTitle());
+                pstmt.setString(3, notice.getDescription());
+                pstmt.setDate(4, notice.getNoticeDate() != null ? notice.getNoticeDate() : Date.valueOf(java.time.LocalDate.now()));
+                pstmt.setDate(5, notice.getFromDate() != null ? notice.getFromDate() : (notice.getNoticeDate() != null ? notice.getNoticeDate() : Date.valueOf(java.time.LocalDate.now())));
+                pstmt.setDate(6, notice.getToDate() != null ? notice.getToDate() : Date.valueOf(java.time.LocalDate.now().plusDays(30)));
+                pstmt.setString(7, (notice.getTargetAudience() != null && !notice.getTargetAudience().isBlank()) ? notice.getTargetAudience() : "ALL");
+                pstmt.setString(8, (notice.getCreatedBy() != null && !notice.getCreatedBy().isBlank()) ? notice.getCreatedBy() : getDefaultAdminId());
+                pstmt.setString(9, notice.getStatus());
 
-            return pstmt.executeUpdate() > 0;
+                return pstmt.executeUpdate() > 0;
+            } catch (SQLException ex) {
+                // Graceful fallback if target_audience / from_date / to_date columns cannot be queried
+                String fallbackSql = "INSERT INTO notices (notice_id, title, description, notice_date, created_by, status) " +
+                                     "VALUES (?, ?, ?, ?, ?, ?)";
+                try (PreparedStatement fallbackPstmt = conn.prepareStatement(fallbackSql)) {
+                    fallbackPstmt.setString(1, notice.getNoticeId());
+                    fallbackPstmt.setString(2, notice.getTitle());
+                    fallbackPstmt.setString(3, notice.getDescription());
+                    fallbackPstmt.setDate(4, notice.getNoticeDate() != null ? notice.getNoticeDate() : Date.valueOf(java.time.LocalDate.now()));
+                    fallbackPstmt.setString(5, (notice.getCreatedBy() != null && !notice.getCreatedBy().isBlank()) ? notice.getCreatedBy() : getDefaultAdminId());
+                    fallbackPstmt.setString(6, notice.getStatus());
+
+                    return fallbackPstmt.executeUpdate() > 0;
+                }
+            }
         }
     }
 
     /**
-     * Updates an existing notice's title, description, date, and status.
+     * Updates an existing notice's title, description, date, from/to dates, audience, and status.
      */
     public boolean updateNotice(Notice notice) throws SQLException {
         if (notice == null || notice.getNoticeId() == null) return false;
 
-        String sql = "UPDATE notices SET title = ?, description = ?, notice_date = ?, status = ? " +
-                     "WHERE notice_id = ?";
+        try (Connection conn = DBConnection.getNewConnection()) {
+            ensureNoticeSchema(conn);
 
-        try (Connection conn = DBConnection.getNewConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            String sql = "UPDATE notices SET title = ?, description = ?, notice_date = ?, from_date = ?, to_date = ?, target_audience = ?, status = ? " +
+                         "WHERE notice_id = ?";
 
-            pstmt.setString(1, notice.getTitle());
-            pstmt.setString(2, notice.getDescription());
-            pstmt.setDate(3, notice.getNoticeDate() != null ? notice.getNoticeDate() : Date.valueOf(java.time.LocalDate.now()));
-            pstmt.setString(4, notice.getStatus());
-            pstmt.setString(5, notice.getNoticeId());
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, notice.getTitle());
+                pstmt.setString(2, notice.getDescription());
+                pstmt.setDate(3, notice.getNoticeDate() != null ? notice.getNoticeDate() : Date.valueOf(java.time.LocalDate.now()));
+                pstmt.setDate(4, notice.getFromDate() != null ? notice.getFromDate() : notice.getNoticeDate());
+                pstmt.setDate(5, notice.getToDate() != null ? notice.getToDate() : Date.valueOf(java.time.LocalDate.now().plusDays(30)));
+                pstmt.setString(6, (notice.getTargetAudience() != null && !notice.getTargetAudience().isBlank()) ? notice.getTargetAudience() : "ALL");
+                pstmt.setString(7, notice.getStatus());
+                pstmt.setString(8, notice.getNoticeId());
 
-            return pstmt.executeUpdate() > 0;
+                return pstmt.executeUpdate() > 0;
+            } catch (SQLException ex) {
+                String fallbackSql = "UPDATE notices SET title = ?, description = ?, notice_date = ?, status = ? WHERE notice_id = ?";
+                try (PreparedStatement fallbackPstmt = conn.prepareStatement(fallbackSql)) {
+                    fallbackPstmt.setString(1, notice.getTitle());
+                    fallbackPstmt.setString(2, notice.getDescription());
+                    fallbackPstmt.setDate(3, notice.getNoticeDate() != null ? notice.getNoticeDate() : Date.valueOf(java.time.LocalDate.now()));
+                    fallbackPstmt.setString(4, notice.getStatus());
+                    fallbackPstmt.setString(5, notice.getNoticeId());
+
+                    return fallbackPstmt.executeUpdate() > 0;
+                }
+            }
         }
     }
 
@@ -343,6 +395,30 @@ public class NoticeDAO {
         n.setNoticeDate(rs.getDate("notice_date"));
         n.setCreatedBy(rs.getString("created_by"));
         n.setStatus(rs.getString("status"));
+
+        try {
+            Date fd = rs.getDate("from_date");
+            if (fd != null) n.setFromDate(fd);
+            else n.setFromDate(n.getNoticeDate());
+        } catch (SQLException ignored) {
+            n.setFromDate(n.getNoticeDate());
+        }
+
+        try {
+            Date td = rs.getDate("to_date");
+            if (td != null) n.setToDate(td);
+            else if (n.getNoticeDate() != null) n.setToDate(Date.valueOf(n.getNoticeDate().toLocalDate().plusDays(30)));
+        } catch (SQLException ignored) {
+            if (n.getNoticeDate() != null) n.setToDate(Date.valueOf(n.getNoticeDate().toLocalDate().plusDays(30)));
+        }
+
+        try {
+            String aud = rs.getString("target_audience");
+            if (aud != null && !aud.isBlank()) n.setTargetAudience(aud);
+            else n.setTargetAudience("ALL");
+        } catch (SQLException ignored) {
+            n.setTargetAudience("ALL");
+        }
 
         String creatorName = rs.getString("creator_name");
         String creatorUsername = rs.getString("creator_username");

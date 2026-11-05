@@ -24,7 +24,10 @@ public class Notice {
     private String creatorUsername; // e.g. "admin001"
 
     // Department & attachment & portal metadata
-    private Date expiryDate;        // Expiry date for circular/notice
+    private Date fromDate;          // Start / effective date of the notice
+    private Date toDate;            // End / valid-until date of the notice
+    private String targetAudience;  // e.g. "ALL", "STUDENTS", "LECTURERS", "TECHNICAL_OFFICERS"
+    private Date expiryDate;        // Expiry date for circular/notice (synced with toDate)
     private String targetDepartment;// e.g. "Information and Communication Technology" or "Faculty-wide"
     private String attachmentName;  // e.g. "Mid_Semester_Exam_Timetable_2026.pdf"
     private boolean urgent;         // High priority / urgent flag
@@ -42,7 +45,10 @@ public class Notice {
         this.status = "ACTIVE";
         this.noticeType = "GENERAL";
         this.noticeDate = Date.valueOf(LocalDate.now());
-        this.expiryDate = Date.valueOf(LocalDate.now().plusDays(30));
+        this.fromDate = Date.valueOf(LocalDate.now());
+        this.toDate = Date.valueOf(LocalDate.now().plusDays(30));
+        this.expiryDate = this.toDate;
+        this.targetAudience = "ALL";
         this.targetDepartment = "Information and Communication Technology";
         this.urgent = false;
         this.read = false;
@@ -53,11 +59,17 @@ public class Notice {
         this.title = title;
         this.description = description;
         this.noticeDate = noticeDate;
+        this.fromDate = (noticeDate != null) ? noticeDate : Date.valueOf(LocalDate.now());
+        if (noticeDate != null) {
+            this.toDate = Date.valueOf(noticeDate.toLocalDate().plusDays(30));
+            this.expiryDate = this.toDate;
+        } else {
+            this.toDate = Date.valueOf(LocalDate.now().plusDays(30));
+            this.expiryDate = this.toDate;
+        }
+        this.targetAudience = "ALL";
         this.createdBy = createdBy;
         this.status = (status != null && !status.isBlank()) ? status.toUpperCase() : "ACTIVE";
-        if (noticeDate != null) {
-            this.expiryDate = Date.valueOf(noticeDate.toLocalDate().plusDays(30));
-        }
         this.targetDepartment = "Information and Communication Technology";
         this.urgent = computeUrgency(title, description);
         this.noticeType = inferType(title, description);
@@ -144,14 +156,83 @@ public class Notice {
 
     public void setNoticeDate(Date noticeDate) {
         this.noticeDate = noticeDate;
+        if (this.fromDate == null) {
+            this.fromDate = noticeDate;
+        }
+    }
+
+    public Date getFromDate() {
+        return (fromDate != null) ? fromDate : noticeDate;
+    }
+
+    public void setFromDate(Date fromDate) {
+        this.fromDate = fromDate;
+    }
+
+    public Date getToDate() {
+        return (toDate != null) ? toDate : expiryDate;
+    }
+
+    public void setToDate(Date toDate) {
+        this.toDate = toDate;
+        this.expiryDate = toDate;
+    }
+
+    public String getTargetAudience() {
+        return (targetAudience != null && !targetAudience.isBlank()) ? targetAudience : "ALL";
+    }
+
+    public void setTargetAudience(String targetAudience) {
+        this.targetAudience = targetAudience;
+    }
+
+    public String getDisplayAudience() {
+        String aud = getTargetAudience();
+        if ("ALL".equalsIgnoreCase(aud.trim())) return "All";
+        StringBuilder sb = new StringBuilder();
+        String upper = aud.toUpperCase();
+        if (upper.contains("STUDENT") || upper.contains("UNDERGRADUATE")) {
+            sb.append("Students");
+        }
+        if (upper.contains("LECTURER")) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append("Lecturers");
+        }
+        if (upper.contains("TECHNICAL") || upper.contains("OFFICER")) {
+            if (sb.length() > 0) sb.append(", ");
+            sb.append("Technical Officers");
+        }
+        return sb.length() > 0 ? sb.toString() : aud;
+    }
+
+    public boolean matchesRole(String role) {
+        if (role == null || role.isBlank() || "ADMIN".equalsIgnoreCase(role.trim())) {
+            return true;
+        }
+        String aud = getTargetAudience().toUpperCase();
+        if ("ALL".equals(aud)) {
+            return true;
+        }
+        String r = role.toUpperCase();
+        if (r.contains("STUDENT") || r.contains("UNDERGRADUATE")) {
+            return aud.contains("STUDENT") || aud.contains("UNDERGRADUATE");
+        }
+        if (r.contains("LECTURER")) {
+            return aud.contains("LECTURER");
+        }
+        if (r.contains("TECHNICAL") || r.contains("OFFICER")) {
+            return aud.contains("TECHNICAL") || aud.contains("OFFICER");
+        }
+        return true;
     }
 
     public Date getExpiryDate() {
-        return expiryDate;
+        return (expiryDate != null) ? expiryDate : toDate;
     }
 
     public void setExpiryDate(Date expiryDate) {
         this.expiryDate = expiryDate;
+        this.toDate = expiryDate;
     }
 
     public String getCreatedBy() {

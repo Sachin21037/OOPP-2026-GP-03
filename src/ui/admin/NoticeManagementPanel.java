@@ -74,7 +74,12 @@ public class NoticeManagementPanel extends JPanel {
     private JLabel lblFormMode;
     private JTextField txtNoticeId;
     private JTextField txtTitle;
-    private JTextField txtNoticeDate;
+    private JTextField txtNoticeDate; // Publish Date (Auto)
+    private JTextField txtFromDate;   // Valid From Date
+    private JTextField txtToDate;     // Valid To Date
+    private JCheckBox chkAudienceStudents;
+    private JCheckBox chkAudienceLecturers;
+    private JCheckBox chkAudienceTechnicalOfficers;
     private JComboBox<String> cmbStatus;
     private JTextArea txtDescription;
     private JLabel lblCharCount;
@@ -358,16 +363,36 @@ public class NoticeManagementPanel extends JPanel {
         });
 
         // Col 1: Title
-        noticeTable.getColumnModel().getColumn(1).setPreferredWidth(210);
+        noticeTable.getColumnModel().getColumn(1).setPreferredWidth(190);
 
-        // Col 2: Date
+        // Col 2: Publish Date
         noticeTable.getColumnModel().getColumn(2).setPreferredWidth(95);
 
-        // Col 3: Published By (Author)
-        noticeTable.getColumnModel().getColumn(3).setPreferredWidth(130);
+        // Col 3: Target Audience Pill Badge
+        noticeTable.getColumnModel().getColumn(3).setPreferredWidth(125);
+        noticeTable.getColumnModel().getColumn(3).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus, int row, int column) {
+                JPanel p = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 7));
+                p.setOpaque(true);
+                p.setBackground(isSelected ? new Color(224, 237, 255) : (row % 2 == 0 ? Color.WHITE : new Color(248, 250, 252)));
+
+                String aud = (value != null) ? value.toString() : "All";
+                JLabel badge = new JLabel(" " + aud + " ");
+                badge.setFont(AdminDashboard.getModernFont(Font.BOLD, 10));
+                badge.setOpaque(true);
+                badge.setBackground(new Color(238, 242, 255));
+                badge.setForeground(new Color(67, 56, 202));
+                badge.setBorder(new EmptyBorder(2, 6, 2, 6));
+
+                p.add(badge);
+                return p;
+            }
+        });
 
         // Col 4: Status Pill Badge
-        noticeTable.getColumnModel().getColumn(4).setPreferredWidth(95);
+        noticeTable.getColumnModel().getColumn(4).setPreferredWidth(85);
         noticeTable.getColumnModel().getColumn(4).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
@@ -448,12 +473,15 @@ public class NoticeManagementPanel extends JPanel {
         fieldsPanel.add(createFormField("Notice Title *", txtTitle, "Clear announcement title (max 200 chars)"));
         fieldsPanel.add(Box.createVerticalStrut(8));
 
-        // Field 3: Notice Date & Status Row
+        // Field 3: Publish Date (Auto) & Status Row
         JPanel dateStatusRow = new JPanel(new GridLayout(1, 2, 8, 0));
         dateStatusRow.setOpaque(false);
 
         txtNoticeDate = new JTextField(LocalDate.now().toString());
-        dateStatusRow.add(createSubFormField("Publish Date (YYYY-MM-DD) *", txtNoticeDate));
+        txtNoticeDate.setEditable(false);
+        txtNoticeDate.setBackground(new Color(241, 245, 249));
+        txtNoticeDate.setForeground(TEXT_SECONDARY);
+        dateStatusRow.add(createSubFormField("Publish Date (Auto)", txtNoticeDate));
 
         cmbStatus = new JComboBox<>(new String[]{"ACTIVE", "INACTIVE"});
         cmbStatus.setFont(AdminDashboard.getModernFont(Font.PLAIN, 12));
@@ -461,6 +489,62 @@ public class NoticeManagementPanel extends JPanel {
         dateStatusRow.add(createSubFormField("Status", cmbStatus));
 
         fieldsPanel.add(dateStatusRow);
+        fieldsPanel.add(Box.createVerticalStrut(8));
+
+        // Field 4: From Date & To Date Row
+        JPanel fromToRow = new JPanel(new GridLayout(1, 2, 8, 0));
+        fromToRow.setOpaque(false);
+
+        txtFromDate = new JTextField(LocalDate.now().toString());
+        fromToRow.add(createSubFormField("From Date (YYYY-MM-DD) *", txtFromDate));
+
+        txtToDate = new JTextField(LocalDate.now().plusDays(30).toString());
+        fromToRow.add(createSubFormField("To Date (YYYY-MM-DD) *", txtToDate));
+
+        fieldsPanel.add(fromToRow);
+        fieldsPanel.add(Box.createVerticalStrut(8));
+
+        // Field 5: Target Audience Selection (Checkboxes)
+        JPanel audienceField = new JPanel(new BorderLayout(0, 4));
+        audienceField.setOpaque(false);
+
+        JLabel lblAudience = new JLabel("Target Audience *");
+        lblAudience.setFont(AdminDashboard.getModernFont(Font.BOLD, 11));
+        lblAudience.setForeground(TEXT_PRIMARY);
+
+        JPanel checkBoxesPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
+        checkBoxesPanel.setOpaque(true);
+        checkBoxesPanel.setBackground(new Color(248, 250, 252));
+        checkBoxesPanel.setBorder(new LineBorder(BORDER_COLOR, 1, true));
+
+        chkAudienceStudents = new JCheckBox("Students", true);
+        chkAudienceStudents.setFont(AdminDashboard.getModernFont(Font.PLAIN, 12));
+        chkAudienceStudents.setOpaque(false);
+        chkAudienceStudents.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        chkAudienceLecturers = new JCheckBox("Lecturers", true);
+        chkAudienceLecturers.setFont(AdminDashboard.getModernFont(Font.PLAIN, 12));
+        chkAudienceLecturers.setOpaque(false);
+        chkAudienceLecturers.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        chkAudienceTechnicalOfficers = new JCheckBox("Technical Officers", true);
+        chkAudienceTechnicalOfficers.setFont(AdminDashboard.getModernFont(Font.PLAIN, 12));
+        chkAudienceTechnicalOfficers.setOpaque(false);
+        chkAudienceTechnicalOfficers.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        checkBoxesPanel.add(chkAudienceStudents);
+        checkBoxesPanel.add(chkAudienceLecturers);
+        checkBoxesPanel.add(chkAudienceTechnicalOfficers);
+
+        JLabel lblAudienceHint = new JLabel("Select recipient groups who can view this notice (e.g. Students only)");
+        lblAudienceHint.setFont(AdminDashboard.getModernFont(Font.PLAIN, 9));
+        lblAudienceHint.setForeground(TEXT_SECONDARY);
+
+        audienceField.add(lblAudience, BorderLayout.NORTH);
+        audienceField.add(checkBoxesPanel, BorderLayout.CENTER);
+        audienceField.add(lblAudienceHint, BorderLayout.SOUTH);
+
+        fieldsPanel.add(audienceField);
         fieldsPanel.add(Box.createVerticalStrut(8));
 
         // Field 4: Description / Body
@@ -688,7 +772,14 @@ public class NoticeManagementPanel extends JPanel {
                     summaryCounts = noticeService.getNoticeSummaryCounts();
                     return noticeService.getAllNotices();
                 } else {
-                    return noticeService.getActiveNotices();
+                    List<Notice> active = noticeService.getActiveNotices();
+                    List<Notice> roleFiltered = new ArrayList<>();
+                    for (Notice n : active) {
+                        if (n.matchesRole(currentUserRole)) {
+                            roleFiltered.add(n);
+                        }
+                    }
+                    return roleFiltered;
                 }
             }
 
@@ -726,6 +817,15 @@ public class NoticeManagementPanel extends JPanel {
      */
     public void loadNoticesSync() {
         List<Notice> notices = isAdmin ? noticeService.getAllNotices() : noticeService.getActiveNotices();
+        if (!isAdmin) {
+            List<Notice> roleFiltered = new ArrayList<>();
+            for (Notice n : notices) {
+                if (n.matchesRole(currentUserRole)) {
+                    roleFiltered.add(n);
+                }
+            }
+            notices = roleFiltered;
+        }
         tableModel.setNotices(notices);
         filterNotices();
         if (isAdmin) {
@@ -796,7 +896,21 @@ public class NoticeManagementPanel extends JPanel {
             lblFormMode.setText("EDITING NOTICE [" + selectedNotice.getNoticeId() + "]");
             txtNoticeId.setText(selectedNotice.getNoticeId());
             txtTitle.setText(selectedNotice.getTitle());
-            txtNoticeDate.setText(selectedNotice.getNoticeDate() != null ? selectedNotice.getNoticeDate().toString() : "");
+            txtNoticeDate.setText(selectedNotice.getNoticeDate() != null ? selectedNotice.getNoticeDate().toString() : LocalDate.now().toString());
+            txtFromDate.setText(selectedNotice.getFromDate() != null ? selectedNotice.getFromDate().toString() : (selectedNotice.getNoticeDate() != null ? selectedNotice.getNoticeDate().toString() : LocalDate.now().toString()));
+            txtToDate.setText(selectedNotice.getToDate() != null ? selectedNotice.getToDate().toString() : LocalDate.now().plusDays(30).toString());
+
+            String aud = selectedNotice.getTargetAudience() != null ? selectedNotice.getTargetAudience().toUpperCase() : "ALL";
+            if ("ALL".equals(aud)) {
+                chkAudienceStudents.setSelected(true);
+                chkAudienceLecturers.setSelected(true);
+                chkAudienceTechnicalOfficers.setSelected(true);
+            } else {
+                chkAudienceStudents.setSelected(aud.contains("STUDENT") || aud.contains("UNDERGRADUATE"));
+                chkAudienceLecturers.setSelected(aud.contains("LECTURER"));
+                chkAudienceTechnicalOfficers.setSelected(aud.contains("TECHNICAL") || aud.contains("OFFICER"));
+            }
+
             cmbStatus.setSelectedItem(selectedNotice.getStatus());
             txtDescription.setText(selectedNotice.getDescription());
             lblCreatorInfo.setText("Author: " + selectedNotice.getCreatorName() + " (" + selectedNotice.getCreatedBy() + ")");
@@ -807,7 +921,7 @@ public class NoticeManagementPanel extends JPanel {
         } else {
             // Populate Reader View
             lblReaderTitle.setText("<html><b>" + selectedNotice.getTitle() + "</b></html>");
-            lblReaderMeta.setText("Published: " + selectedNotice.getFormattedDate() + " | By: " + selectedNotice.getCreatorName());
+            lblReaderMeta.setText("Published: " + selectedNotice.getFormattedDate() + " | Valid: " + selectedNotice.getFromDate() + " to " + selectedNotice.getToDate() + " | Audience: " + selectedNotice.getDisplayAudience() + " | By: " + selectedNotice.getCreatorName());
             lblReaderStatus.setText("  " + selectedNotice.getStatus() + "  ");
             lblReaderStatus.setVisible(true);
             txtReaderBody.setText(selectedNotice.getDescription());
@@ -826,6 +940,11 @@ public class NoticeManagementPanel extends JPanel {
             txtNoticeId.setText(noticeService.getNextSuggestedNoticeId());
             txtTitle.setText("");
             txtNoticeDate.setText(LocalDate.now().toString());
+            txtFromDate.setText(LocalDate.now().toString());
+            txtToDate.setText(LocalDate.now().plusDays(30).toString());
+            chkAudienceStudents.setSelected(true);
+            chkAudienceLecturers.setSelected(true);
+            chkAudienceTechnicalOfficers.setSelected(true);
             cmbStatus.setSelectedItem("ACTIVE");
             txtDescription.setText("");
             lblCreatorInfo.setText("Author: Administrator (" + currentUserId + ")");
@@ -842,6 +961,26 @@ public class NoticeManagementPanel extends JPanel {
         }
     }
 
+    private String getSelectedTargetAudience() {
+        boolean forStudents = chkAudienceStudents.isSelected();
+        boolean forLecturers = chkAudienceLecturers.isSelected();
+        boolean forOfficers = chkAudienceTechnicalOfficers.isSelected();
+
+        if (!forStudents && !forLecturers && !forOfficers) {
+            return null;
+        }
+
+        if (forStudents && forLecturers && forOfficers) {
+            return "ALL";
+        }
+
+        List<String> list = new ArrayList<>();
+        if (forStudents) list.add("STUDENTS");
+        if (forLecturers) list.add("LECTURERS");
+        if (forOfficers) list.add("TECHNICAL_OFFICERS");
+        return String.join(", ", list);
+    }
+
     // SECTION G: CRUD ACTION HANDLERS (ADMIN ONLY)
 
     private void performAddNotice() {
@@ -853,19 +992,53 @@ public class NoticeManagementPanel extends JPanel {
         String id = txtNoticeId.getText().trim();
         String title = txtTitle.getText().trim();
         String dateStr = txtNoticeDate.getText().trim();
+        String fromDateStr = txtFromDate.getText().trim();
+        String toDateStr = txtToDate.getText().trim();
         String status = (String) cmbStatus.getSelectedItem();
         String desc = txtDescription.getText().trim();
 
         Date noticeDate;
         try {
-            noticeDate = Date.valueOf(dateStr);
+            noticeDate = (dateStr != null && !dateStr.isBlank()) ? Date.valueOf(dateStr) : Date.valueOf(LocalDate.now());
         } catch (IllegalArgumentException e) {
-            showError("Invalid date format. Please use YYYY-MM-DD (e.g. 2026-03-01).");
-            txtNoticeDate.requestFocusInWindow();
+            noticeDate = Date.valueOf(LocalDate.now());
+        }
+
+        Date fromDate;
+        try {
+            fromDate = Date.valueOf(fromDateStr);
+        } catch (IllegalArgumentException e) {
+            showError("Invalid From Date format. Please use YYYY-MM-DD (e.g. 2026-03-01).");
+            txtFromDate.requestFocusInWindow();
+            return;
+        }
+
+        Date toDate;
+        try {
+            toDate = Date.valueOf(toDateStr);
+        } catch (IllegalArgumentException e) {
+            showError("Invalid To Date format. Please use YYYY-MM-DD (e.g. 2026-03-31).");
+            txtToDate.requestFocusInWindow();
+            return;
+        }
+
+        if (toDate.before(fromDate)) {
+            showError("Validation Error: 'To Date' cannot be earlier than 'From Date'.");
+            txtToDate.requestFocusInWindow();
+            return;
+        }
+
+        String targetAudience = getSelectedTargetAudience();
+        if (targetAudience == null) {
+            showError("Validation Error: Please select at least one Target Audience checkbox (e.g. Students).");
             return;
         }
 
         Notice notice = new Notice(id, title, desc, noticeDate, currentUserId, status);
+        notice.setFromDate(fromDate);
+        notice.setToDate(toDate);
+        notice.setTargetAudience(targetAudience);
+
         OperationResult res = noticeService.addNotice(notice, currentUserRole);
 
         if (res.isSuccess()) {
@@ -892,20 +1065,53 @@ public class NoticeManagementPanel extends JPanel {
 
         String title = txtTitle.getText().trim();
         String dateStr = txtNoticeDate.getText().trim();
+        String fromDateStr = txtFromDate.getText().trim();
+        String toDateStr = txtToDate.getText().trim();
         String status = (String) cmbStatus.getSelectedItem();
         String desc = txtDescription.getText().trim();
 
         Date noticeDate;
         try {
-            noticeDate = Date.valueOf(dateStr);
+            noticeDate = (dateStr != null && !dateStr.isBlank()) ? Date.valueOf(dateStr) : selectedNotice.getNoticeDate();
         } catch (IllegalArgumentException e) {
-            showError("Invalid date format. Please use YYYY-MM-DD.");
-            txtNoticeDate.requestFocusInWindow();
+            noticeDate = selectedNotice.getNoticeDate();
+        }
+
+        Date fromDate;
+        try {
+            fromDate = Date.valueOf(fromDateStr);
+        } catch (IllegalArgumentException e) {
+            showError("Invalid From Date format. Please use YYYY-MM-DD.");
+            txtFromDate.requestFocusInWindow();
+            return;
+        }
+
+        Date toDate;
+        try {
+            toDate = Date.valueOf(toDateStr);
+        } catch (IllegalArgumentException e) {
+            showError("Invalid To Date format. Please use YYYY-MM-DD.");
+            txtToDate.requestFocusInWindow();
+            return;
+        }
+
+        if (toDate.before(fromDate)) {
+            showError("Validation Error: 'To Date' cannot be earlier than 'From Date'.");
+            txtToDate.requestFocusInWindow();
+            return;
+        }
+
+        String targetAudience = getSelectedTargetAudience();
+        if (targetAudience == null) {
+            showError("Validation Error: Please select at least one Target Audience checkbox (e.g. Students).");
             return;
         }
 
         selectedNotice.setTitle(title);
         selectedNotice.setNoticeDate(noticeDate);
+        selectedNotice.setFromDate(fromDate);
+        selectedNotice.setToDate(toDate);
+        selectedNotice.setTargetAudience(targetAudience);
         selectedNotice.setStatus(status);
         selectedNotice.setDescription(desc);
 
@@ -964,7 +1170,7 @@ public class NoticeManagementPanel extends JPanel {
 
     // TABLE MODEL CLASS
     public static class NoticeTableModel extends AbstractTableModel {
-        private final String[] columns = {"Notice ID", "Title", "Date", "Published By", "Status"};
+        private final String[] columns = {"Notice ID", "Title", "Publish Date", "Target Audience", "Status"};
         private List<Notice> notices = new ArrayList<>();
 
         public void setNotices(List<Notice> notices) {
@@ -990,7 +1196,7 @@ public class NoticeManagementPanel extends JPanel {
                 case 0 -> n.getNoticeId();
                 case 1 -> n.getTitle();
                 case 2 -> n.getFormattedDate();
-                case 3 -> n.getCreatorName();
+                case 3 -> n.getDisplayAudience();
                 case 4 -> n.getStatus();
                 default -> "";
             };

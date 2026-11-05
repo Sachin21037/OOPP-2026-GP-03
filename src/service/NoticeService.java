@@ -158,12 +158,25 @@ public class NoticeService {
             return OperationResult.error("Notice description must be at least 5 characters long.");
         }
 
-        // 4. Notice Date
+        // 4. Notice Date & Validity Period (From Date / To Date)
         if (notice.getNoticeDate() == null) {
             return OperationResult.error("Publish date is required.");
         }
+        if (notice.getFromDate() == null) {
+            notice.setFromDate(notice.getNoticeDate());
+        }
+        if (notice.getToDate() != null && notice.getFromDate() != null) {
+            if (notice.getToDate().before(notice.getFromDate())) {
+                return OperationResult.error("Validation Error: 'To Date' cannot be earlier than 'From Date'.");
+            }
+        }
 
-        // 5. Status
+        // 5. Target Audience
+        if (notice.getTargetAudience() == null || notice.getTargetAudience().isBlank()) {
+            return OperationResult.error("Validation Error: Please select at least one target audience (e.g. Students).");
+        }
+
+        // 6. Status
         String status = notice.getStatus();
         if (!"ACTIVE".equalsIgnoreCase(status) && !"INACTIVE".equalsIgnoreCase(status)) {
             return OperationResult.error("Notice status must be either ACTIVE or INACTIVE.");
