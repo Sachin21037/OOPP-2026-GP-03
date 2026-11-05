@@ -588,6 +588,12 @@ public class StudentDAO {
                         student.setAcademicYear(rs.getString("academic_year") != null ? rs.getString("academic_year") : "N/A");
                         student.setDepartment(rs.getString("department") != null ? rs.getString("department") : "Faculty of Technology");
                         student.setStudentStatus(rs.getString("student_status") != null ? rs.getString("student_status") : "REGULAR");
+                        try {
+                            student.setIdNumber(rs.getString("id_number"));
+                        } catch (SQLException ignored) {}
+                        try {
+                            student.setDob(rs.getDate("dob"));
+                        } catch (SQLException ignored) {}
                     }
                 }
             }
@@ -1067,6 +1073,79 @@ public class StudentDAO {
      * Updates student contact details (email, phone, address) in users table.
      * Restricts update scope to contact details only, adhering to Undergraduate role requirements.
      */
+    /**
+     * Ensures id_number and dob columns exist in users table.
+     */
+    public void ensureProfileColumnsExist() {
+        try {
+            Connection conn = DBConnection.getConnection();
+            java.sql.DatabaseMetaData meta = conn.getMetaData();
+            boolean hasIdNumber = false;
+            boolean hasDob = false;
+            try (ResultSet rs = meta.getColumns(null, null, "users", "id_number")) {
+                if (rs.next()) hasIdNumber = true;
+            }
+            try (ResultSet rs = meta.getColumns(null, null, "users", "dob")) {
+                if (rs.next()) hasDob = true;
+            }
+
+            try (Statement stmt = conn.createStatement()) {
+                if (!hasIdNumber) {
+                    try {
+                        stmt.executeUpdate("ALTER TABLE users ADD COLUMN id_number VARCHAR(20) DEFAULT NULL");
+                    } catch (SQLException ignored) {}
+                }
+                if (!hasDob) {
+                    try {
+                        stmt.executeUpdate("ALTER TABLE users ADD COLUMN dob DATE DEFAULT NULL");
+                    } catch (SQLException ignored) {}
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Note on column verification: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Updates student profile details: ID number (NIC), Date of Birth, and contact details.
+     * Enforces the rule that once set, the date of birth cannot be modified in the database.
+     */
+    public boolean updateStudentProfile(String userId, String idNumber, java.sql.Date newDob, String email, String phone, String address) {
+        ensureProfileColumnsExist();
+        try {
+            Connection conn = DBConnection.getConnection();
+            
+            // Check if student already has a non-null DOB in database
+            java.sql.Date existingDob = null;
+            String checkSql = "SELECT dob FROM users WHERE user_id = ?";
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+                checkStmt.setString(1, userId);
+                try (ResultSet rs = checkStmt.executeQuery()) {
+                    if (rs.next()) {
+                        existingDob = rs.getDate("dob");
+                    }
+                }
+            } catch (SQLException ignored) {}
+
+            // If existingDob is already set, lock it and do not overwrite it!
+            java.sql.Date finalDob = (existingDob != null) ? existingDob : newDob;
+
+            String updateSql = "UPDATE users SET id_number = ?, dob = ?, email = ?, phone = ?, address = ? WHERE user_id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(updateSql)) {
+                stmt.setString(1, idNumber);
+                stmt.setDate(2, finalDob);
+                stmt.setString(3, email);
+                stmt.setString(4, phone);
+                stmt.setString(5, address);
+                stmt.setString(6, userId);
+                return stmt.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error updating student profile: " + e.getMessage());
+            return false;
+        }
+    }
+
     public boolean updateContactDetails(String userId, String email, String phone, String address) {
         String sql = "UPDATE users SET email = ?, phone = ?, address = ? WHERE user_id = ?";
         try {

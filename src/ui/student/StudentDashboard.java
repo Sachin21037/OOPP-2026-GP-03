@@ -29,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -62,6 +63,10 @@ public class StudentDashboard extends JFrame {
     private JLabel profileEmailLabel;
     private JLabel profilePhoneLabel;
     private JLabel profileAddressLabel;
+    private JLabel profileIdNumberLabel;
+    private JLabel profileDobLabel;
+    private JLabel profileAgeLabel;
+    private JLabel profileAgeStatusBadge;
 
     // Announcements & Notifications state
     private NotificationBellButton notificationBtn;
@@ -81,6 +86,7 @@ public class StudentDashboard extends JFrame {
 
     // Constructor with authenticated student
     public StudentDashboard(Student student) {
+        studentDAO.ensureProfileColumnsExist();
         if (student == null) {
             // Load STU001 by default from DB
             Student dbStudent = studentDAO.getStudentProfile("STU001");
@@ -185,7 +191,7 @@ public class StudentDashboard extends JFrame {
         JPanel logoutPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 15));
         logoutPanel.setBackground(sidebarColor);
 
-        JButton logoutButton = new JButton("🚪  Logout");
+        JButton logoutButton = new JButton("ðŸšª  Logout");
         logoutButton.setFont(new Font("Arial", Font.BOLD, 13));
         logoutButton.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         logoutButton.setOpaque(true);
@@ -247,7 +253,7 @@ public class StudentDashboard extends JFrame {
         welcomeLabel.setForeground(textColor);
 
         String deptBatch = currentStudent.getDepartment() != null ? currentStudent.getDepartment() : "Faculty of Technology";
-        subtitleLabel = new JLabel(deptBatch + " • " + currentStudent.getIndexNo() + " • " + currentStudent.getBatch());
+        subtitleLabel = new JLabel(deptBatch + " â€¢ " + currentStudent.getIndexNo() + " â€¢ " + currentStudent.getBatch());
         subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 13));
         subtitleLabel.setForeground(new Color(100, 110, 120));
 
@@ -410,7 +416,7 @@ public class StudentDashboard extends JFrame {
         sectionTitle.setFont(new Font("Arial", Font.BOLD, 18));
         sectionTitle.setForeground(textColor);
 
-        JButton openWindowBtn = new JButton("Open in Window ↗");
+        JButton openWindowBtn = new JButton("Open in Window â†—");
         openWindowBtn.setFont(new Font("Arial", Font.BOLD, 12));
         openWindowBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         openWindowBtn.setOpaque(true);
@@ -654,7 +660,7 @@ public class StudentDashboard extends JFrame {
         searchField.setToolTipText("Filter materials by course code, title, or lecturer");
 
         // Read-only indicator badge
-        JLabel readOnlyBadge = new JLabel("  🔒 Read-Only  ");
+        JLabel readOnlyBadge = new JLabel("  ðŸ”’ Read-Only  ");
         readOnlyBadge.setFont(new Font("Arial", Font.BOLD, 11));
         readOnlyBadge.setForeground(new Color(100, 116, 139));
         readOnlyBadge.setBackground(new Color(241, 245, 249));
@@ -666,7 +672,7 @@ public class StudentDashboard extends JFrame {
         readOnlyBadge.setToolTipText("Student permissions: Viewing & Downloading allowed. Modifications restricted to course lecturers.");
 
         // View Button
-        JButton viewBtn = new JButton("👁️  View Material");
+        JButton viewBtn = new JButton("ðŸ‘ï¸  View Material");
         viewBtn.setFont(new Font("Arial", Font.BOLD, 12));
         viewBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         viewBtn.setOpaque(true);
@@ -684,7 +690,7 @@ public class StudentDashboard extends JFrame {
         });
 
         // Download Button
-        JButton downloadBtn = new JButton("📥  Download");
+        JButton downloadBtn = new JButton("ðŸ“¥  Download");
         downloadBtn.setFont(new Font("Arial", Font.BOLD, 12));
         downloadBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         downloadBtn.setOpaque(true);
@@ -733,7 +739,7 @@ public class StudentDashboard extends JFrame {
                     docName,
                     m.getLecturerName(),
                     dateStr,
-                    "👁️ View | 📥 Download"
+                    "ðŸ‘ï¸ View | ðŸ“¥ Download"
             });
         }
 
@@ -765,7 +771,7 @@ public class StudentDashboard extends JFrame {
                 JLabel lbl = (JLabel) super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, col);
                 lbl.setFont(new Font("Arial", Font.BOLD, 12));
                 lbl.setForeground(new Color(29, 78, 216));
-                lbl.setText("📄  " + (value != null ? value.toString() : ""));
+                lbl.setText("ðŸ“„  " + (value != null ? value.toString() : ""));
                 return lbl;
             }
         });
@@ -847,13 +853,13 @@ public class StudentDashboard extends JFrame {
                     CourseMaterial mat = materialsList.get(modelRow);
 
                     JPopupMenu popup = new JPopupMenu();
-                    JMenuItem viewItem = new JMenuItem("👁️ View Material Details");
+                    JMenuItem viewItem = new JMenuItem("ðŸ‘ï¸ View Material Details");
                     viewItem.addActionListener(ev -> showMaterialDetailsDialog(mat));
 
-                    JMenuItem downloadItem = new JMenuItem("📥 Download Document to PC...");
+                    JMenuItem downloadItem = new JMenuItem("ðŸ“¥ Download Document to PC...");
                     downloadItem.addActionListener(ev -> downloadCourseMaterial(mat));
 
-                    JMenuItem openItem = new JMenuItem("↗ Open in Default Application");
+                    JMenuItem openItem = new JMenuItem("â†— Open in Default Application");
                     openItem.addActionListener(ev -> openFileWithDefaultApp(ensureMaterialFile(mat)));
 
                     popup.add(viewItem);
@@ -889,7 +895,7 @@ public class StudentDashboard extends JFrame {
         headerText.setLayout(new BoxLayout(headerText, BoxLayout.Y_AXIS));
         headerText.setOpaque(false);
 
-        JLabel courseTag = new JLabel("  " + mat.getCourseCode() + " • " + (mat.getCourseName() != null ? mat.getCourseName() : "Course") + "  ");
+        JLabel courseTag = new JLabel("  " + mat.getCourseCode() + " â€¢ " + (mat.getCourseName() != null ? mat.getCourseName() : "Course") + "  ");
         courseTag.setFont(new Font("Arial", Font.BOLD, 11));
         courseTag.setForeground(new Color(180, 240, 220));
         courseTag.setBackground(new Color(18, 48, 76));
@@ -931,7 +937,7 @@ public class StudentDashboard extends JFrame {
         fileTile.add(createDetailTile("DOCUMENT FILE", mat.getFileName() != null ? mat.getFileName() : "document.pdf"));
         fileTile.add(createDetailTile("FORMAT & TYPE", "PDF Document (Course Notes)"));
         fileTile.add(createDetailTile("AUTHORITY / LECTURER", mat.getLecturerName()));
-        fileTile.add(createDetailTile("PERMISSIONS", "🔒 Read & Download Only (Non-Editable)"));
+        fileTile.add(createDetailTile("PERMISSIONS", "ðŸ”’ Read & Download Only (Non-Editable)"));
 
         body.add(fileTile);
         body.add(Box.createVerticalStrut(16));
@@ -964,7 +970,7 @@ public class StudentDashboard extends JFrame {
         body.add(Box.createVerticalStrut(14));
 
         // Security Notice
-        JLabel noteLbl = new JLabel("ⓘ Note: Uploaded lecture materials are protected official records. Students cannot modify these materials.");
+        JLabel noteLbl = new JLabel("â“˜ Note: Uploaded lecture materials are protected official records. Students cannot modify these materials.");
         noteLbl.setFont(new Font("Arial", Font.ITALIC, 11));
         noteLbl.setForeground(new Color(120, 130, 140));
         body.add(noteLbl);
@@ -976,7 +982,7 @@ public class StudentDashboard extends JFrame {
         footer.setBackground(new Color(245, 247, 250));
         footer.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(226, 232, 240)));
 
-        JButton openAppBtn = new JButton("↗  Open in System Viewer");
+        JButton openAppBtn = new JButton("â†—  Open in System Viewer");
         openAppBtn.setFont(new Font("Arial", Font.PLAIN, 12));
         openAppBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         openAppBtn.setOpaque(true);
@@ -989,7 +995,7 @@ public class StudentDashboard extends JFrame {
         openAppBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         openAppBtn.addActionListener(e -> openFileWithDefaultApp(ensureMaterialFile(mat)));
 
-        JButton dlBtn = new JButton("📥  Download Document");
+        JButton dlBtn = new JButton("ðŸ“¥  Download Document");
         dlBtn.setFont(new Font("Arial", Font.BOLD, 12));
         dlBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         dlBtn.setOpaque(true);
@@ -1446,7 +1452,7 @@ public class StudentDashboard extends JFrame {
         summaryBar.add(notApprovedLabel);
 
         // Edit Entry button
-        JButton editLeaveBtn = new JButton("✏️ Edit Selected Entry");
+        JButton editLeaveBtn = new JButton("âœï¸ Edit Selected Entry");
         editLeaveBtn.setFont(new Font("Arial", Font.BOLD, 11));
         editLeaveBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         editLeaveBtn.setOpaque(true);
@@ -1559,7 +1565,7 @@ public class StudentDashboard extends JFrame {
             }
 
             if (absentList.isEmpty()) {
-                absentCountBadge.setText("✓ Full Attendance (0 Absences)");
+                absentCountBadge.setText("âœ“ Full Attendance (0 Absences)");
                 absentCountBadge.setForeground(new Color(20, 165, 145));
                 submitSelectedBtn.setEnabled(false);
             } else {
@@ -1898,7 +1904,7 @@ public class StudentDashboard extends JFrame {
         }
 
         // Live calculation summary label
-        JLabel daysSummaryLabel = new JLabel("📅 Days Taken Off: 1 day (" + defaultDate + ")");
+        JLabel daysSummaryLabel = new JLabel("ðŸ“… Days Taken Off: 1 day (" + defaultDate + ")");
         daysSummaryLabel.setFont(new Font("Arial", Font.BOLD, 12));
         daysSummaryLabel.setForeground(new Color(30, 64, 175));
 
@@ -1919,7 +1925,7 @@ public class StudentDashboard extends JFrame {
                 java.util.Date eDate = sdf.parse(eStr);
                 long diff = (eDate.getTime() - sDate.getTime()) / (1000L * 60 * 60 * 24) + 1;
                 if (diff < 1) {
-                    daysSummaryLabel.setText("⚠️ Invalid date range: End date must be on or after Start date!");
+                    daysSummaryLabel.setText("âš ï¸ Invalid date range: End date must be on or after Start date!");
                     daysSummaryLabel.setForeground(new Color(220, 38, 38));
                     return;
                 }
@@ -1937,13 +1943,13 @@ public class StudentDashboard extends JFrame {
                         : diff + " calendar days (" + sStr + " to " + eStr + ")";
 
                 String coveredText = (coveredCount > 0)
-                        ? " &nbsp;|&nbsp; <span style='color:#15803D;'><b>✓ Covers " + coveredCount + " recorded absent lecture(s)</b></span>"
+                        ? " &nbsp;|&nbsp; <span style='color:#15803D;'><b>âœ“ Covers " + coveredCount + " recorded absent lecture(s)</b></span>"
                         : "";
 
-                daysSummaryLabel.setText("<html>📅 <b>Days Taken Off:</b> " + durationText + coveredText + "</html>");
+                daysSummaryLabel.setText("<html>ðŸ“… <b>Days Taken Off:</b> " + durationText + coveredText + "</html>");
                 daysSummaryLabel.setForeground(new Color(30, 64, 175));
             } catch (Exception ex) {
-                daysSummaryLabel.setText("📅 Please enter valid dates in YYYY-MM-DD format");
+                daysSummaryLabel.setText("ðŸ“… Please enter valid dates in YYYY-MM-DD format");
                 daysSummaryLabel.setForeground(new Color(156, 163, 175));
             }
         };
@@ -2183,7 +2189,7 @@ public class StudentDashboard extends JFrame {
         });
         cancelBtn.addActionListener(e -> dialog.dispose());
 
-        String submitBtnTitle = isEditMode ? "💾 Save Changes & Update Entry" : "Submit Medical Certificate";
+        String submitBtnTitle = isEditMode ? "ðŸ’¾ Save Changes & Update Entry" : "Submit Medical Certificate";
         JButton submitBtn = new JButton(submitBtnTitle);
         submitBtn.setFont(new Font("Arial", Font.BOLD, 12));
         submitBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
@@ -2383,7 +2389,7 @@ public class StudentDashboard extends JFrame {
         titleBlock.add(Box.createVerticalStrut(3));
         titleBlock.add(sectionSub);
 
-        JLabel topBadge = new JLabel("  ● ACTIVE ENROLLMENT  ");
+        JLabel topBadge = new JLabel("  â— ACTIVE ENROLLMENT  ");
         topBadge.setFont(new Font("Arial", Font.BOLD, 11));
         topBadge.setForeground(new Color(16, 185, 129));
         topBadge.setBackground(new Color(236, 253, 245));
@@ -2433,13 +2439,13 @@ public class StudentDashboard extends JFrame {
         ));
         indexLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        String roleStatus = (isLecturer() ? "Faculty Member • Active" : (currentStudent.getStudentStatus() != null ? currentStudent.getStudentStatus() + " Undergraduate" : "Undergraduate"));
+        String roleStatus = (isLecturer() ? "Faculty Member â€¢ Active" : (currentStudent.getStudentStatus() != null ? currentStudent.getStudentStatus() + " Undergraduate" : "Undergraduate"));
         JLabel roleLabel = new JLabel(roleStatus);
         roleLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         roleLabel.setForeground(new Color(100, 116, 139));
         roleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JButton uploadBtn = new JButton("📷  Update Photo");
+        JButton uploadBtn = new JButton("ðŸ“·  Update Photo");
         uploadBtn.setFont(new Font("Arial", Font.BOLD, 12));
         uploadBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         uploadBtn.setOpaque(true);
@@ -2465,7 +2471,7 @@ public class StudentDashboard extends JFrame {
         });
         uploadBtn.addActionListener(e -> handlePhotoUpload(profileAvatarLabel, headerAvatarLabel));
 
-        JLabel formatHint = new JLabel("JPG, JPEG or PNG • Max 5MB");
+        JLabel formatHint = new JLabel("JPG, JPEG or PNG â€¢ Max 5MB");
         formatHint.setFont(new Font("Arial", Font.PLAIN, 10));
         formatHint.setForeground(new Color(148, 163, 184));
         formatHint.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -2516,7 +2522,7 @@ public class StudentDashboard extends JFrame {
         categoriesContainer.setOpaque(false);
 
         // Category 1: Academic & University Records
-        categoriesContainer.add(createCategorySectionHeader("🎓  Academic Registration & Department", "Faculty Records"));
+        categoriesContainer.add(createCategorySectionHeader("ðŸŽ“  Academic Registration & Department", "Faculty Records"));
         categoriesContainer.add(Box.createVerticalStrut(8));
 
         JPanel academicGrid = new JPanel(new GridLayout(3, 2, 12, 10));
@@ -2533,11 +2539,26 @@ public class StudentDashboard extends JFrame {
         categoriesContainer.add(Box.createVerticalStrut(16));
 
         // Category 2: Personal & Contact Details
-        categoriesContainer.add(createCategorySectionHeader("👤  Personal & Contact Information", "Verified"));
+        categoriesContainer.add(createCategorySectionHeader("ðŸ‘¤  Personal & Contact Information", "Verified"));
         categoriesContainer.add(Box.createVerticalStrut(8));
 
-        JPanel personalGrid = new JPanel(new GridLayout(2, 2, 12, 10));
+        JPanel personalGrid = new JPanel(new GridLayout(4, 2, 12, 10));
         personalGrid.setOpaque(false);
+
+        String idVal = (currentStudent.getIdNumber() != null && !currentStudent.getIdNumber().isBlank())
+                ? currentStudent.getIdNumber() : "Not registered (Click update)";
+        profileIdNumberLabel = new JLabel(idVal);
+
+        String dobVal = (currentStudent.getDob() != null)
+                ? currentStudent.getDob().toString() : "Not specified (Pending)";
+        profileDobLabel = new JLabel(dobVal);
+
+        int studentAge = currentStudent.getAge();
+        String ageVal = (studentAge >= 0) ? (studentAge + " Years") : "Pending DOB";
+        profileAgeLabel = new JLabel(ageVal);
+
+        String statusStr = (studentAge >= 0 && studentAge <= 30) ? "âœ“ Eligible Student (<= 30 Yrs)" : ((studentAge > 30) ? "âš ï¸ Age Limit Exceeded" : "Pending Registration");
+        profileAgeStatusBadge = new JLabel(statusStr);
 
         profileEmailLabel = new JLabel((currentStudent.getEmail() != null && !currentStudent.getEmail().isBlank()) ? currentStudent.getEmail() : "Not specified");
         profilePhoneLabel = new JLabel((currentStudent.getPhone() != null && !currentStudent.getPhone().isBlank()) ? currentStudent.getPhone() : "Not specified");
@@ -2546,6 +2567,10 @@ public class StudentDashboard extends JFrame {
         personalGrid.add(createProfileFieldTile("Full Legal Name", currentStudent.getFullName()));
         personalGrid.add(createProfileFieldTile("Official University Email", profileEmailLabel));
         personalGrid.add(createProfileFieldTile("Contact Phone Number", profilePhoneLabel));
+        personalGrid.add(createProfileFieldTile("National Identity Card (NIC / ID)", profileIdNumberLabel));
+        personalGrid.add(createProfileFieldTile("Date of Birth (Locked once set)", profileDobLabel));
+        personalGrid.add(createProfileFieldTile("Calculated Age", profileAgeLabel));
+        personalGrid.add(createProfileFieldTile("Age Registration Status", profileAgeStatusBadge));
         personalGrid.add(createProfileFieldTile("Permanent Residence", profileAddressLabel));
 
         categoriesContainer.add(personalGrid);
@@ -2555,12 +2580,12 @@ public class StudentDashboard extends JFrame {
         JPanel contactUpdateBar = new JPanel(new BorderLayout(10, 0));
         contactUpdateBar.setOpaque(false);
 
-        JLabel lockNotice = new JLabel("🔒 Academic records are managed by Faculty. Undergraduates may update contact details & photo only.");
+        JLabel lockNotice = new JLabel("ðŸ”’ Date of Birth is permanently locked once saved. Students older than 30 cannot register as undergraduates.");
         lockNotice.setFont(new Font("Arial", Font.ITALIC, 11));
         lockNotice.setForeground(new Color(100, 116, 139));
         contactUpdateBar.add(lockNotice, BorderLayout.CENTER);
 
-        JButton editContactBtn = new JButton("✏️  Edit Contact Details");
+        JButton editContactBtn = new JButton("âœï¸  Update Profile & ID / DOB");
         editContactBtn.setFont(new Font("Arial", Font.BOLD, 12));
         editContactBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         editContactBtn.setOpaque(true);
@@ -2834,8 +2859,8 @@ public class StudentDashboard extends JFrame {
     }
 
     private void openEditContactDialog() {
-        JDialog dialog = new JDialog(this, "Edit Contact Information - " + currentStudent.getFullName(), true);
-        dialog.setSize(520, 480);
+        JDialog dialog = new JDialog(this, "Update Profile & Identification - " + currentStudent.getFullName(), true);
+        dialog.setSize(560, 640);
         dialog.setLocationRelativeTo(this);
         dialog.setLayout(new BorderLayout());
         dialog.getContentPane().setBackground(Color.WHITE);
@@ -2844,13 +2869,13 @@ public class StudentDashboard extends JFrame {
         JPanel head = new JPanel();
         head.setLayout(new BoxLayout(head, BoxLayout.Y_AXIS));
         head.setBackground(Color.WHITE);
-        head.setBorder(new EmptyBorder(20, 24, 16, 24));
+        head.setBorder(new EmptyBorder(18, 24, 12, 24));
 
-        JLabel titleLbl = new JLabel("Update Contact Information");
+        JLabel titleLbl = new JLabel("Update Identification & Contact Details");
         titleLbl.setFont(new Font("Arial", Font.BOLD, 17));
         titleLbl.setForeground(new Color(15, 23, 42));
 
-        JLabel subLbl = new JLabel("Per faculty regulations, undergraduates may only update their contact details and profile picture.");
+        JLabel subLbl = new JLabel("Enter your National Identity Card (NIC) and Date of Birth. Birthday is permanently locked once saved.");
         subLbl.setFont(new Font("Arial", Font.PLAIN, 12));
         subLbl.setForeground(new Color(100, 116, 139));
 
@@ -2862,35 +2887,117 @@ public class StudentDashboard extends JFrame {
         // Form
         JPanel form = new JPanel(new GridBagLayout());
         form.setBackground(Color.WHITE);
-        form.setBorder(new EmptyBorder(10, 24, 16, 24));
+        form.setBorder(new EmptyBorder(8, 24, 14, 24));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
-        gbc.insets = new Insets(6, 0, 6, 0);
+        gbc.insets = new Insets(5, 0, 5, 0);
+
+        Font fieldFont = new Font("Arial", Font.PLAIN, 13);
+
+        // ID Number Field
+        JTextField idField = new JTextField(currentStudent.getIdNumber() != null ? currentStudent.getIdNumber() : "");
+        idField.setFont(fieldFont);
+
+        // DOB Field & Lock Check
+        boolean isDobLocked = (currentStudent.getDob() != null);
+        JTextField dobField = new JTextField(isDobLocked ? currentStudent.getDob().toString() : "");
+        dobField.setFont(fieldFont);
+        if (isDobLocked) {
+            dobField.setEditable(false);
+            dobField.setBackground(new Color(241, 245, 249));
+        }
+
+        // Live Calculated Age Preview Label
+        int initialAge = currentStudent.getAge();
+        String initialAgeStr = (initialAge >= 0)
+                ? ((initialAge <= 30) ? "? Age: " + initialAge + " Years (Eligible)" : "? Age: " + initialAge + " Years - student can't register!")
+                : "Age: - (Enter YYYY-MM-DD)";
+        JLabel agePreviewLabel = new JLabel(initialAgeStr);
+        agePreviewLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        agePreviewLabel.setForeground((initialAge >= 0) ? ((initialAge <= 30) ? new Color(22, 163, 74) : new Color(220, 38, 38)) : new Color(100, 116, 139));
+
+        if (!isDobLocked) {
+            dobField.getDocument().addDocumentListener(new DocumentListener() {
+                public void insertUpdate(DocumentEvent e) { updateAge(); }
+                public void removeUpdate(DocumentEvent e) { updateAge(); }
+                public void changedUpdate(DocumentEvent e) { updateAge(); }
+                private void updateAge() {
+                    String txt = dobField.getText().trim();
+                    try {
+                        LocalDate bDate = LocalDate.parse(txt);
+                        if (bDate.isAfter(LocalDate.now())) {
+                            agePreviewLabel.setText("?? Invalid date (Future date)");
+                            agePreviewLabel.setForeground(new Color(220, 38, 38));
+                        } else {
+                            int age = Period.between(bDate, LocalDate.now()).getYears();
+                            if (age > 30) {
+                                agePreviewLabel.setText("? Age: " + age + " Years - student can't register! (Over 30)");
+                                agePreviewLabel.setForeground(new Color(220, 38, 38));
+                            } else {
+                                agePreviewLabel.setText("? Age: " + age + " Years (Eligible Student)");
+                                agePreviewLabel.setForeground(new Color(22, 163, 74));
+                            }
+                        }
+                    } catch (Exception ex) {
+                        agePreviewLabel.setText("Age: - (Format: YYYY-MM-DD)");
+                        agePreviewLabel.setForeground(new Color(100, 116, 139));
+                    }
+                }
+            });
+        }
 
         JTextField emailField = new JTextField(currentStudent.getEmail() != null ? currentStudent.getEmail() : "");
         JTextField phoneField = new JTextField(currentStudent.getPhone() != null ? currentStudent.getPhone() : "");
         JTextField addressField = new JTextField(currentStudent.getAddress() != null ? currentStudent.getAddress() : "");
 
-        Font fieldFont = new Font("Arial", Font.PLAIN, 13);
         emailField.setFont(fieldFont);
         phoneField.setFont(fieldFont);
         addressField.setFont(fieldFont);
 
         int y = 0;
         gbc.gridy = y++;
-        form.add(createDialogReadOnlyRow("Student Index No (Locked):", currentStudent.getIndexNo()), gbc);
+        form.add(createDialogReadOnlyRow("Student Index No (Official Record):", currentStudent.getIndexNo()), gbc);
+
         gbc.gridy = y++;
-        form.add(createDialogReadOnlyRow("Full Legal Name (Locked):", currentStudent.getFullName()), gbc);
+        form.add(createDialogReadOnlyRow("Full Legal Name:", currentStudent.getFullName()), gbc);
+
+        gbc.gridy = y++;
+        form.add(createDialogEditRowWithHint(
+                "National ID Number (NIC) *:",
+                idField,
+                "Must be 12 digits (numbers only) OR 9 digits with 'V' / 'v' at the end (e.g. 200012345678 or 123456789V)"
+        ), gbc);
+
+        gbc.gridy = y++;
+        String dobHint = isDobLocked
+                ? "?? Birthday is permanently locked in the database and cannot be modified."
+                : "Format: YYYY-MM-DD (e.g. 2002-05-15). Once saved, birthday CANNOT be edited. Age must be <= 30.";
+        form.add(createDialogEditRowWithHint("Date of Birth (DOB) *:", dobField, dobHint), gbc);
+
+        gbc.gridy = y++;
+        JPanel ageRow = new JPanel(new BorderLayout(8, 2));
+        ageRow.setOpaque(false);
+        JLabel ageTitleLbl = new JLabel("Calculated Age Status:");
+        ageTitleLbl.setFont(new Font("Arial", Font.BOLD, 11));
+        ageTitleLbl.setForeground(new Color(30, 41, 59));
+        ageRow.add(ageTitleLbl, BorderLayout.NORTH);
+        ageRow.add(agePreviewLabel, BorderLayout.CENTER);
+        form.add(ageRow, gbc);
+
         gbc.gridy = y++;
         form.add(createDialogEditRow("Official Email Address *:", emailField), gbc);
+
         gbc.gridy = y++;
         form.add(createDialogEditRow("Contact Phone Number *:", phoneField), gbc);
+
         gbc.gridy = y++;
         form.add(createDialogEditRow("Permanent Residence / Address *:", addressField), gbc);
 
-        dialog.add(form, BorderLayout.CENTER);
+        JScrollPane formScroll = new JScrollPane(form);
+        formScroll.setBorder(null);
+        dialog.add(formScroll, BorderLayout.CENTER);
 
         // Bottom Actions
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 14));
@@ -2907,7 +3014,7 @@ public class StudentDashboard extends JFrame {
         cancelBtn.setFocusPainted(false);
         cancelBtn.addActionListener(e -> dialog.dispose());
 
-        JButton saveBtn = new JButton("Save Changes");
+        JButton saveBtn = new JButton("Save Profile Details");
         saveBtn.setFont(new Font("Arial", Font.BOLD, 12));
         saveBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         saveBtn.setOpaque(true);
@@ -2917,10 +3024,69 @@ public class StudentDashboard extends JFrame {
         saveBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         saveBtn.addActionListener(e -> {
+            String newId = idField.getText().trim();
             String newEmail = emailField.getText().trim();
             String newPhone = phoneField.getText().trim();
             String newAddress = addressField.getText().trim();
 
+            // 1. Validate ID Number:
+            // Must be numbers only of 12 digits OR 9 digits followed by 'V' or 'v'
+            if (newId.isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "National ID (NIC) cannot be empty.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            boolean is12Digits = newId.matches("^[0-9]{12}$");
+            boolean is9DigitsV = newId.matches("^[0-9]{9}[Vv]$");
+            if (!is12Digits && !is9DigitsV) {
+                JOptionPane.showMessageDialog(dialog,
+                        "Invalid National ID Number!\n\n" +
+                        "The ID number must strictly match one of the two formats:\n" +
+                        "1. Exactly 12 digits (numbers only, e.g. 200012345678) - cannot have more or fewer digits.\n" +
+                        "2. Exactly 9 digits ending with 'V' or 'v' (total 10 characters, e.g. 123456789V).\n\n" +
+                        "Please check and correct your ID number.",
+                        "Invalid ID Number",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // 2. Validate Date of Birth & Calculate Age:
+            java.sql.Date sqlDob = currentStudent.getDob();
+            if (!isDobLocked) {
+                String dobText = dobField.getText().trim();
+                if (dobText.isEmpty()) {
+                    JOptionPane.showMessageDialog(dialog, "Date of Birth cannot be empty. Please enter your birthday (YYYY-MM-DD).", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                LocalDate bDate;
+                try {
+                    bDate = LocalDate.parse(dobText);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(dialog, "Invalid Date format! Please use YYYY-MM-DD (e.g. 2002-05-15).", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                if (bDate.isAfter(LocalDate.now())) {
+                    JOptionPane.showMessageDialog(dialog, "Birth date cannot be in the future.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                int calculatedAge = Period.between(bDate, LocalDate.now()).getYears();
+
+                // 3. Age Restriction Check: If age > 30, student can't register!
+                if (calculatedAge > 30) {
+                    JOptionPane.showMessageDialog(dialog,
+                            "student can't register\n\n" +
+                            "Student's calculated age is " + calculatedAge + " years.\n" +
+                            "Undergraduate registration requires applicants to be 30 years or younger.",
+                            "Registration Restricted",
+                            JOptionPane.ERROR_MESSAGE);
+                    return; // Block registration and database update!
+                }
+
+                sqlDob = java.sql.Date.valueOf(bDate);
+            }
+
+            // 4. Validate Contact Details:
             if (newEmail.isEmpty()) {
                 JOptionPane.showMessageDialog(dialog, "Email address cannot be empty.", "Validation Error", JOptionPane.WARNING_MESSAGE);
                 return;
@@ -2938,24 +3104,43 @@ public class StudentDashboard extends JFrame {
                 return;
             }
 
-            boolean ok = studentDAO.updateContactDetails(currentStudent.getUserId(), newEmail, newPhone, newAddress);
+            // 5. Update Database:
+            boolean ok = studentDAO.updateStudentProfile(
+                    currentStudent.getUserId(),
+                    newId.toUpperCase(),
+                    sqlDob,
+                    newEmail,
+                    newPhone,
+                    newAddress
+            );
+
             if (ok) {
+                currentStudent.setIdNumber(newId.toUpperCase());
+                currentStudent.setDob(sqlDob);
                 currentStudent.setEmail(newEmail);
                 currentStudent.setPhone(newPhone);
                 currentStudent.setAddress(newAddress);
 
+                profileIdNumberLabel.setText(newId.toUpperCase());
+                if (sqlDob != null) {
+                    profileDobLabel.setText(sqlDob.toString());
+                    int a = currentStudent.getAge();
+                    profileAgeLabel.setText(a + " Years");
+                    profileAgeStatusBadge.setText(a <= 30 ? "? Eligible Student (<= 30 Yrs)" : "?? Age Limit Exceeded");
+                }
                 profileEmailLabel.setText(newEmail);
                 profilePhoneLabel.setText(newPhone);
                 profileAddressLabel.setText(newAddress);
 
                 dialog.dispose();
                 JOptionPane.showMessageDialog(this,
-                        "Contact details updated successfully in the system database!",
+                        "Profile details, ID Number, and Date of Birth updated successfully in the database!\n" +
+                        "Date of Birth is now permanently recorded.",
                         "Profile Updated",
                         JOptionPane.INFORMATION_MESSAGE);
             } else {
                 JOptionPane.showMessageDialog(dialog,
-                        "Failed to update contact details. Please check database connection.",
+                        "Failed to update profile details. Please verify your database connection.",
                         "Update Failed",
                         JOptionPane.ERROR_MESSAGE);
             }
@@ -2968,13 +3153,33 @@ public class StudentDashboard extends JFrame {
         dialog.setVisible(true);
     }
 
+    private JPanel createDialogEditRowWithHint(String labelText, JTextField tf, String hintText) {
+        JPanel p = new JPanel(new BorderLayout(8, 2));
+        p.setOpaque(false);
+        JLabel lbl = new JLabel(labelText);
+        lbl.setFont(new Font("Arial", Font.BOLD, 11));
+        lbl.setForeground(new Color(30, 41, 59));
+        tf.setBorder(BorderFactory.createCompoundBorder(
+                new LineBorder(new Color(203, 213, 225), 1, true),
+                new EmptyBorder(6, 10, 6, 10)
+        ));
+        JLabel hint = new JLabel(hintText);
+        hint.setFont(new Font("Arial", Font.PLAIN, 10));
+        hint.setForeground(new Color(100, 116, 139));
+
+        p.add(lbl, BorderLayout.NORTH);
+        p.add(tf, BorderLayout.CENTER);
+        p.add(hint, BorderLayout.SOUTH);
+        return p;
+    }
+
     private JPanel createDialogReadOnlyRow(String labelText, String val) {
         JPanel p = new JPanel(new BorderLayout(8, 2));
         p.setOpaque(false);
         JLabel lbl = new JLabel(labelText);
         lbl.setFont(new Font("Arial", Font.BOLD, 11));
         lbl.setForeground(new Color(100, 116, 139));
-        JLabel valLbl = new JLabel(val != null ? val : "—");
+        JLabel valLbl = new JLabel(val != null ? val : "â€”");
         valLbl.setFont(new Font("Arial", Font.BOLD, 12));
         valLbl.setForeground(new Color(71, 85, 105));
         p.add(lbl, BorderLayout.NORTH);
@@ -3182,7 +3387,7 @@ public class StudentDashboard extends JFrame {
             ));
             emptyPanel.setLayout(new BoxLayout(emptyPanel, BoxLayout.Y_AXIS));
 
-            JLabel emptyIcon = new JLabel("📢");
+            JLabel emptyIcon = new JLabel("ðŸ“¢");
             emptyIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 42));
             emptyIcon.setAlignmentX(Component.CENTER_ALIGNMENT);
 
@@ -3223,19 +3428,19 @@ public class StudentDashboard extends JFrame {
         if (type.contains("QUIZ")) {
             accentBarColor = new Color(230, 126, 34); // Warm Amber
             badgeBg = new Color(243, 156, 18);
-            badgeText = "🔔 QUIZ - ADVANCE NOTICE";
+            badgeText = "ðŸ”” QUIZ - ADVANCE NOTICE";
         } else if (type.contains("ASSIGNMENT")) {
             accentBarColor = new Color(20, 165, 145); // Teal
             badgeBg = new Color(20, 165, 145);
-            badgeText = "📝 UPCOMING ASSIGNMENT";
+            badgeText = "ðŸ“ UPCOMING ASSIGNMENT";
         } else if (type.contains("EXAM")) {
             accentBarColor = new Color(142, 68, 173); // Purple
             badgeBg = new Color(142, 68, 173);
-            badgeText = "🎓 EXAM SCHEDULE";
+            badgeText = "ðŸŽ“ EXAM SCHEDULE";
         } else {
             accentBarColor = new Color(52, 152, 219); // Blue
             badgeBg = new Color(52, 152, 219);
-            badgeText = "📢 FACULTY NOTICE";
+            badgeText = "ðŸ“¢ FACULTY NOTICE";
         }
 
         JPanel card = new JPanel(new BorderLayout(0, 10));
@@ -3300,11 +3505,11 @@ public class StudentDashboard extends JFrame {
         // Metadata: Posted Date, Scheduled Event Date (without lecturer personal details)
         StringBuilder metaSb = new StringBuilder();
         if (notice.getNoticeDate() != null) {
-            metaSb.append("📅 Posted: ").append(notice.getNoticeDate().toString());
+            metaSb.append("ðŸ“… Posted: ").append(notice.getNoticeDate().toString());
         }
         if (notice.getEventDate() != null) {
-            if (metaSb.length() > 0) metaSb.append("   •   ");
-            metaSb.append("🎯 Scheduled Event / Due Date: ").append(notice.getEventDate().toString());
+            if (metaSb.length() > 0) metaSb.append("   â€¢   ");
+            metaSb.append("ðŸŽ¯ Scheduled Event / Due Date: ").append(notice.getEventDate().toString());
         }
 
         centerContent.add(titleLbl);
@@ -3347,7 +3552,7 @@ public class StudentDashboard extends JFrame {
         titleLbl.setForeground(darkBlue);
 
         JLabel subLbl = new JLabel("Posted by: " + (notice.getAuthorName() != null ? notice.getAuthorName() : "Course Lecturer") +
-                                  " • Date: " + (notice.getNoticeDate() != null ? notice.getNoticeDate().toString() : "Recent"));
+                                  " â€¢ Date: " + (notice.getNoticeDate() != null ? notice.getNoticeDate().toString() : "Recent"));
         subLbl.setFont(new Font("Arial", Font.PLAIN, 12));
         subLbl.setForeground(new Color(110, 120, 130));
 
@@ -3700,10 +3905,10 @@ public class StudentDashboard extends JFrame {
         descArea.setWrapStyleWord(true);
         descArea.setText(
                 "Advance Notice for Students:\n" +
-                "• Topics Covered: Classes, Inheritance, Polymorphism, Abstract Classes, and Exception Handling.\n" +
-                "• Assessment Format: 20 Multiple Choice Questions + 2 Hands-on Coding Problems.\n" +
-                "• Venue & Timing: Software Lab 01 (09:00 AM - 10:00 AM).\n" +
-                "• Advance Guidelines: Review lecture slides 1 to 5 and complete the sample worksheet beforehand. Please bring your Student ID card."
+                "â€¢ Topics Covered: Classes, Inheritance, Polymorphism, Abstract Classes, and Exception Handling.\n" +
+                "â€¢ Assessment Format: 20 Multiple Choice Questions + 2 Hands-on Coding Problems.\n" +
+                "â€¢ Venue & Timing: Software Lab 01 (09:00 AM - 10:00 AM).\n" +
+                "â€¢ Advance Guidelines: Review lecture slides 1 to 5 and complete the sample worksheet beforehand. Please bring your Student ID card."
         );
         descArea.setBorder(new EmptyBorder(8, 8, 8, 8));
 
@@ -3855,9 +4060,9 @@ public class StudentDashboard extends JFrame {
                 JOptionPane.showMessageDialog(
                         dialog,
                         "Advance Announcement posted successfully by Lecturer " + authorizedLecturer.getFirstName() + " " + authorizedLecturer.getLastName() + "!\n\n" +
-                        "• Title: " + title + "\n" +
-                        "• Scheduled Date: " + sqlDate + "\n" +
-                        "• Course: " + (selectedCourse != null ? selectedCourse.courseCode : "N/A") + "\n\n" +
+                        "â€¢ Title: " + title + "\n" +
+                        "â€¢ Scheduled Date: " + sqlDate + "\n" +
+                        "â€¢ Course: " + (selectedCourse != null ? selectedCourse.courseCode : "N/A") + "\n\n" +
                         "Students can now view this in their Announcements navigation section in advance.",
                         "Announcement Posted",
                         JOptionPane.INFORMATION_MESSAGE
@@ -4000,7 +4205,7 @@ public class StudentDashboard extends JFrame {
 
     // Add activity bullet (user's design)
     private void addActivity(JPanel panel, String text) {
-        JLabel activity = new JLabel("•  " + text);
+        JLabel activity = new JLabel("â€¢  " + text);
         activity.setFont(new Font("Arial", Font.PLAIN, 13));
         activity.setForeground(new Color(70, 80, 90));
         activity.setBorder(BorderFactory.createEmptyBorder(6, 0, 6, 0));
@@ -4022,7 +4227,7 @@ public class StudentDashboard extends JFrame {
             }
         });
 
-        JLabel tLabel = new JLabel("📢  " + title);
+        JLabel tLabel = new JLabel("ðŸ“¢  " + title);
         tLabel.setFont(new Font("Arial", Font.BOLD, 12));
         tLabel.setForeground(textColor);
 
@@ -4093,7 +4298,7 @@ public class StudentDashboard extends JFrame {
         JPanel titleGroup = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         titleGroup.setOpaque(false);
 
-        JLabel bellIconLbl = new JLabel("🔔");
+        JLabel bellIconLbl = new JLabel("ðŸ””");
         bellIconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
 
         JLabel titleLbl = new JLabel("Notifications");
@@ -4146,7 +4351,7 @@ public class StudentDashboard extends JFrame {
             emptyPanel.setBackground(Color.WHITE);
             emptyPanel.setBorder(new EmptyBorder(50, 20, 50, 20));
 
-            JLabel emptyIcon = new JLabel("🎉");
+            JLabel emptyIcon = new JLabel("ðŸŽ‰");
             emptyIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 32));
             emptyIcon.setAlignmentX(Component.CENTER_ALIGNMENT);
 
@@ -4190,7 +4395,7 @@ public class StudentDashboard extends JFrame {
                 new EmptyBorder(10, 16, 10, 16)
         ));
 
-        JButton viewAllBtn = new JButton("View All Announcements & Notices →");
+        JButton viewAllBtn = new JButton("View All Announcements & Notices â†’");
         viewAllBtn.setFont(new Font("Arial", Font.BOLD, 12));
         viewAllBtn.setUI(new javax.swing.plaf.basic.BasicButtonUI());
         viewAllBtn.setOpaque(true);
@@ -4228,15 +4433,15 @@ public class StudentDashboard extends JFrame {
 
         // Icon on left
         String type = n.getNoticeType() != null ? n.getNoticeType().toUpperCase() : "GENERAL";
-        String iconSymbol = "📢";
+        String iconSymbol = "ðŸ“¢";
         Color iconBg = new Color(238, 242, 255);
         Color iconBorder = new Color(199, 210, 254);
         if (type.contains("QUIZ")) {
-            iconSymbol = "🔔";
+            iconSymbol = "ðŸ””";
             iconBg = new Color(254, 243, 199);
             iconBorder = new Color(253, 230, 138);
         } else if (type.contains("ASSIGNMENT")) {
-            iconSymbol = "📝";
+            iconSymbol = "ðŸ“";
             iconBg = new Color(209, 250, 229);
             iconBorder = new Color(167, 243, 208);
         }
@@ -4402,3 +4607,4 @@ public class StudentDashboard extends JFrame {
         });
     }
 }
+
